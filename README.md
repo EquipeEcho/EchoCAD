@@ -41,8 +41,18 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer documen
 ---
 
 # 📋 Backlog do Produto
-| Rank | Prioridade | User Story                                                                                                                                                                           | Estimativa | Sprint |
-| ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Rank | Prioridade | User Story | Estimativa | Sprint |
+| ---- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| 1    | Alta       | Como usuário, quero fazer upload de uma planta CAD para que o sistema possa iniciar a análise técnica do arquivo.                       | 5          | 1      |
+| 2    | Alta       | Como usuário, quero visualizar uma lista das plantas enviadas para acompanhar o status do processamento.                                | 3          | 1      |
+| 3    | Alta       | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados.       | 3          | 1      |
+| 4    | Alta       | Como sistema, preciso extrair dados estruturais da planta CAD para permitir análise automática das informações.                         | 8          | 1      |
+| 5    | Média       | Como usuário, quero gerar especificações técnicas automaticamente para documentar os detalhes do projeto. | 5          | 2      |
+| 6    | Média       | Como usuário, quero visualizar os dados técnicos extraídos da planta antes da geração do documento para validar as informações.             | 5          | 2      |
+| 7    | Alta       | Como usuário, quero gerar automaticamente um memorial de cálculo baseado nos dados extraídos da planta.          | 5         | 2      |
+| 8    | Média       | Como usuário, quero exportar a documentação gerada em formato PDF para utilização em relatórios e processos técnicos.      | 3          | 3      |
+| 9   | Média       |  Como usuário, quero acessar um histórico de documentos gerados para consultar análises anteriores.                               | 3          | 3      |
+| 10   | Média      | Como usuário, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises.                  | 3          | 3      |
 
 ---
 ## 🚀 MVP - Mínimo Produto Viável
