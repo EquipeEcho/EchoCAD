@@ -1,8 +1,8 @@
-# 4ADS
+# EchoCAD
 
-## 📌 4ADS – Automatização de documentos técnicos
+## 📌 EchoCAD – Automatização de documentos técnicos
 
-Sistema desenvolvido como parte do projeto **API – Aprendizagem por Projetos Integrados (FATEC – 2026-1)**, em parceria com o **Exército - Guarnição de Caçapava**.
+Sistema desenvolvido como parte do projeto **API – Aprendizagem por Projetos Integrados (FATEC – 2026-1º Semestre)**, em parceria com o **Exército - Guarnição de Caçapava**.
 
 O objetivo é desenvolver um site para extrair informações de uma planta CAD e gerar automaticamente uma documentação técnica utilizando uma inteligência artificial para garantir a precisão dos dados obtidos.
 
@@ -11,36 +11,41 @@ O objetivo é desenvolver um site para extrair informações de uma planta CAD e
 ## 📖 Sumário
 
 - [Sobre o Projeto](#about)
-- [Objetivo do Desafio](#objetivo-do-desafio)
-- [Backlog do Produto](#backlog-do-produto)
+- [Objetivo do Desafio](#objective)
+- [Manuais e Documentação](#documents)
+- [Backlog do Produto](#backlog)
 - [Cronograma de Sprints](#sprint)
-- [Funcionalidades](#funcionalidades)
-- [Requisitos não Funcionais](#requisitos-não-funcionais)
-- [Tecnologias Utilizadas](#tecnologias)
-- [Manuais e Documentação](#manuais-e-docs)
+- [Funcionalidades](#functionalities)
+- [Requisitos não Funcionais](#requirements)
+- [Tecnologias Utilizadas](#tecnologies)
 - [Autores](#authors)
 
 ---
 
 ## 📌 <span id="about">Sobre o Projeto</span>
 
-Este projeto visa criar uma solução capaz de retirar dados de qualquer documento com precisão, interpretá-los e fornecer ao usuário informações diretas e precisas.
+Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de documento com precisão, interpretá-los e fornecer ao usuário informações diretas e precisas.
 
 ---
 
-## 🎯 <span id="objetivo-do-desafio">Objetivo do Desafio</span>
+## 🎯 <span id="objective">Objetivo do Desafio</span>
 
 - Dado um modelo qualquer inserido pelo usuário, absorver dados relevantes para uma documentação
 - Realizar cálculos complexos juntamente com uma IA para verificar a veracidade dos resultados
-- Retornar ao consumidor um documento com todas informações necessárias para que possa dar continuidade ao seu projeto
+- Retornar ao consumidor um documento que segue as normas ABNT com todas informações necessárias para que possa dar continuidade ao seu projeto
 
 ---
 
-## <span id="tutorial">Tutorial de Instalação</span>
+## 📚 <span id="documents">Manuais e Documentação</span>
+
+- 📖 [Manual de Instalação](docs/manual-instalacao.md)  
+- 👨‍💻 [Manual do Usuário](docs/manual-usuario.md)
+- 🖥️ [Manual do Desenvolvedor](https://docs.google.com/document/d/16Qun6kh2kjLRQpp6ShXNLXjaFmUmkUgfRqPLsjNbvSs/edit?usp=sharing)
+- 🔌 [Documentação da API](docs/api.md)  
 
 ---
 
-# 📋 Backlog do Produto
+# 📋 <span id="backlog">Backlog do Produto</span>
 | Rank | Prioridade | User Story | Estimativa | Sprint |
 | ---- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | 1    | Alta       | Como usuário, quero fazer upload de uma planta CAD para que o sistema possa iniciar a análise técnica do arquivo.                       | 5          | 1      |
@@ -89,6 +94,7 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer documen
 - Subtarefas divididas a partir das US
 - Projeto bem definido e acordado com o cliente
 - Arquitetura MVC clara para toda a equipe
+- Commits que seguem um modelo padrão
 
 ## 🏆 DoD - Definition of Done
 
@@ -99,13 +105,13 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer documen
 
 | Sprint          |    Período    |
 | --------------- | :-----------: |
-| 🔖 **SPRINT 1** | 16/03 - 05/01 |
+| 🔖 **SPRINT 1** | 16/03 - 05/04 |
 | 🔖 **SPRINT 2** | 13/04 - 03/05 |
 | 🔖 **SPRINT 3** | 11/05 - 31/05 |
 
 ---
 
-## ⚙️ <span id="funcionalidades">Funcionalidades</span>
+## ⚙️ <span id="functionalities">Funcionalidades</span>
 
 - Extração de dados através da planta CAD
 - Cálculos complexos para tratação de dados
@@ -114,15 +120,16 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer documen
 
 ---
 
-## 🔧 <span id="requisitos-não-funcionais">Requisitos Não Funcionais</span>
+## 🔧 <span id="requirements">Requisitos Não Funcionais</span>
 
 - Manual de instalação (no repositório).  
-- Manual do usuário (no repositório).  
-- Documentação da API.  
+- Manual do usuário
+- Documentação técnica para desenvolvedores
+- Documentação da API.
 
 ---
 
-## 💻 <span id="tecnologias">Tecnologias</span>
+## 💻 <span id="tecnologies">Tecnologias</span>
 
 <h4 align="center">
  <a href="https://developer.mozilla.org/pt-BR/docs/Web/JavaScript"><img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black"></a>
@@ -135,14 +142,6 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer documen
  <a href="https://www.atlassian.com/software/jira"><img src="https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white"/></a>
  <a href="https://github.com/"><img src="https://img.shields.io/badge/GitHub-121011?style=for-the-badge&logo=github&logoColor=white"/></a>
 </h4>
-
----
-
-## 📚 <span id="manuais-e-docs">Manuais e Documentação</span>
-
-- 📖 [Manual de Instalação](docs/manual-instalacao.md)  
-- 👨‍💻 [Manual do Usuário](docs/manual-usuario.md)  
-- 🔌 [Documentação da API](docs/api.md)  
 
 ---
 
@@ -161,8 +160,8 @@ Projeto desenvolvido pelos alunos do **4º semestre de ADS – FATEC SJC (2025-2
     <tr>
       <td>Fábio Hiromitsu Nawa</td>
       <td>Scrum Master</td>
-      <td><a href="https://github.com/TaylorSilva2"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/taylor-silva-859300330/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
+      <td><a href="https://github.com/TechSDW"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
+      <td><a href="https://www.linkedin.com/in/f%C3%A1biohnawa/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
     </tr>
     <tr>
       <td>Rafael Barbosa Candido</td>
