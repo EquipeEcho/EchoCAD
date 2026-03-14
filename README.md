@@ -46,18 +46,23 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de
 ---
 
 # 📋 <span id="backlog">Backlog do Produto</span>
+
 | Rank | Prioridade | User Story | Estimativa | Sprint |
-| ---- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| 1    | Alta       | Como usuário, quero fazer upload de uma planta CAD para que o sistema possa iniciar a análise técnica do arquivo.                       | 5          | 1      |
-| 2    | Alta       | Como usuário, quero visualizar uma lista das plantas enviadas para acompanhar o status do processamento.                                | 3          | 1      |
-| 3    | Alta       | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados.       | 3          | 1      |
-| 4    | Alta       | Como sistema, preciso extrair dados estruturais da planta CAD para permitir análise automática das informações.                         | 8          | 1      |
-| 5    | Média       | Como usuário, quero gerar especificações técnicas automaticamente para documentar os detalhes do projeto. | 5          | 2      |
-| 6    | Média       | Como usuário, quero visualizar os dados técnicos extraídos da planta antes da geração do documento para validar as informações.             | 5          | 2      |
-| 7    | Alta       | Como usuário, quero gerar automaticamente um memorial de cálculo baseado nos dados extraídos da planta.          | 5         | 2      |
-| 8    | Média       | Como usuário, quero exportar a documentação gerada em formato PDF para utilização em relatórios e processos técnicos.      | 3          | 3      |
-| 9   | Média       |  Como usuário, quero acessar um histórico de documentos gerados para consultar análises anteriores.                               | 3          | 3      |
-| 10   | Média      | Como usuário, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises.                  | 3          | 3      |
+|-----|------------|------------|------------|--------|
+| US01 | Alta | Como usuário, quero enviar um arquivo CAD para que o sistema processe a planta automaticamente. | 5 | 1 |
+| US02 | Alta | Como sistema, quero extrair entidades do arquivo CAD para transformar a planta em dados estruturados. | 8 | 1 |
+| US03 | Alta | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados. | 3 | 1 |
+| US04 | Alta | Como usuário, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
+| US05 | Alta | Como usuário, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
+| US06 | Alta | Como sistema quero classificar elementos CAD para identificar componentes da planta.  | 8 | 2 |
+| US07 | Alta | Como usuário, quero gerar automaticamente especificações técnicas do projeto. | 5 | 2 |
+| US08 | Média | Como usuário, quero utilizar um assistente baseado em IA para solicitar geração de documentos via linguagem natural. | 5 | 2 |
+| US09 | Média | Como sistema, quero armazenar dados do projeto em banco relacional normalizado para garantir integridade e consulta eficiente. | 3 | 2 |
+| US10 | Média | Como usuário, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises. | 3 | 3 |
+| US11 | Média | Como usuário, quero exportar documentos tecnicos em PDF ou DOCX. | 3 | 3 |
+| US12 | Média |  Como usuário, quero acessar um histórico de documentos gerados para consultar análises anteriores. | 3 | 3 |
+| US13 | Baixa | Como usuário, quero acessar um manual de uso do sistema. | 2 | 3 |
+| US14 | Baixa | Como usuário, quero um manual de instalação da aplicação para facilitar a implantação. | 2 | 3 |
 
 ---
 ## 🚀 MVP - Mínimo Produto Viável
