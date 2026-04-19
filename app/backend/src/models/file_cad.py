@@ -1,16 +1,13 @@
 from datetime import datetime
 from sqlalchemy import func
-from sqlalchemy.orm import Mapped, mapped_column, registry, mapped_as_dataclass
-
-table_registry = registry()
+from sqlalchemy.orm import Mapped, mapped_column
+from src.models.base import Base
 
 # table de registro de arquivos de upload
 # será usado depois pra facilitar o acesso aos arquivos
-@mapped_as_dataclass(table_registry)
-class FileCad:
+class FileCad(Base):
     __tablename__ = 'files_cad'
 
-    id: Mapped[int] = mapped_column(primary_key=True, init=False)
     filename: Mapped[str] = mapped_column(nullable=False)
     file_size: Mapped[int] = mapped_column(nullable=False) 
     file_hash: Mapped[str] = mapped_column(unique=True, nullable=False)

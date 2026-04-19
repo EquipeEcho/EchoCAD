@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.database import get_session
 from src.controller.file_controller import save_file_metadata
 
-from src.modules.Memorial.generatorteste import run_integration
+from src.modules.memorial.generatorteste import run_integration
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ async def upload(file: UploadFile = File(...), db: Session = Depends(get_session
         except Exception as db_err:
             logger.error(f"Erro ao salvar metadados: {db_err}")
 
-        basepath = Path("src/modules/Memorial")
+        basepath = Path("src/modules/memorial")
 
         template_file = (basepath / "model_memorial.xlsx").resolve()
 

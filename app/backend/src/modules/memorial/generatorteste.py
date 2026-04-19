@@ -6,10 +6,10 @@ from typing import List
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
-from dxf_extractor import Ambiente, CADExtractor, ProjetoMemorial
-from sinapi import buscar_preco_sinapi, carregar_sinapi
+from src.modules.memorial.dxf_extractor import Ambiente, CADExtractor, ProjetoMemorial
+from src.modules.memorial.sinapi import buscar_preco_sinapi, carregar_sinapi
 
-from IA_config import *
+from src.modules.memorial.ia_config import *
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)

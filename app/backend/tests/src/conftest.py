@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from src.main import app
 from src.database import get_session
-from src.models.file_cad import table_registry
 from src.models.base import Base
 
 
