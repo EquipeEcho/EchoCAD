@@ -1,78 +1,67 @@
-# modulo de extração de dados de arquivos dxf
+
+# dxf_extractor.py
+# Extrai dados de ambientes diretamente das anotações de texto do arquivo DXF.
+# A planta já contém área, perímetro e pé-direito nos próprios textos —
+# esse módulo lê esses valores em vez de recalcular geometria.
 
 import logging
 import math
+import re
+from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
-
-from ezdxf.document import Drawing
-from ezdxf.filemanagement import readfile
-
-from src.modules.memorial.ia_config import classificar
-
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-MAP_LAYER = {
-    "ARQ - ALVENARIA ALTA": "parede",
-    "ARQUITETÔNICO - ALVENARIA ALTA": "parede",
-    "ARQ - ALVENARIA MÉDIA-BAIXA": "parede",
-    "ARQ - ESQUADRIAS": "vao",
-    "ARQ - ALVENARIA (-)": "parede",
-    "ESQUADRIAS": "vao",
-    "ARQ - TEXTOS": "ambiente_nome",
-    "ARQUITETÔNICO - TEXTOS": "ambiente_nome",
-    "ESTRUTURAL - PILARES": "pilar",
-    "ESTRUTURAL - VIGAS": "viga",
-    "ESTRUTURAL - LAJES": "laje",
-    "HIDROSSANITÁRIO - ÁGUA FRIA": "hidro",
-    "HIDROSSANITÁRIO - ESGOTO": "hidro",
-    "HIDROSSANITÁRIO - VENTILAÇÃO": "hidro",
-    "ARQ - COBERTURA": "cobertura",
-    "ARQ - DRY-WALL": "parede_leve",
-    "BASE": "base"
+# ---------------------------------------------------------------------------
+# Layers que contêm os textos de nome/área/perímetro/pé-direito dos ambientes
+# ---------------------------------------------------------------------------
+LAYERS_TEXTO = {
+    'arq - textos',
+    'arquitetônico - textos',
 }
 
-@dataclass
-class ElementoBase:
-    tipo: str
-    comprimento: float = 0
-    altura: float = 0
-    espessura: float = 0
-    area: float = 0
+LAYERS_PAREDE = {
+    'arq - alvenaria alta',
+    'arq - alvenaria média-baixa',
+    'arq - alvenaria (-)',
+    'arquitetônico - alvenaria alta',
+}
+LAYERS_VAO = {
+    'arq - esquadrias',
+    'esquadrias',
+}
 
-@dataclass
-class Dimensoes(ElementoBase):
-    tipo: str = "dimensoes"
-    altura: float = 3.0
-    espessura: float = 0.15
-
-
-@dataclass
-class Vao(ElementoBase):
-    tipo: str = "vao"
-    altura: float = 2.1
-    espessura: float = 0.15
+ESPESSURA_PADRAO = 0.15  # m
+ALTURA_PADRAO    = 3.00  # m
 
 
-@dataclass
-class AlvenariaAdicional(ElementoBase):
-    tipo: str = "alvenaria_adicional"
-
-
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
 @dataclass
 class Ambiente:
     nome: str
-    centro: tuple = (0, 0)
-    tipo: str = "parede"
-    aba: str = "Levantamento Campo"
+    subtitulo: Optional[str] = None
+    area: float = 0.0
+    perimetro: float = 0.0
+    pe_direito: float = 3.0
+    espessura_parede: float = ESPESSURA_PADRAO
 
-    elementos: List[ElementoBase] = field(default_factory=list)
+    comprimento_paredes: float = 0.0
+    comprimento_vaos: float = 0.0
 
-    custo_unitario: float = 0
-    custo_total: float = 0
+    area_bruta_parede: float = 0.0
+    area_vaos: float = 0.0
+    area_liquida_parede: float = 0.0
 
-    resumo: dict = field(default_factory=dict)
+    custo_unitario: float = 0.0
+    custo_total: float = 0.0
+
+    cx: float = 0.0
+    cy: float = 0.0
+
 
 @dataclass
 class ProjetoMemorial:
@@ -80,265 +69,321 @@ class ProjetoMemorial:
     ambientes: List[Ambiente]
 
 
+# ---------------------------------------------------------------------------
+# Parser DXF manual (sem ezdxf)
+# ---------------------------------------------------------------------------
+class DXFParser:
+    ENCODING = 'windows-1252'
+
+    def __init__(self, filepath: str):
+        self.filepath = filepath
+        self._lines: List[str] = []
+        self._entities: List[Dict] = []
+
+    def load(self) -> bool:
+        try:
+            with open(self.filepath, 'r', encoding=self.ENCODING, errors='replace') as f:
+                self._lines = [l.rstrip('\r\n') for l in f.readlines()]
+            logger.info(f"DXF carregado: {len(self._lines)} linhas")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao abrir DXF: {e}")
+            return False
+
+    def _find_section_bounds(self, section_name: str) -> Tuple[Optional[int], Optional[int]]:
+        start = None
+        for i, l in enumerate(self._lines):
+            if l.strip() == section_name and i > 0 and self._lines[i - 1].strip() == '2':
+                start = i
+                break
+        if start is None:
+            return None, None
+        end = None
+        for i in range(start, len(self._lines)):
+            if self._lines[i].strip() == 'ENDSEC' and i > 0 and self._lines[i - 1].strip() == '0':
+                end = i
+                break
+        return start, end
+
+    def parse_entities(self) -> List[Dict]:
+        if self._entities:
+            return self._entities
+
+        start, end = self._find_section_bounds('ENTITIES')
+        if start is None:
+            logger.error("Seção ENTITIES não encontrada.")
+            return []
+
+        entities = []
+        current_type: Optional[str] = None
+        current_data: Dict = defaultdict(list)
+
+        i = start + 1
+        while i < end - 1:
+            try:
+                code = int(self._lines[i].strip())
+                value = self._lines[i + 1].strip()
+                if code == 0:
+                    if current_type:
+                        entities.append({'type': current_type, 'data': dict(current_data)})
+                    current_type = value
+                    current_data = defaultdict(list)
+                else:
+                    current_data[code].append(value)
+                i += 2
+            except ValueError:
+                i += 1
+
+        if current_type:
+            entities.append({'type': current_type, 'data': dict(current_data)})
+
+        self._entities = entities
+        logger.info(f"Entidades parseadas: {len(entities)}")
+        return entities
+
+
+# ---------------------------------------------------------------------------
+# Extrator de ambientes
+# ---------------------------------------------------------------------------
 class CADExtractor:
-    def __init__(self, file_path: str):
-        self.file_path = file_path
-        self.doc = self._load_file()
+    ALTURA_VAO_PADRAO = 2.10  # m
 
-    def _get_elemento(self, ambiente: Ambiente, tipo: str):
-        elementos = [
-            el for el in ambiente.elementos
-            if el.tipo == tipo
-        ]
+    def __init__(self, filepath: str):
+        self.filepath = filepath
+        self._parser = DXFParser(filepath)
+        self._loaded = self._parser.load()
 
-        return elementos[0] if elementos else None
+    @staticmethod
+    def _limpar_mtext(raw: str) -> str:
+        # Remover formatação de parágrafo inicial (\pxqc; etc.)
+        t = re.sub(r'\\p[^;]*;', '', raw, flags=re.IGNORECASE)
+        # Remover outras formatações (\f, \H, \W, \C, \L etc.)
+        t = re.sub(r'\\[fFhHwWqQaAcClLtToOC][^;]*;', '', t)
+        t = re.sub(r'\\[~{}\|]', '', t)
+        # \P = quebra de parágrafo → newline
+        t = t.replace('\\P', '\n').replace('\\p', '\n')
+        # Remover chaves de grupo {  }
+        t = t.replace('{', '').replace('}', '')
+        return t.strip()
 
-    def _get_centro_entidade(self, entity):
-        tipo = entity.dxftype()
+    @staticmethod
+    def _parse_float_br(s: str) -> Optional[float]:
+        m = re.search(r'([\d]+[,.][\d]+)', s)
+        if m:
+            return float(m.group(1).replace(',', '.'))
+        m2 = re.search(r'(\d+)', s)
+        return float(m2.group(1)) if m2 else None
 
-        if tipo == "LINE":
-            x = (entity.dxf.start.x + entity.dxf.end.x) / 2
-            y = (entity.dxf.start.y + entity.dxf.end.y) / 2
-            return (x, y)
-
-        elif tipo == "LWPOLYLINE":
-            pontos = list(entity.get_points())
-            xs = [p[0] for p in pontos]
-            ys = [p[1] for p in pontos]
-            return (sum(xs)/len(xs), sum(ys)/len(ys))
-
-        elif tipo in ["TEXT", "MTEXT"]:
-            return (entity.dxf.insert.x, entity.dxf.insert.y)
-
-        elif tipo in ["ARC", "CIRCLE"]:
-            return (entity.dxf.center.x, entity.dxf.center.y)
-
-        elif tipo == "INSERT":
-            return (entity.dxf.insert.x, entity.dxf.insert.y)
-
+    def _parse_area(self, s: str) -> Optional[float]:
+        if re.match(r'^[\d,\.]+\s*m²$', s.strip()):
+            return self._parse_float_br(s)
         return None
 
-    def _distancia(self, p1, p2):
-        return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
+    def _parse_perimetro(self, s: str) -> Optional[float]:
+        if re.match(r'^P\s*=', s.strip(), re.I):
+            return self._parse_float_br(s)
+        return None
 
-    def _encontrar_ambiente_mais_proximo(self, ponto, ambientes):
-        menor_dist = float("inf")
-        ambiente_escolhido = None
+    def _parse_pe_direito(self, s: str) -> Optional[float]:
+        if re.match(r'^PD\s*=', s.strip(), re.I):
+            return self._parse_float_br(s)
+        return None
 
-        for amb in ambientes:
-            dist = self._distancia(ponto, amb.centro)
-            if dist < menor_dist:
-                menor_dist = dist
-                ambiente_escolhido = amb
-
-        return ambiente_escolhido
-
-    def _load_file(self) -> Drawing | None:
-        """Lê e retorna o arquivo DXF carregado na memória."""
+    @staticmethod
+    def _comprimento_line(data: Dict) -> float:
         try:
-            logging.info(f"Carregando arquivo: {self.file_path}")
-            return readfile(self.file_path)
-        except Exception as e:
-            logging.error(f"Erro ao abrir arquivo CAD: {e}")
-            return None
+            x1, y1 = float(data[10][0]), float(data[20][0])
+            x2 = float(data[11][0]) if 11 in data else (float(data[10][1]) if len(data.get(10,[])) > 1 else x1)
+            y2 = float(data[21][0]) if 21 in data else (float(data[20][1]) if len(data.get(20,[])) > 1 else y1)
+            return math.hypot(x2 - x1, y2 - y1)
+        except Exception:
+            return 0.0
 
-    def _calcular_comprimento(self, entity):
-        tipo = entity.dxftype()
+    @staticmethod
+    def _comprimento_lwpolyline(data: Dict) -> float:
         try:
-            if tipo == 'LINE':
-                return (entity.dxf.start - entity.dxf.end).magnitude
-            elif tipo == 'LWPOLYLINE':
-                pontos = list(entity.get_points())
-                if len(pontos) < 2:
-                    return 0
-                comprimento = 0
-                for i in range(len(pontos) - 1):
-                    x1, y1 = pontos[i][0], pontos[i][1]
-                    x2, y2 = pontos[i + 1][0], pontos[i + 1][1]
-                    comprimento += math.hypot(x2 - x1, y2 - y1)
-                return comprimento
-            elif tipo == 'ARC':
-                raio = entity.dxf.radius
-                ang = math.radians(entity.dxf.end_angle -
-                                   entity.dxf.start_angle)
-                if ang < 0:
-                    ang += 2 * math.pi
-                return raio * ang
-            elif tipo == 'CIRCLE':
-                return 2 * math.pi * entity.dxf.radius
-            return 0
-        except Exception as e:
-            return 0
-
-    def _normalizar_unidade(self, valor):
-        if not valor:
-            return 0
-
-        # heurística simples (ajustável depois)
-        if valor > 1000:
-            return valor / 1000  # mm → m
-        elif valor > 100:
-            return valor / 100   # cm → m
-        return valor
-
-    def tipo_layer_identificado(self, layer):
-        layer = layer.upper()
-
-        if "HIDROSSANITÁRIO" in layer:
-            return "hidro"
-        if "COBERTURA" in layer:
-            return "cobertura"
-        if "ELÉTRICA" in layer:
-            return "eletrica"
-        if "SÍMBOLOS" in layer or "SÍMBOLO" in layer:
-            return "simbolo"
-        if "DRY-WALL" in layer:
-            return "parede_leve"
-        if "ALVENARIA" in layer:
-            return "parede"
-        if "COTAS" in layer or "COTA" in layer:
-            return "cota"
-        if "ESQUADRIAS" in layer:
-            return "vao"
-        if "DESNÍVEL" in layer:
-            return "desnivel"
-        if "PROJEÇÔES" in layer:
-            return "projecao"
-        if "CIRCUITO" in layer:
-            return "eletrica"
-
-        return "desconhecido"
-
-    def classificar_elemento(self, entity):
-        layer = entity.dxf.layer.upper()
-
-        LAYERS_IGNORADOS = {"DEFPOINTS", "0", "035"}
-
-        if layer in LAYERS_IGNORADOS:
-            return "ignorar"
-
-        tipo = self.tipo_layer_identificado(layer)
-
-        if tipo != "desconhecido":
-            return tipo
-
-        if layer not in MAP_LAYER:
-            return "ignorar"
-
-        # Heurística
-        tipo = MAP_LAYER.get(layer)
-        if tipo:
-            return tipo
-
-        # IA (fallback)
-        nome = getattr(entity.dxf, "name", "")
-        texto = ""
-
-        if entity.dxftype() in ["TEXT", "MTEXT"]:
-            texto = entity.dxf.text if entity.dxftype() == "TEXT" else entity.text
-
-        conf = classificar(
-            nome=nome,
-            layer=layer,
-            texto=texto,
-            tipo_entidade=entity.dxftype()
-        )
-
-        logging.info(f"Classificação IA: (confiança: {conf:.2f})")
-        return tipo
+            xs = [float(v) for v in data.get(10, [])]
+            ys = [float(v) for v in data.get(20, [])]
+            if len(xs) < 2:
+                return 0.0
+            return sum(math.hypot(xs[i+1]-xs[i], ys[i+1]-ys[i]) for i in range(len(xs)-1))
+        except Exception:
+            return 0.0
 
     def extrair_dados_reais(self) -> List[Ambiente]:
-        if not self.doc:
+        if not self._loaded:
             return []
-        msp = self.doc.modelspace()
 
-        # 1. Identificar nomes de ambientes (TEXT/MTEXT nas layers mapeadas)
+        entities = self._parser.parse_entities()
+
+        # ---- 1. Agrupar textos por posição (x, y) ----
+        grupos: Dict[Tuple[float, float], List[str]] = defaultdict(list)
+
+        for e in entities:
+            layer = e['data'].get(8, [''])[0].lower().strip()
+            if layer not in LAYERS_TEXTO:
+                continue
+            if e['type'] not in ('TEXT', 'MTEXT'):
+                continue
+
+            raw = e['data'].get(1, [''])[0]
+            texto = self._limpar_mtext(raw)
+            if not texto:
+                continue
+
+            x = round(float(e['data'].get(10, ['0'])[0]), 1)
+            y = round(float(e['data'].get(20, ['0'])[0]), 1)
+            grupos[(x, y)].append(texto)
+
+        # ---- 2. Interpretar cada grupo como um ambiente ----
+        NOMES_IGNORADOS = {
+            'legenda', 'p = perímetro', 'pd = pé direito', 'baixa', 'média',
+            'alta', 'interruptor', 'existente', 'a demolir', 'a construir',
+            'nao sofre', 'não sofre', 'intervenção', 'arquitetônico',
+        }
+        PREFIXOS_IGNORADOS = (
+            'pm', 'pa', 'pd', 'pv', 'pf', 'ja', 'jr', 'jf', 'rg', 'rp',
+            '%%', 'vb', '{legenda', 'p =', 'pd =', 'telhado',
+            'bloco', 'pátio', 'circu-', 'lação', 'container', 'gerador',
+            'isométrico', '{', 'pm*', 'ja*', 'centro',
+        )
+
         ambientes_dict: Dict[str, Ambiente] = {}
-        for entity in msp.query('TEXT MTEXT'):
-            layer = entity.dxf.layer.upper()
-            if MAP_LAYER.get(layer) == "ambiente_nome":
-                nome = (entity.dxf.text if entity.dxftype() ==
-                        'TEXT' else getattr(entity, 'TEXT', '')).strip()
-                if nome and len(nome) > 2 and nome not in ambientes_dict:
-                    # Limpar formatação MTEXT se houver
-                    if '\\P' in nome:
-                        nome = nome.split('\\P')[0]
-                    centro_texto = self._get_centro_entidade(entity) or (0, 0)
-                    ambientes_dict[nome] = Ambiente(
-                        nome=nome, centro=centro_texto)
+
+        for (x, y), textos in grupos.items():
+            nome = None
+            subtitulo = None
+            area = None
+            perimetro = None
+            pe_direito = None
+
+            for bloco in textos:
+                for linha in bloco.split('\n'):
+                    linha = linha.strip()
+                    if not linha:
+                        continue
+
+                    v_area = self._parse_area(linha)
+                    v_per  = self._parse_perimetro(linha)
+                    v_pd   = self._parse_pe_direito(linha)
+
+                    if v_area is not None and area is None:
+                        area = v_area
+                    elif v_per is not None and perimetro is None:
+                        perimetro = v_per
+                    elif v_pd is not None and pe_direito is None:
+                        pe_direito = v_pd
+                    elif re.match(r'^\(', linha):
+                        subtitulo = linha.strip('()')
+                    elif (
+                        nome is None
+                        and len(linha) >= 3
+                        and linha.lower() not in NOMES_IGNORADOS
+                        and not any(linha.lower().startswith(p) for p in PREFIXOS_IGNORADOS)
+                        and re.match(r'^[A-ZÁÉÍÓÚÀÂÊÎÔÛÃÕ]', linha)
+                        and not re.match(r'^[\d]', linha)
+                    ):
+                        nome = linha
+
+            if not nome or area is None:
+                continue
+
+            # Normalizar "CIRCU-" / "LAÇÃO" que aparecem em dois MTEXTs
+            if nome.upper() in ('CIRCU-', 'LAÇÃO'):
+                nome = 'CIRCULAÇÃO'
+
+            chave = f"{nome}|{area}"
+            if chave in ambientes_dict:
+                continue
+
+            ambientes_dict[chave] = Ambiente(
+                nome=nome,
+                subtitulo=subtitulo,
+                area=area,
+                perimetro=perimetro or 0.0,
+                pe_direito=pe_direito or ALTURA_PADRAO,
+                cx=x,
+                cy=y,
+            )
 
         if not ambientes_dict:
-            ambientes_dict["Ambiente 1"] = Ambiente(nome="Ambiente 1")
+            logger.warning("Nenhum ambiente encontrado pelo parser de texto.")
+            return []
 
-        # 2. Agrupar medidas por tipo de layer
         ambientes_lista = list(ambientes_dict.values())
+        logger.info(f"Ambientes identificados: {len(ambientes_lista)}")
 
-        for entity in msp:
+        # ---- 3. Comprimentos geométricos (enriquecimento) ----
+        for e in entities:
+            layer = e['data'].get(8, [''])[0].lower().strip()
+            etype = e['type']
 
-            layer = entity.dxf.layer.upper()
-            tipo_mapeado = self.classificar_elemento(entity)
-            # logging.info(f"[CLASS] {layer} -> {tipo_mapeado} | {entity.dxftype()}")
+            is_parede = layer in LAYERS_PAREDE
+            is_vao    = layer in LAYERS_VAO
 
-            if tipo_mapeado == "desconhecido":
+            if not (is_parede or is_vao):
                 continue
 
-            if tipo_mapeado == "ignorar":
+            if etype == 'LINE':
+                comp = self._comprimento_line(e['data'])
+                try:
+                    cx = (float(e['data'][10][0]) + float(e['data'].get(11, [e['data'][10][0]])[0])) / 2
+                    cy = (float(e['data'][20][0]) + float(e['data'].get(21, [e['data'][20][0]])[0])) / 2
+                except Exception:
+                    continue
+            elif etype == 'LWPOLYLINE':
+                comp = self._comprimento_lwpolyline(e['data'])
+                xs = [float(v) for v in e['data'].get(10, ['0'])]
+                ys = [float(v) for v in e['data'].get(20, ['0'])]
+                cx = sum(xs) / len(xs) if xs else 0
+                cy = sum(ys) / len(ys) if ys else 0
+            else:
                 continue
 
-            centro = self._get_centro_entidade(entity)
-
-            if not centro:
+            if comp <= 0:
                 continue
 
-            ambiente = self._encontrar_ambiente_mais_proximo(
-                centro, ambientes_lista)
+            # Normalizar unidade
+            if comp > 1000:
+                comp /= 1000
+            elif comp > 100:
+                comp /= 100
 
-            if not ambiente:
+            melhor = min(ambientes_lista, key=lambda a: math.hypot(a.cx - cx, a.cy - cy), default=None)
+            if melhor is None:
                 continue
 
-            if tipo_mapeado in ["parede", "hidro", "vao", "cobertura", "parede_leve", "laje"]:
-                ambiente.tipo = tipo_mapeado
+            if is_parede:
+                melhor.comprimento_paredes += comp
+            else:
+                melhor.comprimento_vaos += comp
 
-            comp = self._calcular_comprimento(entity)
+        # ---- 4. Calcular áreas de parede ----
+        for amb in ambientes_lista:
+            p  = amb.perimetro if amb.perimetro > 0 else amb.comprimento_paredes
+            pd = amb.pe_direito
+            ev = self.ALTURA_VAO_PADRAO
 
-            if tipo_mapeado == "parede":
-                el = self._get_elemento(ambiente, "dimensoes")
+            amb.comprimento_paredes  = round(amb.comprimento_paredes, 2)
+            amb.comprimento_vaos     = round(amb.comprimento_vaos, 2)
+            amb.area_bruta_parede    = round(p * pd, 2)
+            amb.area_vaos            = round(amb.comprimento_vaos * ev, 2)
+            amb.area_liquida_parede  = round(max(amb.area_bruta_parede - amb.area_vaos, 0), 2)
 
-                if not el:
-                    el = Dimensoes(tipo="dimensoes")
-                    ambiente.elementos.append(el)
+        # ---- 5. Limpeza: remover entradas com dados implausíveis ----
+        resultado = []
+        for amb in ambientes_lista:
+            # Sem perímetro e com área de parede absurda: remover
+            if amb.perimetro <= 0 and amb.area_bruta_parede > amb.area * 50:
+                logger.warning(
+                    f"Removendo '{amb.nome}' ({amb.area}m²): "
+                    f"área bruta de parede implausível ({amb.area_bruta_parede:.1f}m²)")
+                continue
+            # Garantir que área líquida não excede área bruta
+            if amb.area_liquida_parede > amb.area_bruta_parede:
+                amb.area_liquida_parede = amb.area_bruta_parede
+                amb.area_vaos = 0.0
+            resultado.append(amb)
 
-                el.comprimento += comp
-
-            elif tipo_mapeado == "vao":
-                el = self._get_elemento(ambiente, "vao")
-
-                if not el:
-                    el = Vao(tipo="vao")
-                    ambiente.elementos.append(el)
-
-                el.comprimento += comp
-                el.tipo = "Esquadrias"
-
-        for ambiente in ambientes_lista:
-            parede = 0
-            vao = 0
-
-            for el in ambiente.elementos:
-                comp = self._normalizar_unidade(el.comprimento or 0)
-                alt = el.altura or 0
-
-                if el.tipo == "dimensoes":
-                    parede += comp * alt
-
-                if el.tipo == "vao":
-                    vao += comp * alt
-
-        ambiente.resumo = {
-            "area_parede": parede,
-            "area_liquida": max(parede - vao, 0)
-        }
-
-        # Limitar para os primeiros 20 ambientes para caber no template
-
-        return list(ambientes_dict.values())[:20]
+        resultado.sort(key=lambda a: (a.nome, -a.area))
+        return resultado
