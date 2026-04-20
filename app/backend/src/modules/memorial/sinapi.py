@@ -7,7 +7,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def _normalizar_texto(valor) -> str:
+def _normalizar_texto(valor: str) -> str:
     """Remove quaisquer acentos do texto"""
     texto = "" if valor is None else str(valor)
     texto = unicodedata.normalize("NFKD", texto)

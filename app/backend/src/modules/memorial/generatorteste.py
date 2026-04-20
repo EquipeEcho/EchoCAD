@@ -7,15 +7,14 @@
 import logging
 import os
 from pathlib import Path
-from typing import List
 
-from openpyxl import load_workbook, Workbook
+from openpyxl import Workbook
 from openpyxl.styles import (
-    Alignment, Border, Font, PatternFill, Side, numbers
+    Alignment, Border, Font, PatternFill, Side
 )
 from openpyxl.utils import get_column_letter
 
-from dxf_extractor import Ambiente, CADExtractor, ProjetoMemorial
+from dxf_extractor import CADExtractor, ProjetoMemorial
 from sinapi import buscar_preco_sinapi, carregar_sinapi
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -338,6 +337,7 @@ def run_integration(dxf_file: str, template_file: str, output_file: str):
     sinapi_path = basepath / 'sinapi.xlsx'
 
     sinapi = carregar_sinapi(str(sinapi_path))
+    logger.debug('carregamento do sinapi concluído')
 
     extractor = CADExtractor(dxf_file)
     ambientes = extractor.extrair_dados_reais()
