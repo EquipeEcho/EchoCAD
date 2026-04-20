@@ -1,7 +1,5 @@
 .vscode/
-<<<<<<< HEAD
-.pytest_cache/
-.uploads/
-=======
-*.db
->>>>>>> main
+**/.pytest_cache/
+**/__pycache__/
+**/node_modules/
+**/*venv/

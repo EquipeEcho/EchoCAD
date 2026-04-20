@@ -1,22 +1,29 @@
 FROM python:3.13-slim
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=off
 
 WORKDIR /app
 
-# Copia o arquivo de dependências
-COPY requirements.txt .
-
-# Instala as dependências
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
 
 # Copia o código fonte
 COPY . .
 
-# Expõe a porta
 EXPOSE 8000
 
-# Comando para rodar a aplicação
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
+
+# Garantir que o ambiente virtual do uv seja usado automaticamente
+ENV PATH="/app/.venv/bin:$PATH"
+
+# 6. Comando para rodar o FastAPI
+# Usando o comando padrão do FastAPI (que internamente usa o uvicorn)
+CMD ["fastapi", "run", "main.py", "--port", "8000"]
