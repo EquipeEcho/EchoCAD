@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from src.routes.upload import router
+from src.routes.route_database import router as database_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -14,6 +15,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(database_router)
 
 
 # Rota de boas vindas, indicando que está online.
