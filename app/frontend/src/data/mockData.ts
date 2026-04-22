@@ -4,8 +4,9 @@ import {
   HistoryDocument,
   UploadDocument,
 } from "../types/documents";
+import { formatInputDate, getTodayInputValue } from "../utils/date";
 
-// Monta um documento de exemplo para a pre-visualizacao.
+// Monta um documento de exemplo para a pré-visualização.
 function buildPreviewDocument(
   id: string,
   title: string,
@@ -19,10 +20,13 @@ function buildPreviewDocument(
     subtitle: "Pré-visualização do memorial de cálculo",
     createdAt,
     reference,
-    versionLabel: "Versão 1.0 - PDF",
+    versionLabel: "Versão 1.0 - XLSX",
     summary:
       "Documento técnico gerado a partir da leitura dos arquivos estruturais enviados para a plataforma EchoCAD.",
     sourceFiles,
+    file_urls: sourceFiles.map(
+      (fileName) => `https://example.com/files/${fileName}`
+    ),
     previewLines: [
       "Objeto: análise estrutural preliminar do conjunto administrativo.",
       "Base normativa considerada: NBR 6118, NBR 8681 e diretrizes internas do cliente.",
@@ -35,16 +39,8 @@ function buildPreviewDocument(
       { label: "Carga acidental média", value: "4,5 kN/m²" },
       { label: "Fator de combinação", value: "1,40" },
     ],
-    file_urls: sourceFiles.map((fileName) => `https://example.com/files/${fileName}`), // URLs fictícias para os arquivos de origem
   };
 }
-
-export const mockUploadDocuments: UploadDocument[] = [
-  { id: "upload-1", name: "Planta_Batalhao_A1.dwg", kind: "dwg", file: new File([], "Planta_Batalhao_A1.dwg") },
-  { id: "upload-2", name: "Memorial_Preliminar.pdf", kind: "pdf", file: new File([], "Memorial_Preliminar.pdf") },
-  { id: "upload-3", name: "Croqui_Infraestrutura.dxf", kind: "dxf", file: new File([], "Croqui_Infraestrutura.dxf") },
-  { id: "upload-4", name: "Analise_Estrutural_C.xml", kind: "xml", file: new File([], "Analise_Estrutural_C.xml") },
-];
 
 export const mockHistoryDocuments: HistoryDocument[] = [
   {
@@ -55,7 +51,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
     size: "2.4 MB",
     document: buildPreviewDocument(
       "generated-1",
-      "Memorial de Cálculo - Batalhão Central",
+      "Memorial de cálculo - Batalhão Central",
       "20/03/2026",
       "EchoCAD-7429",
       ["Planta_Batalhao_Central.dwg", "Memorial_Base.pdf"]
@@ -69,7 +65,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
     size: "1.8 MB",
     document: buildPreviewDocument(
       "generated-2",
-      "Memorial de Cálculo - Bloco Administrativo A2",
+      "Memorial de cálculo - Bloco Administrativo A2",
       "18/03/2026",
       "EchoCAD-7310",
       ["Planta_Administrativa_A2.dwg", "Croqui_Fundacao.dxf"]
@@ -83,10 +79,10 @@ export const mockHistoryDocuments: HistoryDocument[] = [
     size: "45 KB",
     document: buildPreviewDocument(
       "generated-3",
-      "Relatório Estrutural Final - Ala Norte",
+      "Relatório estrutural final - Ala Norte",
       "15/03/2026",
       "EchoCAD-7194",
-      ["Ala_Norte.pdf", "Analise_Final.xml"]
+      ["Ala_Norte.pdf", "Analise_Final.pdf"]
     ),
   },
   {
@@ -97,7 +93,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
     size: "3.1 MB",
     document: buildPreviewDocument(
       "generated-4",
-      "Memorial de Cálculo - Rede Hidráulica",
+      "Memorial de cálculo - Rede hidráulica",
       "10/03/2026",
       "EchoCAD-7011",
       ["Rede_Hidraulica.dxf", "Memorial_Hidraulico.pdf"]
@@ -109,12 +105,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
 export function getFileKindFromName(fileName: string): FileKind | null {
   const extension = fileName.toLowerCase().split(".").pop();
 
-  if (
-    extension !== "dwg" &&
-    extension !== "dxf" &&
-    extension !== "pdf" &&
-    extension !== "xml"
-  ) {
+  if (extension !== "dwg" && extension !== "dxf" && extension !== "pdf") {
     return null;
   }
 
@@ -127,26 +118,33 @@ export function buildGeneratedDocumentFromUploads(
 ): GeneratedDocument {
   const primaryName = documents[0]?.name.replace(/\.[^.]+$/, "") || "Projeto CAD";
   const referenceSuffix = String(Date.now()).slice(-4);
+  const generatedAt = formatInputDate(getTodayInputValue());
 
   return buildPreviewDocument(
     `generated-${Date.now()}`,
-    `Memorial de Cálculo - ${primaryName}`,
-    "21/03/2026",
+    `Memorial de cálculo - ${primaryName}`,
+    generatedAt,
     `EchoCAD-${referenceSuffix}`,
     documents.map((document) => document.name)
   );
 }
 
-// Converte o documento gerado em item de historico.
+// Converte o documento gerado em item de histórico.
 export function buildHistoryDocumentFromGenerated(
   document: GeneratedDocument
 ): HistoryDocument {
+  const projectName = document.projectInfo?.name || document.title;
+  const projectDate = document.projectInfo?.projectDate
+    ? formatInputDate(document.projectInfo.projectDate)
+    : document.createdAt;
+
   return {
     id: `history-${document.id}`,
-    name: `${document.title.replace(/\s+/g, "_")}.pdf`,
-    kind: "pdf",
-    date: document.createdAt,
+    name: projectName,
+    kind: "xlsx",
+    date: projectDate,
     size: "2.1 MB",
     document,
+    projectInfo: document.projectInfo,
   };
 }

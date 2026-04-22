@@ -15,7 +15,6 @@ export function ProcessingPage() {
   const { uploadedFiles, completeProcessing } = usePrototype();
 
   const [progress, setProgress] = useState(progressSteps[0]);
-  const [results, setResults] = useState<any[]>([]);
   const [isProcessingDone, setIsProcessingDone] = useState(false);
 
   const hasFinishedRef = useRef(false);
@@ -76,7 +75,7 @@ export function ProcessingPage() {
     };
 
     processFiles();
-  }, [uploadedFiles, navigate]);
+  }, [completeProcessing, navigate, uploadedFiles]);
 
   useEffect(() => {
     if (
@@ -89,12 +88,9 @@ export function ProcessingPage() {
 
     hasFinishedRef.current = true;
 
-    navigate("/resultado", {
-      replace: true,
-      state: { results }
-    });
+    navigate("/resultado", { replace: true });
 
-  }, [progress, isProcessingDone, results, navigate]);
+  }, [progress, isProcessingDone, navigate]);
 
   if (uploadedFiles.length === 0) {
     return (
@@ -128,7 +124,7 @@ export function ProcessingPage() {
             eyebrow="Processamento"
             titleId="processing-title"
             title="Aguarde enquanto seus dados são processados"
-            description={`Tempo esperado: ${expectedTime}. Estamos analisando os arquivos técnicos e consolidando o memorial de cálculo.`}
+            description={`Tempo estimado: ${expectedTime}. Estamos analisando os arquivos técnicos e consolidando o memorial de cálculo.`}
             align="center"
           />
 

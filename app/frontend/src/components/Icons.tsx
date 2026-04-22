@@ -63,7 +63,7 @@ export function UploadIcon() {
   );
 }
 
-// Renderiza o icone de visualizacao.
+// Renderiza o ícone de visualização.
 export function EyeIcon() {
   return (
     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -79,7 +79,7 @@ export function EyeIcon() {
   );
 }
 
-// Renderiza o icone de remocao.
+// Renderiza o ícone de remoção.
 export function TrashIcon() {
   return (
     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -154,7 +154,7 @@ export function ToastSuccessIcon() {
   );
 }
 
-// Renderiza o icone de informacao.
+// Renderiza o ícone de informação.
 export function InfoCircleIcon() {
   return (
     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -214,28 +214,6 @@ export function FileTypeIcon({ kind }: { kind: FileKind }) {
         />
         <path
           d="M14 3.5V8h4.5M9 11.5h5M9 15h6M9 18.5h6"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.8"
-        />
-      </svg>
-    );
-  }
-
-  if (kind === "xml") {
-    return (
-      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-        <path
-          d="M8 3.5h6l4.5 4.5v11A1.5 1.5 0 0 1 17 20.5H8A1.5 1.5 0 0 1 6.5 19V5A1.5 1.5 0 0 1 8 3.5Z"
-          fill="none"
-          stroke="currentColor"
-          strokeLinejoin="round"
-          strokeWidth="1.8"
-        />
-        <path
-          d="m9.5 14 2-2-2-2m5 4-2-2 2-2"
           fill="none"
           stroke="currentColor"
           strokeLinecap="round"

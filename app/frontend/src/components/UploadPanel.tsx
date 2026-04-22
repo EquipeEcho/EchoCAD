@@ -1,4 +1,4 @@
-import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, MouseEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePrototype } from "../providers/PrototypeProvider";
 import { UploadDocument, UploadStatusTone } from "../types/documents";
@@ -14,7 +14,7 @@ import {
   UploadIcon,
 } from "./Icons";
 
-// Monta a mensagem de status apos selecionar arquivos.
+// Monta a mensagem de status após selecionar arquivos.
 function buildUploadStatusMessage(
   addedCount: number,
   duplicateCount: number,
@@ -33,7 +33,7 @@ function buildUploadStatusMessage(
 
   if (invalidCount > 0) {
     return {
-      message: "Somente arquivos PDF, DWG, DXF e XML são aceitos.",
+      message: "Somente arquivos PDF, DWG e DXF são aceitos.",
       tone: "error" as UploadStatusTone,
     };
   }
@@ -46,18 +46,18 @@ function buildUploadStatusMessage(
   }
 
   return {
-    message: "Formatos aceitos: PDF, DWG, DXF e XML.",
+    message: "Formatos aceitos: PDF, DWG e DXF.",
     tone: "info" as UploadStatusTone,
   };
 }
 
-// Controla a selecao e o envio dos arquivos do frontend.
+// Controla a seleção e o envio dos arquivos do frontend.
 export function UploadPanel() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
-    "Formatos aceitos: PDF, DWG, DXF e XML."
+    "Formatos aceitos: PDF, DWG e DXF."
   );
   const [statusTone, setStatusTone] = useState<UploadStatusTone>("info");
   const [filePendingRemoval, setFilePendingRemoval] =
@@ -107,6 +107,12 @@ export function UploadPanel() {
     inputRef.current.click();
   };
 
+  // Evita que o clique do botão dispare também o clique da área de upload.
+  const handleFilePickerButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    openFilePicker();
+  };
+
   // Trata arquivos escolhidos pelo input.
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) {
@@ -116,14 +122,14 @@ export function UploadPanel() {
     applyFileSelection(event.target.files);
   };
 
-  // Trata arquivos soltos na area de upload.
+  // Trata arquivos soltos na área de upload.
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
     applyFileSelection(event.dataTransfer.files);
   };
 
-  // Remove o arquivo apos confirmacao do usuario.
+  // Remove o arquivo após confirmação do usuário.
   const handleRemoveConfirm = () => {
     if (!filePendingRemoval) {
       return;
@@ -161,7 +167,7 @@ export function UploadPanel() {
         ref={inputRef}
         className="upload-panel__input"
         type="file"
-        accept=".dwg,.dxf,.pdf,.xml"
+        accept=".dwg,.dxf,.pdf"
         multiple
         onChange={handleInputChange}
       />
@@ -192,7 +198,7 @@ export function UploadPanel() {
           <p className="upload-empty__description">
             Arraste documentos CAD ou clique para selecionar arquivos do computador.
           </p>
-          <Button variant="primary" size="lg" onClick={openFilePicker}>
+          <Button variant="primary" size="lg" onClick={handleFilePickerButtonClick}>
             Selecionar arquivos
           </Button>
         </div>
@@ -285,8 +291,8 @@ export function UploadPanel() {
         title="Iniciar processamento"
         description={
           <p>
-            Você está prestes a processar {uploadedFiles.length} documento(s). Deseja
-            continuar?
+            Você está prestes a processar {uploadedFiles.length} documento(s).
+            Deseja continuar?
           </p>
         }
         confirmLabel="Iniciar"

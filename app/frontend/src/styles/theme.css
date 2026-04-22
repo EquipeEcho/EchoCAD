@@ -58,7 +58,7 @@
   color: #ffb4ae;
 }
 
-[data-theme="dark"] .file-row[data-kind="xml"] .file-row__kind {
+[data-theme="dark"] .file-row[data-kind="xlsx"] .file-row__kind {
   background: rgba(57, 217, 138, 0.16);
   color: #96f1c0;
 }
@@ -102,6 +102,16 @@
 [data-theme="dark"] .modal-card__close:hover,
 [data-theme="dark"] .modal-card__close:focus-visible {
   background: var(--color-surface-soft);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .form-field__label {
+  color: var(--color-text-soft);
+}
+
+[data-theme="dark"] .form-field__control {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
   color: var(--color-text);
 }
 
@@ -164,6 +174,10 @@
 [data-theme="dark"] .preview-paper__source-item {
   background: rgba(255, 255, 255, 0.04);
   color: var(--color-text);
+}
+
+[data-theme="dark"] .preview-paper__note {
+  color: #d7e0f0;
 }
 
 [data-theme="dark"] .preview-table__header {

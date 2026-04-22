@@ -1,15 +1,30 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import { CheckCircleIcon, DownloadIcon, InfoCircleIcon } from "../components/Icons";
 import { PreviewPanel } from "../components/PreviewPanel";
+import { ProjectSaveModal } from "../components/ProjectSaveModal";
 import { SectionTitle } from "../components/SectionTitle";
 import { usePrototype } from "../providers/PrototypeProvider";
+import { ProjectSaveInput } from "../types/documents";
 
-// Exibe o documento gerado e as acoes de download.
+// Exibe o documento gerado e as ações de download.
 export function ResultPage() {
   const navigate = useNavigate();
-  const { currentDocument, downloadDocumentAsset } = usePrototype();
+  const {
+    currentDocument,
+    downloadDocumentAsset,
+    saveCurrentProject,
+    shouldPromptProjectSave,
+  } = usePrototype();
+  const [showProjectForm, setShowProjectForm] = useState(false);
+
+  useEffect(() => {
+    if (currentDocument && shouldPromptProjectSave && !currentDocument.projectInfo) {
+      setShowProjectForm(true);
+    }
+  }, [currentDocument, shouldPromptProjectSave]);
 
   // Volta para a tela anterior ou para a home.
   const handleBack = () => {
@@ -19,6 +34,11 @@ export function ResultPage() {
     }
 
     navigate("/");
+  };
+
+  const handleSaveProject = (projectInfo: ProjectSaveInput) => {
+    saveCurrentProject(projectInfo);
+    setShowProjectForm(false);
   };
 
   if (!currentDocument) {
@@ -37,6 +57,8 @@ export function ResultPage() {
       </main>
     );
   }
+
+  const fileUrls = currentDocument.file_urls;
 
   return (
     <main className="page">
@@ -58,38 +80,34 @@ export function ResultPage() {
         <PreviewPanel document={currentDocument} />
 
         <div className="result-actions">
-        {currentDocument.file_urls.map((url, index) => (
-          <Button
-            key={index}
-            variant="primary"
-            leadingIcon={<DownloadIcon />}
-            onClick={() =>
-              downloadDocumentAsset(url, `arquivo-${index + 1}.xlsx`)
-            }
-          >
-            Baixar XLSX
+          <Button variant="secondary" onClick={() => setShowProjectForm(true)}>
+            {currentDocument.projectInfo ? "Editar informações" : "Salvar projeto"}
           </Button>
-        ))}
 
-          {/* Ainda não existe um retorno como PDF, então ficará comentado por enquanto
-          <Button
-            variant="success"
-            leadingIcon={<DownloadIcon />}
-            onClick={() =>
-              downloadDocumentAsset(
-                currentDocument.file_url,
-                "memorial.pdf"
-              )
-            }
-          >
-            Baixar PDF
-          </Button>
-          */}
+          {fileUrls.map((url, index) => (
+            <Button
+              key={url}
+              variant="primary"
+              leadingIcon={<DownloadIcon />}
+              onClick={() =>
+                downloadDocumentAsset(url, `memorial-${index + 1}.xlsx`)
+              }
+            >
+              Baixar XLSX
+            </Button>
+          ))}
 
           <Button variant="secondary" onClick={handleBack}>
             Voltar
           </Button>
         </div>
+
+        <ProjectSaveModal
+          open={showProjectForm}
+          document={currentDocument}
+          onClose={() => setShowProjectForm(false)}
+          onSave={handleSaveProject}
+        />
       </div>
     </main>
   );

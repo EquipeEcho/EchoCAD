@@ -30,7 +30,7 @@ export function HistoryPage() {
     navigate("/resultado");
   };
 
-  // Confirma a remocao do item selecionado.
+  // Confirma a remoção do item selecionado.
   const handleRemove = () => {
     if (!pendingRemoval) {
       return;
@@ -40,7 +40,7 @@ export function HistoryPage() {
     setPendingRemoval(null);
   };
 
-  // Dispara o download do pacote completo do historico.
+  // Dispara o download do pacote completo do histórico.
   const handleBundleDownload = () => {
     downloadHistoryBundle();
     setConfirmBundleDownload(false);
@@ -51,8 +51,8 @@ export function HistoryPage() {
       <div className="page__content history-page">
         <SectionTitle
           eyebrow="Histórico"
-          title="Histórico de Gerações"
-          description="Acompanhe os memoriais e arquivos gerados ao longo das simulações do protótipo."
+          title="Histórico de gerações"
+          description="Acompanhe os projetos salvos e os memoriais gerados ao longo das simulações do protótipo."
           actions={
             historyDocuments.length > 0 ? (
               <Button
@@ -60,7 +60,7 @@ export function HistoryPage() {
                 leadingIcon={<DownloadIcon />}
                 onClick={() => setConfirmBundleDownload(true)}
               >
-                Baixar Todos
+                Baixar todos
               </Button>
             ) : null
           }
@@ -71,7 +71,7 @@ export function HistoryPage() {
             <EmptyState
               icon={<InfoCircleIcon />}
               title="Nenhum documento gerado até o momento"
-              description="Adicione dados na tela inicial para criar o primeiro memorial no histórico."
+              description="Adicione arquivos na tela inicial para criar o primeiro memorial no histórico."
               actionLabel="Adicionar dados"
               onAction={() => navigate("/")}
             />
@@ -81,7 +81,7 @@ export function HistoryPage() {
                 className="history-list"
                 header={
                   <div className="history-columns" aria-hidden="true">
-                    <span>Arquivo</span>
+                    <span>Projeto</span>
                     <span>Data</span>
                     <span>Tamanho</span>
                     <span>Ações</span>
@@ -101,7 +101,11 @@ export function HistoryPage() {
                         {
                           label: `Baixar ${document.name}`,
                           icon: <DownloadIcon />,
-                          onClick: () => downloadDocumentAsset(document.name, document.document.file_urls[0]), // Usando a URL do arquivo para download
+                          onClick: () =>
+                            downloadDocumentAsset(
+                              document.document.file_urls[0],
+                              document.name
+                            ),
                         },
                         {
                           label: `Visualizar ${document.name}`,
