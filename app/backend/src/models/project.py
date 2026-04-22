@@ -19,7 +19,7 @@ class Project (Base):
     created_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), init=False)
 
-    description: Mapped[str | None] = mapped_column(nullable=True)
+    description: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     user: Mapped['User'] = relationship(
         'User', back_populates='projects', init=False)

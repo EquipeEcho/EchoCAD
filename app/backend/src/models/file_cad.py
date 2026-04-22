@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import String, func
 from sqlalchemy.orm import Mapped, mapped_column
 from src.models.base import Base
 
@@ -8,7 +8,7 @@ from src.models.base import Base
 class FileCad(Base):
     __tablename__ = 'files_cad'
 
-    filename: Mapped[str] = mapped_column(nullable=False)
+    filename: Mapped[str] = mapped_column(String(100), nullable=False)
     file_size: Mapped[int] = mapped_column(nullable=False) 
-    file_hash: Mapped[str] = mapped_column(unique=True, nullable=False)
+    file_hash: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     upload_at: Mapped[datetime] = mapped_column(server_default=func.now(), init=False)
