@@ -22,6 +22,7 @@ class LayerTools:
         """
         # Converter para string caso venha como Path, pois alguns métodos preferem str
         self.doc = filemanagement.readfile(str(doc_path))
+        self.msp = self.doc.modelspace() # Aqui estão os desenhos
 
     def get_layers(self) -> list[str]:
         """
@@ -43,18 +44,3 @@ class LayerTools:
             bool: True if the layer exists, False otherwise.
         """
         return name in self.doc.layers
-
-
-if __name__ == '__main__':
-    # Uso do Path de forma segura
-    base_path = Path(__file__).parent.parent
-    dxf_file = base_path / 'teste.dxf'
-
-    layer_test = LayerTools(doc_path=dxf_file)
-
-    layers = layer_test.get_layers()
-    print(f"Camadas encontradas: {layers}")
-
-    search_name = 'arvore'
-    exists = layer_test.check_exists(search_name)
-    print(f"A camada '{search_name}' existe? {exists}")
