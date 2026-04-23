@@ -24,6 +24,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "groq>=1.2.0",
     "pytest>=9.0.3",
 ]
 

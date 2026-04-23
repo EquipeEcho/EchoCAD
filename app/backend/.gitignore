@@ -1,3 +1,4 @@
 uploads/
 **/chroma_db/
 *.dxf
+*.env
