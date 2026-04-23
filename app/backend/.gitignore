@@ -1,2 +1,3 @@
 uploads/
+**/chroma_db/
 *.dxf

@@ -26,4 +26,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 # 6. Comando para rodar o FastAPI
 # Usando o comando padrão do FastAPI (que internamente usa o uvicorn)
-CMD ["fastapi", "run", "main.py", "--port", "8000"]
+CMD ["fastapi", "run", "src/main.py", "--port", "8000"]

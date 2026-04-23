@@ -3,8 +3,8 @@
 import uuid
 from pathlib import Path
 
-from db import get_collection
-from document_processor import extract_text_from_file
+from app.backend.src.modules.chroma_vector_api.db import get_collection
+from app.backend.src.modules.chroma_vector_api.document_processor import extract_text_from_file
 
 
 def process_documents_folder(folder_path: str) -> None:

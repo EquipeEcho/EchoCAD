@@ -1,6 +1,6 @@
 """Script opcional para popular a coleção 'normas' com dados de exemplo."""
 
-from db import get_collection
+from app.backend.src.modules.chroma_vector_api.db import get_collection
 
 
 def seed_example_data() -> None:
