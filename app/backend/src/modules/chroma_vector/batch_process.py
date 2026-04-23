@@ -3,8 +3,8 @@
 import uuid
 from pathlib import Path
 
-from app.backend.src.modules.chroma_vector_api.db import get_collection
-from app.backend.src.modules.chroma_vector_api.document_processor import extract_text_from_file
+from src.modules.chroma_vector.db import get_collection
+from src.modules.chroma_vector.document_processor import extract_text_from_file
 
 
 def process_documents_folder(folder_path: str) -> None:
@@ -74,15 +74,3 @@ def process_documents_folder(folder_path: str) -> None:
         print(f"Erros: {len(errors)}")
         for err in errors:
             print(f"  - {err}")
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Uso: python batch_process.py <caminho_da_pasta>")
-        print("Exemplo: python batch_process.py ./documentos")
-        sys.exit(1)
-
-    folder = sys.argv[1]
-    process_documents_folder(folder)

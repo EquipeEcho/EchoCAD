@@ -8,8 +8,8 @@ from typing import Any
 from fastapi import FastAPI, File, Query, UploadFile
 from pydantic import BaseModel
 
-from app.backend.src.modules.chroma_vector_api.db import get_collection
-from app.backend.src.modules.chroma_vector_api.document_processor import extract_text_from_file
+from src.modules.chroma_vector.db import get_collection
+from src.modules.chroma_vector.document_processor import extract_text_from_file
 
 app = FastAPI(
     title="API de Normas com ChromaDB",

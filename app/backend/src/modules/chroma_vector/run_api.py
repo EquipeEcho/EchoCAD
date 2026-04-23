@@ -29,10 +29,10 @@ sys.path.insert(0, str(project_root / "app" / "backend"))  # app/backend/ (para 
 # Agora importa e executa o uvicorn
 if __name__ == "__main__":
     import uvicorn
-    from src.modules.chroma_vector_api.main import app
+    from src.modules.chroma_vector.main import app
     
     print("Iniciando Chroma Vector API...")
     print("Acesse: http://127.0.0.1:8000/docs")
     print("Acesse: http://127.0.0.1:8000/normas")
     
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="localhost", port=8000)
