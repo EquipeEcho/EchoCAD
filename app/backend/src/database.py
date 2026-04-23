@@ -1,11 +1,11 @@
-from contextlib import contextmanager
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from config import settings
 
 # Usando MySQL conforme configurado no alembic.ini
-engine = create_engine('mysql+pymysql://root:fatec@localhost:3306/echocad', echo=True)
+engine = create_engine(settings.database_url, echo=True)
 SessionLocal = sessionmaker(bind=engine)
+
 
 def get_session():
     session = SessionLocal()

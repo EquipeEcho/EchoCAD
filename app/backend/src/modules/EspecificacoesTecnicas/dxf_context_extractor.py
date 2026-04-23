@@ -4,7 +4,6 @@
 # sistemas identificados, esquadrias, estrutura e revestimentos.
 
 import logging
-import math
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
