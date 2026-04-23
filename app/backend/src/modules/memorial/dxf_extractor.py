@@ -8,8 +8,7 @@ import logging
 import math
 import re
 from collections import defaultdict
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ LAYERS_VAO = {
 }
 
 ESPESSURA_PADRAO = 0.15  # m
-ALTURA_PADRAO    = 3.00  # m
+ALTURA_PADRAO = 3.00  # m
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +124,8 @@ class DXFParser:
                 value = self._lines[i + 1].strip()
                 if code == 0:
                     if current_type:
-                        entities.append({'type': current_type, 'data': dict(current_data)})
+                        entities.append(
+                            {'type': current_type, 'data': dict(current_data)})
                     current_type = value
                     current_data = defaultdict(list)
                 else:
@@ -193,8 +193,10 @@ class CADExtractor:
     def _comprimento_line(data: Dict) -> float:
         try:
             x1, y1 = float(data[10][0]), float(data[20][0])
-            x2 = float(data[11][0]) if 11 in data else (float(data[10][1]) if len(data.get(10,[])) > 1 else x1)
-            y2 = float(data[21][0]) if 21 in data else (float(data[20][1]) if len(data.get(20,[])) > 1 else y1)
+            x2 = float(data[11][0]) if 11 in data else (
+                float(data[10][1]) if len(data.get(10, [])) > 1 else x1)
+            y2 = float(data[21][0]) if 21 in data else (
+                float(data[20][1]) if len(data.get(20, [])) > 1 else y1)
             return math.hypot(x2 - x1, y2 - y1)
         except Exception:
             return 0.0
@@ -264,8 +266,8 @@ class CADExtractor:
                         continue
 
                     v_area = self._parse_area(linha)
-                    v_per  = self._parse_perimetro(linha)
-                    v_pd   = self._parse_pe_direito(linha)
+                    v_per = self._parse_perimetro(linha)
+                    v_pd = self._parse_pe_direito(linha)
 
                     if v_area is not None and area is None:
                         area = v_area
@@ -319,7 +321,7 @@ class CADExtractor:
             etype = e['type']
 
             is_parede = layer in LAYERS_PAREDE
-            is_vao    = layer in LAYERS_VAO
+            is_vao = layer in LAYERS_VAO
 
             if not (is_parede or is_vao):
                 continue
@@ -327,8 +329,10 @@ class CADExtractor:
             if etype == 'LINE':
                 comp = self._comprimento_line(e['data'])
                 try:
-                    cx = (float(e['data'][10][0]) + float(e['data'].get(11, [e['data'][10][0]])[0])) / 2
-                    cy = (float(e['data'][20][0]) + float(e['data'].get(21, [e['data'][20][0]])[0])) / 2
+                    cx = (float(e['data'][10][0]) +
+                          float(e['data'].get(11, [e['data'][10][0]])[0])) / 2
+                    cy = (float(e['data'][20][0]) +
+                          float(e['data'].get(21, [e['data'][20][0]])[0])) / 2
                 except Exception:
                     continue
             elif etype == 'LWPOLYLINE':
@@ -349,7 +353,8 @@ class CADExtractor:
             elif comp > 100:
                 comp /= 100
 
-            melhor = min(ambientes_lista, key=lambda a: math.hypot(a.cx - cx, a.cy - cy), default=None)
+            melhor = min(ambientes_lista, key=lambda a: math.hypot(
+                a.cx - cx, a.cy - cy), default=None)
             if melhor is None:
                 continue
 
@@ -360,15 +365,16 @@ class CADExtractor:
 
         # ---- 4. Calcular áreas de parede ----
         for amb in ambientes_lista:
-            p  = amb.perimetro if amb.perimetro > 0 else amb.comprimento_paredes
+            p = amb.perimetro if amb.perimetro > 0 else amb.comprimento_paredes
             pd = amb.pe_direito
             ev = self.ALTURA_VAO_PADRAO
 
-            amb.comprimento_paredes  = round(amb.comprimento_paredes, 2)
-            amb.comprimento_vaos     = round(amb.comprimento_vaos, 2)
-            amb.area_bruta_parede    = round(p * pd, 2)
-            amb.area_vaos            = round(amb.comprimento_vaos * ev, 2)
-            amb.area_liquida_parede  = round(max(amb.area_bruta_parede - amb.area_vaos, 0), 2)
+            amb.comprimento_paredes = round(amb.comprimento_paredes, 2)
+            amb.comprimento_vaos = round(amb.comprimento_vaos, 2)
+            amb.area_bruta_parede = round(p * pd, 2)
+            amb.area_vaos = round(amb.comprimento_vaos * ev, 2)
+            amb.area_liquida_parede = round(
+                max(amb.area_bruta_parede - amb.area_vaos, 0), 2)
 
         # ---- 5. Limpeza: remover entradas com dados implausíveis ----
         resultado = []

@@ -19,6 +19,8 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from src.models.base import Base
+from src.models.file_cad import FileCad
+from src.models.project import Project
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

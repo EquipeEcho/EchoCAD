@@ -3,7 +3,14 @@ from src.routes.upload import router
 from src.routes.route_database import router as database_router
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from src.routes.upload import router as upload_router
+from src.routes.especificacoes import router as especificacoes_router
+
+app = FastAPI(
+    title="EchoCAD API",
+    description="API para extração de dados de plantas CAD e geração de documentação técnica.",
+    version="1.0.0",
+)
 
 # Adiciona permissões para o CORS
 app.add_middleware(
@@ -14,7 +21,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
+app.include_router(upload_router)
+app.include_router(especificacoes_router)
 app.include_router(database_router)
 
 
