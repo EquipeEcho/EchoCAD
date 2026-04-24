@@ -6,7 +6,7 @@ import { HomePage } from "./pages/HomePage";
 import { ProcessingPage } from "./pages/ProcessingPage";
 import { ResultPage } from "./pages/ResultPage";
 
-// Define as rotas principais da aplicacao.
+// Define as rotas principais da aplicação.
 export default function App() {
   return (
     <div className="app-shell">

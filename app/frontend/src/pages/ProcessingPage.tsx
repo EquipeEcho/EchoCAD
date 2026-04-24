@@ -13,15 +13,18 @@ const progressSteps = [12, 26, 39, 57, 71, 86, 100];
 export function ProcessingPage() {
   const navigate = useNavigate();
   const { uploadedFiles, completeProcessing } = usePrototype();
+
   const [progress, setProgress] = useState(progressSteps[0]);
+  const [isProcessingDone, setIsProcessingDone] = useState(false);
+
   const hasFinishedRef = useRef(false);
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    if (uploadedFiles.length === 0) {
-      return;
-    }
+    if (uploadedFiles.length === 0) return;
 
     let stepIndex = 0;
+
     const intervalId = window.setInterval(() => {
       stepIndex += 1;
 
@@ -33,30 +36,61 @@ export function ProcessingPage() {
       setProgress(progressSteps[stepIndex]);
     }, 520);
 
-    return () => {
-      window.clearInterval(intervalId);
-    };
+    return () => window.clearInterval(intervalId);
   }, [uploadedFiles.length]);
 
   useEffect(() => {
-    if (progress < 100 || hasFinishedRef.current || uploadedFiles.length === 0) {
+    if (uploadedFiles.length === 0 || hasStartedRef.current) return;
+
+    hasStartedRef.current = true;
+
+    const processFiles = async () => {
+      try {
+        const doc = uploadedFiles[0];
+
+        const formData = new FormData();
+        formData.append("file", doc.file);
+
+        const response = await fetch("http://127.0.0.1:8000/upload/", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro no envio");
+        }
+
+        const blob = await response.blob();
+        const fileUrl = URL.createObjectURL(blob);
+
+        const apiResults = [{ file_url: fileUrl }];
+
+        completeProcessing(apiResults);
+        setIsProcessingDone(true);
+
+      } catch (error) {
+        console.error(error);
+        navigate("/", { replace: true });
+      }
+    };
+
+    processFiles();
+  }, [completeProcessing, navigate, uploadedFiles]);
+
+  useEffect(() => {
+    if (
+      progress < 100 ||
+      !isProcessingDone ||
+      hasFinishedRef.current
+    ) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      if (hasFinishedRef.current) {
-        return;
-      }
+    hasFinishedRef.current = true;
 
-      hasFinishedRef.current = true;
-      completeProcessing();
-      navigate("/resultado", { replace: true });
-    }, 500);
+    navigate("/resultado", { replace: true });
 
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [completeProcessing, navigate, progress, uploadedFiles.length]);
+  }, [progress, isProcessingDone, navigate]);
 
   if (uploadedFiles.length === 0) {
     return (
@@ -90,7 +124,7 @@ export function ProcessingPage() {
             eyebrow="Processamento"
             titleId="processing-title"
             title="Aguarde enquanto seus dados são processados"
-            description={`Tempo esperado: ${expectedTime}. Estamos analisando os arquivos técnicos e consolidando o memorial de cálculo.`}
+            description={`Tempo estimado: ${expectedTime}. Estamos analisando os arquivos técnicos e consolidando o memorial de cálculo.`}
             align="center"
           />
 

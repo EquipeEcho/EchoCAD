@@ -10,7 +10,7 @@ type SectionTitleProps = {
   className?: string;
 };
 
-// Exibe titulo, descricao e acoes de uma secao.
+// Exibe título, descrição e ações de uma seção.
 export function SectionTitle({
   eyebrow,
   title,

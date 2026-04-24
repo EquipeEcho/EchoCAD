@@ -1,4 +1,4 @@
-export type FileKind = "dwg" | "dxf" | "pdf" | "xml";
+export type FileKind = "dwg" | "dxf" | "pdf" | "xlsx";
 
 export type ToastTone = "success" | "error" | "info";
 
@@ -9,6 +9,17 @@ export interface UploadDocument {
   name: string;
   kind: FileKind;
   file: File;
+}
+
+export interface ProjectSaveInput {
+  name: string;
+  projectDate: string;
+  responsible: string;
+  notes: string;
+}
+
+export interface ProjectInfo extends ProjectSaveInput {
+  savedAt: string;
 }
 
 export interface PreviewTableRow {
@@ -27,6 +38,8 @@ export interface GeneratedDocument {
   previewLines: string[];
   tableRows: PreviewTableRow[];
   sourceFiles: string[];
+  file_urls: string[];
+  projectInfo?: ProjectInfo;
 }
 
 export interface HistoryDocument {
@@ -36,6 +49,7 @@ export interface HistoryDocument {
   date: string;
   size: string;
   document: GeneratedDocument;
+  projectInfo?: ProjectInfo;
 }
 
 export interface ToastState {

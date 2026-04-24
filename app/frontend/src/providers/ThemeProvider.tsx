@@ -49,7 +49,7 @@ export function applyTheme(theme: Theme) {
   document.documentElement.style.colorScheme = theme;
 }
 
-// Disponibiliza o tema para toda a aplicacao.
+// Disponibiliza o tema para toda a aplicação.
 export function ThemeProvider({ children }: PropsWithChildren) {
   const [theme, setTheme] = useState<Theme>(() => getPreferredTheme());
 

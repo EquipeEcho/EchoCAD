@@ -11,7 +11,7 @@ type EmptyStateProps = {
   tone?: "neutral" | "error";
 };
 
-// Mostra uma mensagem quando nao ha conteudo.
+// Mostra uma mensagem quando não há conteúdo.
 export function EmptyState({
   title,
   description,

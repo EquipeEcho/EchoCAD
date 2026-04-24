@@ -1,22 +1,36 @@
 import { GeneratedDocument } from "../types/documents";
+import { formatInputDate } from "../utils/date";
 
 type PreviewPanelProps = {
   document: GeneratedDocument;
 };
 
-// Exibe a pre-visualizacao do documento gerado.
+// Exibe a pré-visualização do documento gerado.
 export function PreviewPanel({ document }: PreviewPanelProps) {
+  const projectDate = document.projectInfo?.projectDate
+    ? formatInputDate(document.projectInfo.projectDate)
+    : document.createdAt;
   const documentFacts = [
+    { label: "Projeto", value: document.projectInfo?.name || document.title },
     { label: "Referência", value: document.reference },
-    { label: "Data de emissão", value: document.createdAt },
+    { label: "Data do projeto", value: projectDate },
     { label: "Arquivos-base", value: `${document.sourceFiles.length} itens` },
   ];
+
+  if (document.projectInfo?.responsible) {
+    documentFacts.push({
+      label: "Responsável",
+      value: document.projectInfo.responsible,
+    });
+  }
 
   return (
     <section className="preview-panel surface-card" aria-labelledby="preview-title">
       <div className="preview-panel__header">
         <div>
-          <p className="preview-panel__eyebrow">Pré-visualização do memorial de cálculo</p>
+          <p className="preview-panel__eyebrow">
+            Pré-visualização do memorial de cálculo
+          </p>
           <h2 className="preview-panel__title" id="preview-title">
             {document.title}
           </h2>
@@ -61,6 +75,13 @@ export function PreviewPanel({ document }: PreviewPanelProps) {
                 ))}
               </ul>
             </div>
+
+            {document.projectInfo?.notes ? (
+              <div className="preview-paper__panel">
+                <h4 className="preview-paper__panel-title">Observações</h4>
+                <p className="preview-paper__note">{document.projectInfo.notes}</p>
+              </div>
+            ) : null}
 
             <div className="preview-table">
               <div className="preview-table__header">
