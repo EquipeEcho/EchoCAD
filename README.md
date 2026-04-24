@@ -1,10 +1,10 @@
-# EchoCAD
+# Equipe Echo
 
 ## 📌 EchoCAD – Automatização de documentos técnicos
 
-Sistema desenvolvido como parte do projeto **API – Aprendizagem por Projetos Integrados (FATEC – 2026-1º Semestre)**, em parceria com o **Exército - Guarnição de Caçapava**.
+Sistema desenvolvido como parte do projeto do 4º Semestre da **API – Aprendizagem por Projetos Integrados (FATEC – 2026-1º Semestre)**, em parceria com o **Exército - Guarnição de Caçapava**.
 
-O objetivo é desenvolver um site para extrair informações de uma planta CAD e gerar automaticamente uma documentação técnica utilizando uma inteligência artificial para garantir a precisão dos dados obtidos.
+O objetivo é desenvolver um site para extrair informações de uma planta CAD e gerar automaticamente uma documentação técnica utilizando inteligência artificial para auxiliar nas etapas necessárias para criação desse documento.
 
 ---
 
@@ -24,24 +24,24 @@ O objetivo é desenvolver um site para extrair informações de uma planta CAD e
 
 ## 📌 <span id="about">Sobre o Projeto</span>
 
-Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de documento com precisão, interpretá-los e fornecer ao usuário informações diretas e precisas.
+Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD com precisão, interpretá-los e fornecer ao usuário informações diretas e precisas. Com isso é possivel agilizar a criação de um memorial de cálculo.
 
 ---
 
 ## 🎯 <span id="objective">Objetivo do Desafio</span>
 
-- Dado um modelo qualquer inserido pelo usuário, absorver dados relevantes para uma documentação
+- Dado um modelo de uma planta CAD inserido pelo usuário, absorver dados relevantes para gerar uma documentação
 - Realizar cálculos complexos juntamente com uma IA para verificar a veracidade dos resultados
-- Retornar ao consumidor um documento que segue as normas ABNT com todas informações necessárias para que possa dar continuidade ao seu projeto
+- Retornar ao consumidor um documento que segue as normas ABNT com informações pertinentes e uma planilha com os gastos necessários
+- Desenvolver uma interface direta para que não haja confusão ao navegar pelo site
 
 ---
 
 ## 📚 <span id="documents">Manuais e Documentação</span>
 
 - 📖 [Manual de Instalação](docs/manual-instalacao.md)  
-- 👨‍💻 [Manual do Usuário](docs/manual-usuario.md)
+- 👨‍💻 [Manual do Usuário](https://docs.google.com/document/d/1ekIfzlc30ju7d_bATAOY1NgEiKclbtIQ1lRkMwI_T3M/edit?usp=sharing)
 - 🖥️ [Manual do Desenvolvedor](https://docs.google.com/document/d/16Qun6kh2kjLRQpp6ShXNLXjaFmUmkUgfRqPLsjNbvSs/edit?usp=sharing)
-- 🔌 [Documentação da API](docs/api.md)  
 
 ---
 
@@ -54,21 +54,25 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de
 | US03 | Alta | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados. | 3 | 1 |
 | US04 | Alta | Como usuário, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
 | US05 | Alta | Como usuário, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
-| US06 | Alta | Como sistema quero classificar elementos CAD para identificar componentes da planta.  | 8 | 2 |
-| US07 | Alta | Como usuário, quero gerar automaticamente especificações técnicas do projeto. | 5 | 2 |
-| US08 | Média | Como usuário, quero utilizar um assistente baseado em IA para solicitar geração de documentos via linguagem natural. | 5 | 2 |
-| US09 | Média | Como sistema, quero armazenar dados do projeto em banco relacional normalizado para garantir integridade e consulta eficiente. | 3 | 2 |
-| US10 | Média | Como usuário, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises. | 3 | 3 |
-| US11 | Média | Como usuário, quero exportar documentos tecnicos em PDF ou DOCX. | 3 | 3 |
-| US12 | Média |  Como usuário, quero acessar um histórico de documentos gerados para consultar análises anteriores. | 3 | 3 |
-| US13 | Baixa | Como usuário, quero acessar um manual de uso do sistema. | 2 | 3 |
-| US14 | Baixa | Como usuário, quero um manual de instalação da aplicação para facilitar a implantação. | 2 | 3 |
+| US06 | Alta | Como consumidor, quero uma interface limpa e direta para que eu não fique perdido ao tentar navegar pelo site. | 5 | 1 |
+| US07 | Alta | Como cliente, quero uma IA dedicada para filtrar os dados extraídos da planta CAD corretamente de acordo com as layers. | 8 | 1 |
+| US08 | Alta | Como sistema quero classificar elementos CAD para identificar componentes da planta.  | 8 | 2 |
+| US09 | Alta | Como usuário, quero gerar automaticamente especificações técnicas do projeto. | 5 | 2 |
+| US10 | Média | Como usuário, quero utilizar um assistente baseado em IA para solicitar geração de documentos via linguagem natural. | 5 | 2 |
+| US11 | Média | Como sistema, quero armazenar dados do projeto em banco relacional normalizado para garantir integridade e consulta eficiente. | 3 | 2 |
+| US12 | Média | Como usuário, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises. | 3 | 3 |
+| US13 | Média | Como usuário, quero exportar documentos tecnicos em PDF ou DOCX. | 3 | 3 |
+| US14 | Média |  Como usuário, quero acessar um histórico de documentos gerados para consultar análises anteriores. | 3 | 3 |
+| US15 | Baixa | Como usuário, quero acessar um manual de uso do sistema. | 2 | 3 |
+| US16 | Baixa | Como usuário, quero um manual de instalação da aplicação para facilitar a implantação. | 2 | 3 |
 
 ---
 ## 🚀 MVP - Mínimo Produto Viável
 
 ### 🟢 Sprint 1 - Geração do memorial de cálculo básico - Concluído
-[![MVP SPRINT](https://i.ytimg.com/an_webp/TYSAJDFz9T0/mqdefault_6s.webp?du=3000&sqp=CKWp5s4G&rs=AOn4CLC8TSqTtw1kYLGJPU6fkMYla_dE0A)](https://youtu.be/TYSAJDFz9T0?si=gq7HXaN9i9bD9JgZ)
+[![MVP SPRINT](./docs/img/sprint1_mvp.png)](https://youtu.be/TYSAJDFz9T0?si=gq7HXaN9i9bD9JgZ)
+
+### Backlog Sprint 1 -<a href="./docs/backlog_sprint1/backlog.md"> Detalhes</a>
 
 | Rank | Prioridade | User Story | Estimativa | Sprint |
 |-----|------------|------------|------------|--------|
@@ -77,28 +81,29 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de
 | US03 | Alta | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados. | 3 | 1 |
 | US04 | Alta | Como usuário, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
 | US05 | Alta | Como usuário, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
+| US06 | Alta | Como consumidor, quero uma interface limpa e direta para que eu não fique perdido ao tentar navegar pelo site. | 5 | 1 |
+| US07 | Alta | Como cliente, quero uma IA dedicada para filtrar os dados extraídos da planta CAD corretamente de acordo com as layers. | 8 | 1 |
 
-
-### 🟡 Sprint 2 - Assitente IA e geração de especificações técnicas  - Não iniciada
-[![MVP SPRINT 2]()
+### 🟡 Sprint 2 - Assitente IA e geração de especificações técnicas  - Em andamento
 
 ### 🔵 Sprint 3 - Documentação e exportação de documentos - Não iniciada
-[![MVP SPRINT 3]()
 
 
 ## 🏃‍ DoR - Definition of Ready
 
+- Regras de negócio definidas juntamente com o cliente
 - Problema proposto compreendido e discutido com a equipe
 - User Stories com Critérios de Aceitação
 - Subtarefas divididas a partir das US
 - Projeto bem definido e acordado com o cliente
 - Arquitetura MVC clara para toda a equipe
-- Commits que seguem um modelo padrão
 
 ## 🏆 DoD - Definition of Done
 
 - Manual do projeto
 - Vídeos de cada etapa de entrega
+- Documentação informando a funcionalidade implementada
+- Descrição de commits que seguem o padrão
 
 ## 📅 <span id="sprint">Cronograma de Sprints </span>
 
@@ -113,9 +118,10 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de
 ## ⚙️ <span id="functionalities">Funcionalidades</span>
 
 - Extração de dados através da planta CAD
+- Filtro das layers da planta utilizando IA
 - Cálculos complexos para tratação de dados
-- Garantia de precisão com IA
-- Entrega de resultados em PDF
+- Consultas de preços dos materiais utilizados
+- Entrega de resultados em PDF e XLSX
 
 ---
 
@@ -124,7 +130,6 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de
 - Manual de instalação (no repositório).  
 - Manual do usuário
 - Documentação técnica para desenvolvedores
-- Documentação da API.
 
 ---
 
@@ -140,13 +145,15 @@ Este projeto visa criar uma solução capaz de retirar dados de qualquer tipo de
  <a href="https://code.visualstudio.com/"><img src="https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white"></a>
  <a href="https://www.atlassian.com/software/jira"><img src="https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white"/></a>
  <a href="https://github.com/"><img src="https://img.shields.io/badge/GitHub-121011?style=for-the-badge&logo=github&logoColor=white"/></a>
+ <a href="https://www.mysql.com/"><img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white"/></a>
+ <a href="https://docs.trychroma.com/docs/overview/introduction"><img src="https://img.shields.io/badge/ChromaDB-purple?style=for-the-badge"/></a>
 </h4>
 
 ---
 
 ## 👥 <span id="authors">Autores</span>
 
-Projeto desenvolvido pelos alunos do **4º semestre de ADS – FATEC SJC (2025-2)** em parceria com o **Exército - Guarnição de Caçapava**.  
+Projeto desenvolvido pelos alunos do **4º semestre de ADS – FATEC SJC (2026-1)** em parceria com o **Exército - Guarnição de Caçapava**.  
 
 <div align="center">
   <table>
