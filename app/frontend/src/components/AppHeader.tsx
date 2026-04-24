@@ -4,7 +4,7 @@ import { Button } from "./Button";
 import { MoonIcon, SunIcon } from "./Icons";
 import { Logo } from "./Logo";
 
-// Renderiza o cabecalho principal e a navegacao.
+// Renderiza o cabeçalho principal e a navegação.
 export function AppHeader() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();

@@ -19,7 +19,7 @@ type FileRowProps = {
   variant?: "upload" | "history";
 };
 
-// Exibe uma linha com dados e acoes de um arquivo.
+// Exibe uma linha com dados e ações de um arquivo.
 export function FileRow({
   name,
   kind,
@@ -44,7 +44,7 @@ export function FileRow({
             <span className="file-row__kind">{kind.toUpperCase()}</span>
             <span className="file-row__hint">
               {variant === "history"
-                ? "Documento gerado"
+                ? "Projeto salvo"
                 : "Pronto para processamento"}
             </span>
           </div>

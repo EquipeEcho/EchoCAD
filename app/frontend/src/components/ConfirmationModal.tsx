@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useId } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./Button";
 import { CloseIcon } from "./Icons";
 import { SurfaceCard } from "./SurfaceCard";
@@ -14,7 +15,7 @@ type ConfirmationModalProps = {
   onConfirm: () => void;
 };
 
-// Exibe uma confirmacao antes de acoes sensiveis.
+// Exibe uma confirmação antes de ações sensíveis.
 export function ConfirmationModal({
   open,
   title,
@@ -33,18 +34,19 @@ export function ConfirmationModal({
       return;
     }
 
-    // Fecha o modal quando o usuario pressiona Escape.
+    // Fecha o modal quando o usuário pressiona Escape.
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleEscape);
     };
   }, [open, onClose]);
@@ -53,7 +55,7 @@ export function ConfirmationModal({
     return null;
   }
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose} role="presentation">
       <SurfaceCard
         as="div"
@@ -92,6 +94,7 @@ export function ConfirmationModal({
           </Button>
         </div>
       </SurfaceCard>
-    </div>
+    </div>,
+    document.body
   );
 }

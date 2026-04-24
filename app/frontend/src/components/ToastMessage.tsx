@@ -1,7 +1,7 @@
 import { usePrototype } from "../providers/PrototypeProvider";
 import { InfoCircleIcon, ToastSuccessIcon } from "./Icons";
 
-// Exibe a notificacao ativa do sistema.
+// Exibe a notificação ativa do sistema.
 export function ToastMessage() {
   const { toast } = usePrototype();
 

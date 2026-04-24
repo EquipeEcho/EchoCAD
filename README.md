@@ -69,8 +69,8 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 ---
 ## 🚀 MVP - Mínimo Produto Viável
 
-### 🟢 Sprint 1 - Geração do memorial de cálculo básico - Concluída
-<img width="1366" height="500" alt="Sprint 1 MVP" src="./docs/img/sprint1_mvp.png"/>
+### 🟢 Sprint 1 - Geração do memorial de cálculo básico - Concluído
+[![MVP SPRINT](./docs/img/sprint1_mvp.png)](https://youtu.be/TYSAJDFz9T0?si=gq7HXaN9i9bD9JgZ)
 
 ### Backlog Sprint 1 -<a href="./docs/backlog_sprint1/backlog.md"> Detalhes</a>
 

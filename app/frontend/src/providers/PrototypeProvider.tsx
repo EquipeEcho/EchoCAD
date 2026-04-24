@@ -16,31 +16,39 @@ import {
   AddFilesResult,
   GeneratedDocument,
   HistoryDocument,
+  ProjectSaveInput,
   ToastState,
   ToastTone,
   UploadDocument,
 } from "../types/documents";
+import { formatInputDate } from "../utils/date";
+
+type ProcessingResult = {
+  file_url: string;
+};
 
 type PrototypeContextValue = {
   uploadedFiles: UploadDocument[];
   historyDocuments: HistoryDocument[];
   currentDocument: GeneratedDocument | null;
+  shouldPromptProjectSave: boolean;
   toast: ToastState | null;
   addUploadedFiles: (fileList: FileList | File[]) => AddFilesResult;
   removeUploadedFile: (documentId: string) => void;
   clearUploadedFiles: () => void;
-  completeProcessing: () => GeneratedDocument | null;
+  completeProcessing: (apiResults?: ProcessingResult[]) => GeneratedDocument | null;
+  saveCurrentProject: (projectInfo: ProjectSaveInput) => void;
   openHistoryPreview: (documentId: string) => void;
   removeHistoryDocument: (documentId: string) => void;
   downloadHistoryBundle: () => void;
   simulatePreviewAction: (fileName: string) => void;
-  downloadDocumentAsset: (label: string) => void;
+  downloadDocumentAsset: (url: string | undefined, label: string) => void;
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
 
-// Converte um arquivo valido para o formato usado no upload.
+// Converte um arquivo válido para o formato usado no upload.
 function buildUploadDocument(file: File): UploadDocument | null {
   const kind = getFileKindFromName(file.name);
 
@@ -52,11 +60,11 @@ function buildUploadDocument(file: File): UploadDocument | null {
     id: `${file.name}-${file.size}-${file.lastModified}`,
     name: file.name,
     kind,
-    file: file
+    file,
   };
 }
 
-// Centraliza o estado do prototipo e das simulacoes.
+// Centraliza o estado do protótipo e das simulações.
 export function PrototypeProvider({ children }: PropsWithChildren) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadDocument[]>([]);
   const uploadedFilesRef = useRef<UploadDocument[]>([]);
@@ -65,6 +73,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   const [currentDocument, setCurrentDocument] = useState<GeneratedDocument | null>(
     null
   );
+  const [shouldPromptProjectSave, setShouldPromptProjectSave] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
@@ -81,7 +90,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     };
   }, [toast]);
 
-  // Exibe uma notificacao temporaria na interface.
+  // Exibe uma notificação temporária na interface.
   const showToast = (message: string, tone: ToastTone = "info") => {
     setToast({
       id: Date.now(),
@@ -90,13 +99,13 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     });
   };
 
-  // Mantem o estado e a referencia de uploads sincronizados.
+  // Mantém o estado e a referência de uploads sincronizados.
   const syncUploadedFiles = (nextFiles: UploadDocument[]) => {
     uploadedFilesRef.current = nextFiles;
     setUploadedFiles(nextFiles);
   };
 
-  // Adiciona apenas arquivos validos e nao duplicados.
+  // Adiciona apenas arquivos válidos e não duplicados.
   const addUploadedFiles = (fileList: FileList | File[]): AddFilesResult => {
     const incomingFiles = Array.from(fileList);
     const parsedFiles = incomingFiles.map(buildUploadDocument);
@@ -142,26 +151,61 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     syncUploadedFiles([]);
   };
 
-  // Gera o documento final e atualiza o historico.
-  const completeProcessing = () => {
+  // Gera o documento final e deixa os dados do projeto para preenchimento.
+  const completeProcessing = (apiResults: ProcessingResult[] = []) => {
     const filesToProcess = uploadedFilesRef.current;
 
     if (filesToProcess.length === 0) {
       return null;
     }
 
-    const generatedDocument = buildGeneratedDocumentFromUploads(filesToProcess);
-    const historyDocument = buildHistoryDocumentFromGenerated(generatedDocument);
+    const generatedDocument: GeneratedDocument = {
+      ...buildGeneratedDocumentFromUploads(filesToProcess),
+      file_urls: apiResults.map((result) => result.file_url),
+    };
 
     setCurrentDocument(generatedDocument);
-    setHistoryDocuments((currentHistory) => [historyDocument, ...currentHistory]);
+    setShouldPromptProjectSave(true);
     syncUploadedFiles([]);
     showToast("Processamento concluído com sucesso.", "success");
 
     return generatedDocument;
   };
 
-  // Abre um documento do historico na area de resultado.
+  // Salva ou atualiza as informações do projeto no documento atual.
+  const saveCurrentProject = (projectInput: ProjectSaveInput) => {
+    if (!currentDocument) {
+      showToast("Nenhum documento disponível para salvar.", "error");
+      return;
+    }
+
+    const projectInfo = {
+      name: projectInput.name.trim(),
+      projectDate: projectInput.projectDate,
+      responsible: projectInput.responsible.trim(),
+      notes: projectInput.notes.trim(),
+      savedAt: new Date().toISOString(),
+    };
+    const savedDocument: GeneratedDocument = {
+      ...currentDocument,
+      title: `Memorial de cálculo - ${projectInfo.name}`,
+      createdAt: formatInputDate(projectInfo.projectDate),
+      projectInfo,
+    };
+    const historyDocument = buildHistoryDocumentFromGenerated(savedDocument);
+
+    setCurrentDocument(savedDocument);
+    setShouldPromptProjectSave(false);
+    setHistoryDocuments((currentHistory) => [
+      historyDocument,
+      ...currentHistory.filter(
+        (document) => document.document.id !== savedDocument.id
+      ),
+    ]);
+    showToast("Projeto salvo no histórico.", "success");
+  };
+
+  // Abre um documento do histórico na área de resultado.
   const openHistoryPreview = (documentId: string) => {
     const historyDocument = historyDocuments.find(
       (document) => document.id === documentId
@@ -173,9 +217,10 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     }
 
     setCurrentDocument(historyDocument.document);
+    setShouldPromptProjectSave(false);
   };
 
-  // Remove um item do historico salvo.
+  // Remove um item do histórico salvo.
   const removeHistoryDocument = (documentId: string) => {
     setHistoryDocuments((currentHistory) =>
       currentHistory.filter((document) => document.id !== documentId)
@@ -183,7 +228,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     showToast("Documento removido do histórico.", "info");
   };
 
-  // Simula o download de todos os itens do historico.
+  // Simula o download de todos os itens do histórico.
   const downloadHistoryBundle = () => {
     if (historyDocuments.length === 0) {
       showToast("Não há documentos no histórico para download.", "error");
@@ -193,15 +238,42 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     showToast("Pacote do histórico pronto para download.", "success");
   };
 
-  // Simula a abertura de um arquivo para visualizacao.
+  // Simula a abertura de um arquivo para visualização.
   const simulatePreviewAction = (fileName: string) => {
     showToast(`Pré-visualização simulada: ${fileName}.`, "info");
   };
 
-  // Simula o download de um arquivo gerado.
-  const downloadDocumentAsset = (label: string) => {
-    const assetLabel = label.includes(".") ? "arquivo" : label;
-    showToast(`Download de ${assetLabel} iniciado.`, "success");
+  // Baixa o arquivo gerado pelo backend.
+  const downloadDocumentAsset = async (url: string | undefined, label: string) => {
+    if (!url) {
+      showToast("Arquivo indisponível para download.", "error");
+      return;
+    }
+
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error("Erro ao baixar arquivo");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = objectUrl;
+      link.download = label.includes(".") ? label : `${label}.xlsx`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+
+      showToast(`Download de ${label} iniciado.`, "success");
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao baixar o arquivo.", "error");
+    }
   };
 
   return (
@@ -210,11 +282,13 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
         uploadedFiles,
         historyDocuments,
         currentDocument,
+        shouldPromptProjectSave,
         toast,
         addUploadedFiles,
         removeUploadedFile,
         clearUploadedFiles,
         completeProcessing,
+        saveCurrentProject,
         openHistoryPreview,
         removeHistoryDocument,
         downloadHistoryBundle,
@@ -228,7 +302,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   );
 }
 
-// Retorna o contexto principal do prototipo.
+// Retorna o contexto principal do protótipo.
 export function usePrototype() {
   const context = useContext(PrototypeContext);
 
