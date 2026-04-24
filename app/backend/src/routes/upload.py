@@ -1,15 +1,19 @@
-import shutil
+# Standard Library (Bibliotecas nativas)
 import hashlib
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from pathlib import Path
 import logging
+import shutil
+from pathlib import Path
 
+# Third Party (Bibliotecas instaladas - ex: FastAPI, SQLAlchemy)
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from src.database import get_session
-from src.controller.file_controller import save_file_metadata
 
-from ..modules.Memorial.generatorteste import run_integration
+# Local Application (Módulos internos do seu projeto)
+from src.controller.file_controller import save_file_metadata
+from src.database import get_session
+from src.modules.Memorial.generatorteste import run_integration
+
 
 
 logger = logging.getLogger(__name__)

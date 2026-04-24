@@ -1,6 +1,6 @@
 """Script opcional para popular a coleção 'normas' com dados de exemplo."""
 
-from db import get_collection
+from src.modules.chroma_vector.db import get_collection
 
 
 def seed_example_data() -> None:
@@ -41,7 +41,3 @@ def seed_example_data() -> None:
     collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
 
     print("Dados de exemplo inseridos/atualizados com sucesso na coleção 'normas'.")
-
-
-if __name__ == "__main__":
-    seed_example_data()

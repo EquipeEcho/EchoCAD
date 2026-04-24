@@ -1,1 +1,39 @@
-Generic single-database configuration.
+# ⚗️ Migrações Alembic
+
+Este diretório contém o histórico de alterações do banco de dados.
+
+## 🚀 Comandos Essenciais
+
+### 1. Criar uma nova migração
+Sempre execute este comando após alterar seus modelos no SQLAlchemy para que o Alembic detecte as mudanças automaticamente.
+```bash
+alembic revision --autogenerate -m "descrição da mudança"
+```
+
+### 2. Aplicar migrações (Upgrade)
+Para atualizar o banco de dados para a versão mais recente:
+```bash
+alembic upgrade head
+```
+
+### 3. Reverter migrações (Downgrade)
+Para desfazer a última alteração aplicada:
+```bash
+alembic downgrade -1
+```
+Para voltar ao estado inicial (deletar todas as tabelas):
+```bash
+alembic downgrade base
+```
+
+### 4. Verificar histórico
+Para ver a ordem das migrações e qual está ativa:
+```bash
+alembic history --indicate-current
+```
+
+---
+
+## 🛠️ Dicas
+- **Conferência:** Sempre revise o arquivo gerado na pasta `versions/` antes de rodar o `upgrade`. O `--autogenerate` é bom, mas não é infalível.
+- **Ambiente:** Certifique-se de que o seu `.env` está configurado corretamente, pois o `env.py` lê a URL do banco de lá.

@@ -2,12 +2,11 @@
 # Converte o objeto EspecificacoesTecnicas em um documento Word (.docx)
 # formatado seguindo o padrão do caderno de encargos do Exército.
 
-import io
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
-from .spec_generator import EspecificacoesTecnicas, SecaoEspec
+from .spec_generator import EspecificacoesTecnicas
 
 logger = logging.getLogger(__name__)
 
