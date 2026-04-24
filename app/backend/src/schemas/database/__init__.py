@@ -1,4 +1,4 @@
-from .usuario import UsuarioCreate
+from .usuario import CreateUser
 from .projeto import ProjetoCreate
 from .comando_ia import ComandoIACreate
 from .documento_gerado import DocumentoGeradoCreate

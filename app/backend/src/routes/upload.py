@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.database import get_session
 from src.controller.file_controller import save_file_metadata
 
-from src.modules.memorial.generatorteste import run_integration
+from ..modules.Memorial.generatorteste import run_integration
 
 
 logger = logging.getLogger(__name__)

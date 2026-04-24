@@ -7,3 +7,11 @@ def safe_create(func, db, obj, msg):
         return func(db, obj)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
+
+
+def safe_read(func, db, msg):
+    """Helper function to safely read database records with error handling."""
+    try:
+        return func(db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
