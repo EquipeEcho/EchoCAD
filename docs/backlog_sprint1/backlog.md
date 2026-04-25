@@ -5,8 +5,8 @@
 | Rank | Prioridade | User Story | Estimativa | Sprint |
 |-----|------------|------------|------------|--------|
 | US01 | Alta | Como usuário, quero enviar um arquivo CAD para que o sistema processe a planta automaticamente. | 5 | 1 |
-| US02 | Alta | Como sistema, quero extrair entidades do arquivo CAD para transformar a planta em dados estruturados. | 8 | 1 |
-| US03 | Alta | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados. | 3 | 1 |
+| US02 | Alta | Como engenheiro, quero exportar o memorial de cálculo em planilha Excel e salvar os dados do memorial no sistema, para facilitar a análise, documentação e armazenamento das informações do projeto | 8 | 1 |
+| US03 | Alta | Como engenheiro, preciso que o sistema valide o formato dos arquivos CAD enviados para garantir que apenas arquivos CAD sejam processados. | 3 | 1 |
 | US04 | Alta | Como usuário, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
 | US05 | Alta | Como usuário, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
 | US06 | Alta | Como consumidor, quero uma interface limpa e direta para que eu não fique perdido ao tentar navegar pelo site. | 5 | 1 |
@@ -39,10 +39,10 @@
 ### User Story 1 – Upload de Arquivo CAD
 - **Dado** que o usuário acessa a tela inicial, **quando** ele fizer o upload do arquivo CAD, **então** o sistema deve processar o arquivo e extrair as entidades para gerar dados estruturados.    
 
-### User Story 2 – Geração de Memorial de Cálculo
-- **Dado** que o usuário finalizou o upload, **quando** o sistema gerar o memorial, **então** deve ser exibido um memorial simples automático baseado nos dados extraidos do arquivo.   
+### User Story 2 – Exportação de Memorial de Cálculo e Armazenamento de Dados
+- **Dado** que o usuário gerou o memorial de cálculo, **quando** ele solicitar a exportação, **então** o sistema deve permitir que ele baixe o memorial em formato Excel e deve armazenar os dados do memorial no sistema para futuras consultas e análises.   
 
-### User Story 3 – Validação de Formato de Arquivo
+### User Story 3 – Validação de Formato de Arquivo CAD
 - **Dado** que os arquivos CAD forem enviados, **quando** o usuário fizer o upload do arquivo, **então** o sistema deve validar se o formato enviado é em .DXF.  
 
 ### User Story 4 – Aplicação de Fórmulas de Engenharia
@@ -58,72 +58,3 @@
 - **Dado** que o sistema extraiu os dados do arquivo CAD, **quando** o sistema processar os dados, **então** a IA deve filtrar os dados corretamente de acordo com as layers para garantir a precisão dos dados extraídos.
 
 ---
-
-## 👥 <span id="authors">Autores</span>
-
-<div align="center">
-  <table>
-    <tr>
-      <th>Membro</th>
-      <th>Função</th>
-      <th>Github</th>
-      <th>Linkedin</th>
-    </tr>
-    <tr>
-      <td>Fábio Hiromitsu Nawa</td>
-      <td>Scrum Master</td>
-      <td><a href="https://github.com/TechSDW"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/f%C3%A1biohnawa/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Rafael Barbosa Candido</td>
-      <td>Product Owner</td>
-      <td><a href="https://github.com/Rafa2-bit"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/rafael-candido-155705317/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Taylor Henrique Marinho Silva</td>
-      <td>Desenvolvedor</td>
-      <td><a href="https://github.com/TaylorSilva2"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/taylor-silva-859300330/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Gustavo Felipe Morais</td>
-      <td>Desenvolvedor</td>
-      <td><a href="https://github.com/gutibrk74"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/gustavo-felipe-morais-a6517b327/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Ryan Araújo dos Santos</td>
-      <td>Desenvolvedor</td>
-      <td><a href="https://github.com/Ryan53132"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/ryan-araujo-dos-santos-8391b927b/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Nicolas Ferreira Fernandes</td>
-      <td>Desenvolvedor</td>
-      <td><a href="https://github.com/nicolasffe"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/nicolas-ferreira-fernandes/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Wesley Xavier</td>
-      <td>Desenvolvedor</td>
-      <td><a href="https://github.com/xvierdev"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/xvierbr/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Luiz Roberto Briz Quirino</td>
-      <td>Desenvolvedor</td>
-      <td><a href="https://github.com/HerrBriz"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/luiz-briz-15225b303/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-    <tr>
-      <td>Josué da Cunha Olopes</td>
-      <td>Desenvolvedor</td>
-      <td><a href="https://github.com/jo-olopes"><img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white"></a></td>
-      <td><a href="https://www.linkedin.com/in/josu%C3%A9-da-cunha-olopes-08b493212/"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"></a></td>
-    </tr>
-  </table>
-</div>
-
-</div>

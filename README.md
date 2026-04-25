@@ -49,42 +49,32 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 
 | Rank | Prioridade | User Story | Estimativa | Sprint |
 |-----|------------|------------|------------|--------|
-| US01 | Alta | Como usuário, quero enviar um arquivo CAD para que o sistema processe a planta automaticamente. | 5 | 1 |
-| US02 | Alta | Como sistema, quero extrair entidades do arquivo CAD para transformar a planta em dados estruturados. | 8 | 1 |
-| US03 | Alta | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados. | 3 | 1 |
-| US04 | Alta | Como usuário, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
-| US05 | Alta | Como usuário, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
-| US06 | Alta | Como consumidor, quero uma interface limpa e direta para que eu não fique perdido ao tentar navegar pelo site. | 5 | 1 |
-| US07 | Alta | Como cliente, quero uma IA dedicada para filtrar os dados extraídos da planta CAD corretamente de acordo com as layers. | 8 | 1 |
-| US08 | Alta | Como sistema quero classificar elementos CAD para identificar componentes da planta.  | 8 | 2 |
-| US09 | Alta | Como usuário, quero gerar automaticamente especificações técnicas do projeto. | 5 | 2 |
-| US10 | Média | Como usuário, quero utilizar um assistente baseado em IA para solicitar geração de documentos via linguagem natural. | 5 | 2 |
-| US11 | Média | Como sistema, quero armazenar dados do projeto em banco relacional normalizado para garantir integridade e consulta eficiente. | 3 | 2 |
-| US12 | Média | Como usuário, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises. | 3 | 3 |
-| US13 | Média | Como usuário, quero exportar documentos tecnicos em PDF ou DOCX. | 3 | 3 |
-| US14 | Média |  Como usuário, quero acessar um histórico de documentos gerados para consultar análises anteriores. | 3 | 3 |
-| US15 | Baixa | Como usuário, quero acessar um manual de uso do sistema. | 2 | 3 |
-| US16 | Baixa | Como usuário, quero um manual de instalação da aplicação para facilitar a implantação. | 2 | 3 |
+| US01 | Alta | Como engenheiro, quero enviar um arquivo CAD para que o sistema processe a planta automaticamente. | 5 | 1 |
+| US02 | Alta | Como engenheiro, quero exportar o memorial de cálculo em planilha Excel e salvar os dados do memorial no sistema, para facilitar a análise, documentação e armazenamento das informações do projeto | 8 | 1 |
+| US03 | Alta | Como engenheiro, preciso que o sistema valide o formato dos arquivos CAD enviados para garantir que apenas arquivos CAD sejam processados. | 3 | 1 |
+| US04 | Alta | Como engenheiro, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
+| US05 | Alta | Como engenheiro, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
+| US06 | Alta | Como engenheiro, quero uma interface limpa e direta para que eu não fique perdido ao tentar navegar pelo site. | 5 | 1 |
+| US07 | Alta | Como engenheiro, quero uma IA dedicada para filtrar os dados extraídos da planta CAD corretamente de acordo com as layers. | 8 | 1 |
+| US08 | Alta | Como engenheiro, quero ter uma tela de login e cadastro para acessar minhas análises anteriores. | 5 | 2 |
+| US09 | Alta | Como engenheiro, quero classificar elementos CAD para identificar componentes da planta.  | 8 | 2 |
+| US10 | Alta | Como engenheiro, quero gerar automaticamente especificações técnicas do projeto. | 5 | 2 |
+| US11 | Média | Como engenheiro, quero utilizar um assistente para solicitar geração de documentações específicas sobre a planta CAD | 5 | 2 |
+| US12 | Média | Como engenheiro, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises. | 3 | 2 |
+| US13 | Média | Como engenheiro, quero exportar especificações técnicas em PDF ou DOCX. | 3 | 2 |
+| US14 | Média |  Como engenheiro, quero acessar um histórico de documentos gerados para consultar análises anteriores. | 3 | 3 |
+| US15 | Baixa | Como engenheiro, quero acessar um manual de uso do sistema. | 2 | 3 |
+| US16 | Baixa | Como engenheiro, quero um manual de instalação da aplicação para facilitar a implantação. | 2 | 3 |
 
 ---
 ## 🚀 MVP - Mínimo Produto Viável
 
-### 🟢 Sprint 1 - Geração do memorial de cálculo básico - Concluído
+### 🟢 Sprint 1 - Geração do memorial de cálculo básico - Concluído - <a href="./docs/backlog_sprint1/backlog.md"> Detalhes</a>
 [![MVP SPRINT](./docs/img/sprint1_mvp.png)](https://youtu.be/TYSAJDFz9T0?si=gq7HXaN9i9bD9JgZ)
 
-### Backlog Sprint 1 -<a href="./docs/backlog_sprint1/backlog.md"> Detalhes</a>
 
-| Rank | Prioridade | User Story | Estimativa | Sprint |
-|-----|------------|------------|------------|--------|
-| US01 | Alta | Como usuário, quero enviar um arquivo CAD para que o sistema processe a planta automaticamente. | 5 | 1 |
-| US02 | Alta | Como sistema, quero extrair entidades do arquivo CAD para transformar a planta em dados estruturados. | 8 | 1 |
-| US03 | Alta | Como sistema, preciso validar o formato dos arquivos CAD enviados para garantir que apenas arquivos suportados sejam processados. | 3 | 1 |
-| US04 | Alta | Como usuário, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
-| US05 | Alta | Como usuário, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
-| US06 | Alta | Como consumidor, quero uma interface limpa e direta para que eu não fique perdido ao tentar navegar pelo site. | 5 | 1 |
-| US07 | Alta | Como cliente, quero uma IA dedicada para filtrar os dados extraídos da planta CAD corretamente de acordo com as layers. | 8 | 1 |
 
-### 🟡 Sprint 2 - Assitente IA e geração de especificações técnicas  - Em andamento
+### 🟡 Sprint 2 - Assitente IA e geração de especificações técnicas  - Em andamento - <a href="./docs/backlog_sprint2/backlog.md"> Detalhes </a>
 
 ### 🔵 Sprint 3 - Documentação e exportação de documentos - Não iniciada
 
