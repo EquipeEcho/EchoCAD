@@ -12,7 +12,7 @@ def create_arquivo(db: Session, arquivo: ArquivoCreate):
 
 
 def read_arquivo(db: Session, arquivo_id: int):
-    return db.query(Arquivo).filter(Arquivo.ID == arquivo_id).first()
+    return db.query(Arquivo).filter(Arquivo.id == arquivo_id).first()
 
 
 def read_all_arquivos(db: Session):

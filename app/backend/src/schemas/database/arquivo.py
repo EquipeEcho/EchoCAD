@@ -3,12 +3,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ArquivoCreate(BaseModel):
     """Schema para criação de arquivo"""
-    Caminho: str = Field(..., max_length=255)
-    Nome_arquivo: str = Field(..., max_length=150)
-    Tipo: str = Field(..., max_length=50)
-    idProjetos: int | None = Field(None)
-    idCalculos: int | None = Field(None)
-    idDocumentos_gerados: int | None = Field(None)
-    idElementos: int | None = Field(None)
-    
+    caminho: str | None = Field(None, max_length=255)
+    nome_arquivo: str | None = Field(None, max_length=150)
+    tipo: str | None = Field(None, max_length=50)
+    id_projetos: int | None = Field(None)
+    id_calculos: int | None = Field(None)
+    id_documentos_gerados: int | None = Field(None)
+    id_elementos: int | None = Field(None)
+
     model_config = ConfigDict(from_attributes=True)

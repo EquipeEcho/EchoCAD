@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # O Pydantic buscará por 'APP_DATABASE_URL' no ambiente
-    database_url: str = 'mysql+pymysql://root:fatec@localhost:3306/echocad'
+    database_url: str = 'mysql+pymysql://root:aaaa@localhost:3306/echocad_sql'
     debug: bool = False
     groq_api_key: str = ''  # Chave de API para Groq, se aplicável
 

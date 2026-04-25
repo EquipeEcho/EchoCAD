@@ -12,7 +12,7 @@ def create_calculo(db: Session, calc: CalculoCreate):
 
 
 def read_calculo(db: Session, calculo_id: int):
-    return db.query(Calculo).filter(Calculo.ID == calculo_id).first()
+    return db.query(Calculo).filter(Calculo.id == calculo_id).first()
 
 
 def read_all_calculos(db: Session):

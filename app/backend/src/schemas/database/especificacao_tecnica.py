@@ -3,11 +3,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class EspecificacaoTecnicaCreate(BaseModel):
     """Schema para criação de especificação técnica"""
-    idDocumentos_gerados: int = Field(...)
-    Categoria_tecnica: str = Field(..., max_length=100)
-    Descricao: str = Field(...)
-    Materiais_previstos: str = Field(...)
-    Norma_referencia: str = Field(..., max_length=150)
-    Observacoes: str | None = Field(None)
-    
+    id_documentos_gerados: int | None = Field(None)
+    categoria_tecnica: str | None = Field(None, max_length=100)
+    descricao: str | None = Field(None)
+    materiais_previstos: str | None = Field(None)
+    norma_referencia: str | None = Field(None, max_length=150)
+    observacoes: str | None = Field(None)
+
     model_config = ConfigDict(from_attributes=True)

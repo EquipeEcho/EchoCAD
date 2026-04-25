@@ -12,7 +12,7 @@ def create_documento_gerado(db: Session, documento: DocumentoGeradoCreate):
 
 
 def read_documento_gerado(db: Session, documento_id: int):
-    return db.query(DocumentoGerado).filter(DocumentoGerado.ID == documento_id).first()
+    return db.query(DocumentoGerado).filter(DocumentoGerado.id == documento_id).first()
 
 
 def read_all_documentos_gerados(db: Session):

@@ -3,8 +3,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class CreateUser(BaseModel):
     """Schema para criação de usuário"""
-    Nome: str = Field(..., max_length=100)
-    Email: EmailStr = Field(..., max_length=150)
-    Senha: str = Field(..., max_length=255)
-    
+    nome: str = Field(..., max_length=100)
+    email: EmailStr = Field(..., max_length=150)
+    senha: str = Field(..., max_length=255)
+
     model_config = ConfigDict(from_attributes=True)

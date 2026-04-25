@@ -12,7 +12,7 @@ def create_projeto(db: Session, project: ProjetoCreate):
 
 
 def read_projeto(db: Session, projeto_id: int):
-    return db.query(Project).filter(Project.ID == projeto_id).first()
+    return db.query(Project).filter(Project.id == projeto_id).first()
 
 
 def read_all_projetos(db: Session):

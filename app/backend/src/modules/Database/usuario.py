@@ -12,7 +12,7 @@ def create_usuario(db: Session, user: CreateUser):
 
 
 def read_usuario(db: Session, usuario_id: int):
-    return db.query(User).filter(User.ID == usuario_id).first()
+    return db.query(User).filter(User.id == usuario_id).first()
 
 
 def read_all_usuarios(db: Session):

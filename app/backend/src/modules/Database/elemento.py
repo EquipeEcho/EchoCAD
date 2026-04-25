@@ -12,7 +12,7 @@ def create_elemento(db: Session, elem: ElementoCreate):
 
 
 def read_elemento(db: Session, elemento_id: int):
-    return db.query(Elemento).filter(Elemento.ID == elemento_id).first()
+    return db.query(Elemento).filter(Elemento.id == elemento_id).first()
 
 
 def read_all_elementos(db: Session):

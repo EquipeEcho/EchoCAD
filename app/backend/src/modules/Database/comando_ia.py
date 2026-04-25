@@ -12,7 +12,7 @@ def create_comando_ia(db: Session, comando: ComandoIACreate):
 
 
 def read_comando_ia(db: Session, comando_id: int):
-    return db.query(ComandoIA).filter(ComandoIA.ID == comando_id).first()
+    return db.query(ComandoIA).filter(ComandoIA.id == comando_id).first()
 
 
 def read_all_comandos_ia(db: Session):
