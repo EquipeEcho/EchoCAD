@@ -1,24 +1,29 @@
 # spec_generator.py
-# Gera as especificações técnicas usando a API do Claude (claude-sonnet-4-20250514).
-# Recebe o contexto extraído do DXF e o modelo de especificações, e produz
-# um documento Word (.docx) estruturado seguindo o padrão do Exército.
+# Gera especificações técnicas usando a API do Groq (llama-3.3-70b-versatile).
+# Recebe o contexto extraído do DXF e produz um documento Word estruturado
+# seguindo o padrão do caderno de encargos do Exército Brasileiro.
 
 import json
 import logging
 import re
 import textwrap
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+
+import time
 
 import requests
 
-from .dxf_context_extractor import ContextoDXF
+from dxf_context_extractor import ContextoDXF
 
 logger = logging.getLogger(__name__)
 
-CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
-CLAUDE_MODEL   = "claude-sonnet-4-20250514"
-MAX_TOKENS     = 8000
+# ---------------------------------------------------------------------------
+# Configuração da API Groq
+# ---------------------------------------------------------------------------
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL   = "llama-3.3-70b-versatile"
+MAX_TOKENS   = 4096   # limite do modelo por chamada
 
 
 # ---------------------------------------------------------------------------
@@ -36,29 +41,23 @@ Ao gerar especificações técnicas:
 - Use linguagem formal e técnica.
 - Referencie normas ABNT pertinentes (NBR).
 - Descreva materiais, processos executivos e critérios de aceitação.
-- Organize em seções numeradas conforme o modelo fornecido.
-- Para cada seção, inclua: Objetivo, Referências Normativas, Materiais,
-  Execução e Critérios de Aceitação/Medição.
-- Adapte o conteúdo ao contexto real extraído da planta (ambientes, sistemas,
-  disciplinas presentes).
+- Para cada seção, inclua: Referências Normativas, Materiais, Execução e
+  Critérios de Aceitação/Medição.
+- Adapte o conteúdo ao contexto real extraído da planta.
 - Não invente sistemas que não foram identificados na planta.
 - Responda APENAS com JSON válido, sem markdown, sem explicações.
 """).strip()
 
 
 # ---------------------------------------------------------------------------
-# Dataclass de resultado
+# Dataclasses de resultado
 # ---------------------------------------------------------------------------
 @dataclass
 class SecaoEspec:
     numero: str
     titulo: str
     conteudo: str
-    subsecoes: List['SecaoEspec'] = None
-
-    def __post_init__(self):
-        if self.subsecoes is None:
-            self.subsecoes = []
+    subsecoes: List['SecaoEspec'] = field(default_factory=list)
 
 
 @dataclass
@@ -77,60 +76,100 @@ class EspecificacoesTecnicas:
 class SpecGenerator:
 
     def __init__(self, api_key: Optional[str] = None):
-        # A key é injetada pelo runtime do claude.ai — não precisa ser
-        # passada explicitamente quando rodando dentro dos artefatos.
         self._api_key = api_key
 
-    def _chamar_api(self, messages: List[Dict], max_tokens: int = MAX_TOKENS) -> Optional[str]:
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["x-api-key"] = self._api_key
+    # ------------------------------------------------------------------
+    # Chamada à API Groq com backoff automático para rate limit (429)
+    # ------------------------------------------------------------------
+    def _chamar_api(self, prompt_usuario: str, max_tokens: int = MAX_TOKENS) -> Optional[str]:
+        if not self._api_key:
+            logger.error("GROQ_API_KEY nao definida.")
+            return None
 
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self._api_key}",
+        }
         payload = {
-            "model": CLAUDE_MODEL,
+            "model": GROQ_MODEL,
             "max_tokens": max_tokens,
-            "system": SYSTEM_PROMPT,
-            "messages": messages,
+            "temperature": 0.2,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": prompt_usuario},
+            ],
         }
 
-        try:
-            resp = requests.post(CLAUDE_API_URL, headers=headers, json=payload, timeout=120)
-            resp.raise_for_status()
-            data = resp.json()
-            # Extrair texto da resposta
-            for block in data.get("content", []):
-                if block.get("type") == "text":
-                    return block["text"]
-        except Exception as e:
-            logger.error(f"Erro na API Claude: {e}")
+        for tentativa in range(6):
+            try:
+                resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=120)
+
+                # Rate limit: ler o tempo indicado na resposta e aguardar
+                if resp.status_code == 429:
+                    import re as _re
+                    msg = resp.json().get("error", {}).get("message", "")
+                    m = _re.search(r"try again in ([\d.]+)s", msg)
+                    espera = float(m.group(1)) + 2.0 if m else min(5 * (2 ** tentativa), 60)
+                    logger.warning(
+                        f"Rate limit atingido (tentativa {tentativa+1}/6). "
+                        f"Aguardando {espera:.1f}s..."
+                    )
+                    time.sleep(espera)
+                    continue
+
+                resp.raise_for_status()
+                return resp.json()["choices"][0]["message"]["content"]
+
+            except requests.HTTPError:
+                logger.error(f"Erro HTTP Groq {resp.status_code}: {resp.text[:200]}")
+                return None
+            except Exception as e:
+                logger.error(f"Erro na API Groq: {e}")
+                return None
+
+        logger.error("Rate limit nao resolvido apos 6 tentativas.")
         return None
 
+    # ------------------------------------------------------------------
+    # Extrair JSON da resposta (tolerante a markdown e texto extra)
+    # ------------------------------------------------------------------
     @staticmethod
     def _extrair_json(texto: str) -> Optional[dict]:
-        """Extrai JSON da resposta, tolerando marcadores de bloco."""
         if not texto:
             return None
-        # Remover blocos de código
-        limpo = re.sub(r'```(?:json)?', '', texto).strip()
-        # Tentar parse direto
+        import re as _re
+        limpo = _re.sub(r"```(?:json)?", "", texto).replace("```", "").strip()
         try:
             return json.loads(limpo)
         except Exception:
             pass
-        # Tentar encontrar primeiro objeto JSON
-        m = re.search(r'\{.*\}', limpo, re.DOTALL)
+        m = _re.search(r"\{.*\}", limpo, _re.DOTALL)
         if m:
             try:
                 return json.loads(m.group(0))
             except Exception:
                 pass
+        logger.warning("Nao foi possivel extrair JSON da resposta.")
         return None
 
+    def _chamar_com_retry(self, prompt: str, max_tokens: int = MAX_TOKENS, tentativas: int = 3) -> Optional[dict]:
+        """O backoff de rate limit ja esta em _chamar_api. Aqui so retentar se JSON vier invalido."""
+        for i in range(tentativas):
+            resposta = self._chamar_api(prompt, max_tokens=max_tokens)
+            if resposta is None:
+                break  # erro de rede/auth — nao adianta repetir
+            dados = self._extrair_json(resposta)
+            if dados:
+                return dados
+            logger.warning(f"Tentativa {i+1}/{tentativas}: JSON invalido. Repetindo...")
+        logger.error("Nao foi possivel obter JSON valido da API.")
+        return None
+
+
     # ------------------------------------------------------------------
-    # Gerar objeto e contexto
+    # Gerar objeto e contexto geral
     # ------------------------------------------------------------------
     def _gerar_objeto_e_contexto(self, ctx: ContextoDXF) -> Dict:
-        """Gera o texto de objeto, finalidade e concepção do projeto."""
         ambientes_resumo = [
             f"{a.nome}{' (' + a.subtitulo + ')' if a.subtitulo else ''}: "
             f"{a.area}m² | P={a.perimetro}m | PD={a.pe_direito}m"
@@ -138,8 +177,8 @@ class SpecGenerator:
         ]
 
         prompt = f"""
-Com base no seguinte contexto extraído da planta CAD do projeto, gere os textos
-de abertura do caderno de especificações técnicas.
+Com base no contexto extraído da planta CAD do projeto, gere os textos de
+abertura do caderno de especificações técnicas.
 
 CONTEXTO DO PROJETO:
 - Nome: {ctx.nome_projeto}
@@ -147,7 +186,7 @@ CONTEXTO DO PROJETO:
 - Disciplinas identificadas: {', '.join(sorted(ctx.disciplinas))}
 - Sistemas identificados: {', '.join(sorted(ctx.sistemas))}
 - Ambientes principais:
-{chr(10).join('  • ' + a for a in ambientes_resumo)}
+{chr(10).join('  - ' + a for a in ambientes_resumo)}
 
 Retorne APENAS um JSON com esta estrutura:
 {{
@@ -157,14 +196,13 @@ Retorne APENAS um JSON com esta estrutura:
   "concepcao": "texto descrevendo a concepção do projeto (3-5 frases)"
 }}
 """
-        resposta = self._chamar_api([{"role": "user", "content": prompt}], max_tokens=1000)
-        dados = self._extrair_json(resposta)
+        dados = self._chamar_com_retry(prompt, max_tokens=1000)
         if not dados:
             return {
-                "numero_protocolo": "XXX",
+                "numero_protocolo": "A DEFINIR",
                 "objeto": f"Execução de obras de construção e reforma nas instalações do projeto {ctx.nome_projeto}.",
                 "finalidade": "As presentes especificações técnicas têm por finalidade descrever os serviços a serem executados pela contratada.",
-                "concepcao": f"O projeto compreende a construção e adequação de ambientes com área total de {ctx.area_total}m²."
+                "concepcao": f"O projeto compreende a construção e adequação de ambientes com área total de {ctx.area_total}m².",
             }
         return dados
 
@@ -177,41 +215,28 @@ Retorne APENAS um JSON com esta estrutura:
         numero: str,
         titulo: str,
         disciplina: str,
-        instrucoes_extra: str = ''
+        instrucoes_extra: str = '',
     ) -> Optional[SecaoEspec]:
-        """Gera uma seção completa de especificações para uma disciplina."""
 
-        # Filtrar ambientes relevantes para essa disciplina
-        ambientes_relevantes = []
+        # Selecionar ambientes relevantes para a disciplina
         if disciplina == 'alvenaria':
-            ambientes_relevantes = [
-                a for a in ctx.ambientes
-                if a.uso not in ('área_externa', 'cobertura')
-            ][:15]
+            ambientes_rel = [a for a in ctx.ambientes if a.uso not in ('área_externa', 'cobertura')][:15]
+        elif disciplina in ('hidráulica', 'hidráulica_esgoto'):
+            ambientes_rel = [a for a in ctx.ambientes if a.uso in ('sanitário', 'área_alimentação')][:10]
         elif disciplina == 'esquadrias':
-            ambientes_relevantes = ctx.ambientes[:10]
-        elif disciplina == 'hidráulica':
-            ambientes_relevantes = [
-                a for a in ctx.ambientes
-                if a.uso in ('sanitário', 'área_alimentação')
-            ][:10]
+            ambientes_rel = ctx.ambientes[:10]
         else:
-            ambientes_relevantes = ctx.ambientes[:8]
+            ambientes_rel = ctx.ambientes[:8]
 
-        amb_texto = '\n'.join(
-            f"  • {a.nome}: {a.area}m², PD={a.pe_direito}m"
-            for a in ambientes_relevantes
-        ) or "  • Conforme projeto"
+        amb_texto = '\n'.join(f"  - {a.nome}: {a.area}m², PD={a.pe_direito}m" for a in ambientes_rel) \
+                    or "  - Conforme projeto"
 
         esquadrias_texto = ''
         if ctx.esquadrias and disciplina == 'esquadrias':
             esquadrias_texto = '\nEsquadrias identificadas:\n' + '\n'.join(
-                f"  • {k}: {v.tipo} ({v.quantidade} unidades)"
+                f"  - {k}: {v.tipo} ({v.quantidade} un.)"
                 for k, v in list(ctx.esquadrias.items())[:10]
             )
-
-        sistemas_relevantes = [s for s in ctx.sistemas if disciplina.split('_')[0] in s.lower()]
-        sistemas_texto = ', '.join(sistemas_relevantes) if sistemas_relevantes else ''
 
         prompt = f"""
 Gere a seção "{numero}. {titulo}" do caderno de especificações técnicas.
@@ -219,18 +244,17 @@ Gere a seção "{numero}. {titulo}" do caderno de especificações técnicas.
 CONTEXTO:
 - Projeto: {ctx.nome_projeto}
 - Área total: {ctx.area_total}m²
-- Ambientes que receberão este serviço:
+- Ambientes para este serviço:
 {amb_texto}{esquadrias_texto}
-- Sistemas detectados nesta disciplina: {sistemas_texto or 'conforme projeto'}
 {instrucoes_extra}
 
-ESTRUTURA OBRIGATÓRIA para cada subseção:
-- Referências normativas (liste NBRs pertinentes)
-- Materiais (especificações técnicas dos materiais)
-- Execução (passo a passo do processo construtivo)
-- Critérios de aceitação e medição
+Para cada subseção inclua obrigatoriamente:
+- referencias_normativas: lista de NBRs pertinentes
+- materiais: especificação técnica dos materiais
+- execucao: passo a passo do processo construtivo
+- criterios: critérios de aceitação e forma de medição
 
-Retorne APENAS um JSON com esta estrutura:
+Retorne APENAS JSON:
 {{
   "numero": "{numero}",
   "titulo": "{titulo}",
@@ -239,7 +263,7 @@ Retorne APENAS um JSON com esta estrutura:
     {{
       "numero": "{numero}.1",
       "titulo": "título da subseção",
-      "referencias_normativas": ["NBR XXXXX - ...", "..."],
+      "referencias_normativas": ["ABNT NBR XXXXX - Título", "..."],
       "materiais": "especificação detalhada dos materiais",
       "execucao": "descrição detalhada do processo executivo",
       "criterios": "critérios de aceitação e forma de medição"
@@ -247,32 +271,28 @@ Retorne APENAS um JSON com esta estrutura:
   ]
 }}
 """
-        resposta = self._chamar_api([{"role": "user", "content": prompt}], max_tokens=2500)
-        dados = self._extrair_json(resposta)
+        dados = self._chamar_com_retry(prompt, max_tokens=MAX_TOKENS)
         if not dados:
             logger.warning(f"Falha ao gerar seção {numero} - {titulo}")
             return None
 
         subsecoes = []
         for sub in dados.get('subsecoes', []):
-            conteudo_parts = []
+            partes = []
             if sub.get('referencias_normativas'):
-                refs = sub['referencias_normativas']
-                conteudo_parts.append(
-                    "**Referências Normativas:**\n" +
-                    '\n'.join(f"- {r}" for r in refs)
-                )
+                partes.append("**Referências Normativas:**\n" +
+                              '\n'.join(f"- {r}" for r in sub['referencias_normativas']))
             if sub.get('materiais'):
-                conteudo_parts.append(f"**Materiais:**\n{sub['materiais']}")
+                partes.append(f"**Materiais:**\n{sub['materiais']}")
             if sub.get('execucao'):
-                conteudo_parts.append(f"**Execução:**\n{sub['execucao']}")
+                partes.append(f"**Execução:**\n{sub['execucao']}")
             if sub.get('criterios'):
-                conteudo_parts.append(f"**Critérios de Aceitação:**\n{sub['criterios']}")
+                partes.append(f"**Critérios de Aceitação:**\n{sub['criterios']}")
 
             subsecoes.append(SecaoEspec(
                 numero=sub.get('numero', ''),
                 titulo=sub.get('titulo', ''),
-                conteudo='\n\n'.join(conteudo_parts),
+                conteudo='\n\n'.join(partes),
             ))
 
         return SecaoEspec(
@@ -286,17 +306,12 @@ Retorne APENAS um JSON com esta estrutura:
     # Gerar referências normativas e vida útil
     # ------------------------------------------------------------------
     def _gerar_referencias_e_vida_util(self, ctx: ContextoDXF) -> Dict:
-        disciplinas_str = ', '.join(sorted(ctx.disciplinas))
-        sistemas_str = ', '.join(sorted(ctx.sistemas))
-
         prompt = f"""
-Para um projeto com as seguintes disciplinas e sistemas:
-- Disciplinas: {disciplinas_str}
-- Sistemas: {sistemas_str}
+Para um projeto de construção civil com as seguintes disciplinas e sistemas:
+- Disciplinas: {', '.join(sorted(ctx.disciplinas))}
+- Sistemas: {', '.join(sorted(ctx.sistemas))}
 
-Gere:
-1. Lista completa de referências normativas ABNT (NBRs) pertinentes.
-2. Tabela de vida útil e garantias dos principais itens.
+Gere a lista de referências normativas ABNT e a tabela de vida útil.
 
 Retorne APENAS JSON:
 {{
@@ -309,21 +324,20 @@ Retorne APENAS JSON:
       "item": "Nome do item",
       "vida_util_anos": "X a Y",
       "garantia_anos": "Z",
-      "nbr": "XXXXX; YYYYY"
+      "nbr": "XXXXX"
     }}
   ]
 }}
 """
-        resposta = self._chamar_api([{"role": "user", "content": prompt}], max_tokens=1500)
-        dados = self._extrair_json(resposta)
+        dados = self._chamar_com_retry(prompt, max_tokens=2000)
         if not dados:
             return {
                 "referencias_normativas": [
                     "ABNT NBR 5671 - Participação dos intervenientes em serviços e obras de engenharia e arquitetura.",
                     "ABNT NBR 7678 - Segurança na execução de obras e serviços de construção.",
-                    "ABNT NBR 13531 - Elaboração de projetos de edificações – Atividades técnicas.",
+                    "ABNT NBR 13531 - Elaboração de projetos de edificações - Atividades técnicas.",
                 ],
-                "vida_util": []
+                "vida_util": [],
             }
         return dados
 
@@ -331,55 +345,56 @@ Retorne APENAS JSON:
     # Orquestrador principal
     # ------------------------------------------------------------------
     def gerar(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
+        """Chamado pelo __init__.py — gera todas as seções."""
+        return self._orquestrar(ctx)
+
+    def gerar_especificacao(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
+        """Alias para compatibilidade com versões anteriores do test_especificacoes.py."""
+        return self._orquestrar(ctx)
+
+    def _orquestrar(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
         logger.info(f"Iniciando geração de specs para: {ctx.nome_projeto}")
 
-        # 1. Objeto e contexto geral
-        abertura = self._gerar_objeto_e_contexto(ctx)
-
-        # 2. Referências normativas e vida útil
+        abertura  = self._gerar_objeto_e_contexto(ctx)
         refs_vida = self._gerar_referencias_e_vida_util(ctx)
-
-        # 3. Definir quais seções gerar com base nas disciplinas/sistemas
         secoes_map = self._mapear_secoes(ctx)
 
-        # 4. Gerar cada seção
         secoes: List[SecaoEspec] = []
         for num, titulo, disciplina, extra in secoes_map:
-            logger.info(f"Gerando seção {num}: {titulo}...")
+            logger.info(f"  Gerando seção {num}: {titulo}...")
             secao = self._gerar_secao_disciplina(ctx, num, titulo, disciplina, extra)
             if secao:
                 secoes.append(secao)
 
         return EspecificacoesTecnicas(
             nome_projeto=ctx.nome_projeto,
-            numero_protocolo=abertura.get('numero_protocolo', 'XXX'),
+            numero_protocolo=abertura.get('numero_protocolo', 'A DEFINIR'),
             objeto=abertura.get('objeto', ''),
             secoes=secoes,
             referencias_normativas=refs_vida.get('referencias_normativas', []),
             vida_util=refs_vida.get('vida_util', []),
         )
 
+    # ------------------------------------------------------------------
+    # Mapeamento de seções baseado no contexto da planta
+    # ------------------------------------------------------------------
     def _mapear_secoes(self, ctx: ContextoDXF) -> List[tuple]:
-        """Retorna a lista de seções a gerar, filtrando pelo contexto da planta."""
         secoes = []
         num = 1
 
-        # Serviços Técnicos e Preliminares — sempre presentes
         secoes.append((str(num), "SERVIÇOS TÉCNICOS", "tecnico",
-                        "Inclua: Elaboração de Projetos Executivos, ART, mão de obra especializada."))
+                       "Inclua: Elaboração de Projetos Executivos, ART, mão de obra especializada."))
         num += 1
 
         secoes.append((str(num), "SERVIÇOS PRELIMINARES", "preliminar",
-                        "Inclua: limpeza inicial, topografia, sondagem, canteiro de obras, demolições."))
+                       "Inclua: limpeza inicial, topografia, sondagem, canteiro de obras, demolições."))
         num += 1
 
-        # Somente se houver movimentação de solo ou escavação
         if any('fundações' in d or 'escavação' in d.lower() for d in ctx.disciplinas):
             secoes.append((str(num), "MOVIMENTO DE SOLO", "movimento_solo",
-                            "Inclua: escavações, aterros, nivelamentos e compactações."))
+                           "Inclua: escavações, aterros, nivelamentos e compactações."))
             num += 1
 
-        # Estrutura — gerar se houver qualquer disciplina estrutural
         tem_estrutura = any(d in ctx.disciplinas for d in
                             ['estrutura_concreto', 'fundações', 'estrutura_cobertura'])
         if tem_estrutura or ctx.tem_estrutura_metalica:
@@ -391,101 +406,74 @@ Retorne APENAS JSON:
             secoes.append((str(num), "SISTEMAS ESTRUTURAIS", "estrutura", extra))
             num += 1
 
-        # Alvenarias — sempre presente
         secoes.append((str(num), "ALVENARIAS", "alvenaria",
-                        f"O projeto tem drywall: {ctx.tem_drywall}. "
-                        "Inclua painéis em alvenaria, vergas/contravergas, regularização de superfícies."))
+                       f"O projeto tem drywall: {ctx.tem_drywall}. "
+                       "Inclua alvenaria, drywall, vergas/contravergas."))
         num += 1
 
-        # Cobertura — se houver
         if ctx.tem_cobertura:
             secoes.append((str(num), "COBERTURA E TELHAMENTOS", "cobertura",
-                            "Inclua: estrutura de cobertura, telhamento, calhas e rufos, impermeabilização."))
+                           "Inclua: estrutura de cobertura, telhamento, calhas, rufos, impermeabilização."))
             num += 1
 
-        # Instalações hidrossanitárias
         tem_hidro = any(d in ctx.disciplinas for d in
                         ['hidráulica_água_fria', 'hidráulica_esgoto', 'drenagem_pluvial'])
         if tem_hidro:
             extra = ""
             if ctx.tem_reservatorio:
-                extra += " Há reservatório d'água identificado no projeto."
+                extra += " Há reservatório d'água identificado."
             if 'hidráulica_água_quente' in ctx.sistemas:
                 extra += " Há instalações de água quente (chuveiros)."
             secoes.append((str(num), "INSTALAÇÕES HIDROSSANITÁRIAS", "hidráulica", extra))
             num += 1
 
-        # Instalações elétricas
-        tem_eletrica = 'instalações_elétricas' in ctx.disciplinas
-        if tem_eletrica:
+        if 'instalações_elétricas' in ctx.disciplinas:
             extra = ""
-            if ctx.tem_gerador:
-                extra += " Há gerador de energia identificado."
-            if ctx.tem_spda:
-                extra += " Há sistema SPDA identificado."
-            if 'iluminação' in ctx.sistemas:
-                extra += " Há projetos de iluminação."
-            if 'quadro_distribuição' in ctx.sistemas:
-                extra += " Há quadros de distribuição (QDG/QD) identificados."
+            if ctx.tem_gerador:   extra += " Há gerador de energia identificado."
+            if ctx.tem_spda:      extra += " Há sistema SPDA identificado."
+            if 'iluminação' in ctx.sistemas: extra += " Há projeto de iluminação."
+            if 'quadro_distribuição' in ctx.sistemas: extra += " Há QDG/QD identificados."
             secoes.append((str(num), "INSTALAÇÕES ELÉTRICAS", "elétrica", extra))
             num += 1
 
-        # SPDA — seção própria se houver
         if ctx.tem_spda:
-            secoes.append((str(num), "SISTEMA DE PROTEÇÃO CONTRA DESCARGAS ATMOSFÉRICAS (SPDA)",
-                            "spda", "Detalhe subsistema de captação, descida, equalização e aterramento."))
+            secoes.append((str(num), "SPDA - SISTEMA DE PROTEÇÃO CONTRA DESCARGAS ATMOSFÉRICAS",
+                           "spda", "Detalhe captação, descida, equalização e aterramento."))
             num += 1
 
-        # Rede lógica / dados / CFTV
         if ctx.tem_rede_dados:
             secoes.append((str(num), "INSTALAÇÕES DE REDE LÓGICA, TELEFONIA E CFTV",
-                            "rede_dados", "Inclua circuitos, equipamentos e identificação."))
+                           "rede_dados", "Inclua circuitos, equipamentos e identificação."))
             num += 1
 
-        # Climatização
         if ctx.tem_climatizacao:
-            sistemas_clim = [s for s in ctx.sistemas if 'climatiz' in s or 'condicion' in s]
-            qtd_ar = sum(
-                1 for t in ctx.textos_livres
-                if 'ar cond' in t.lower() or 'btu' in t.lower()
-            )
-            secoes.append((str(num), "INSTALAÇÕES MECÂNICAS (CLIMATIZAÇÃO)",
-                            "climatização",
-                            f"Há aproximadamente {qtd_ar} unidades de ar-condicionado identificadas. "
-                            "Inclua especificações de capacidade, instalação e manutenção."))
+            qtd_ar = sum(1 for t in ctx.textos_livres if 'ar cond' in t.lower() or 'btu' in t.lower())
+            secoes.append((str(num), "INSTALAÇÕES MECÂNICAS (CLIMATIZAÇÃO)", "climatização",
+                           f"Aproximadamente {qtd_ar} unidades identificadas. "
+                           "Inclua capacidade, instalação e manutenção."))
             num += 1
 
-        # Combate a incêndio
         if ctx.tem_combate_incendio:
             secoes.append((str(num), "INSTALAÇÕES DE SEGURANÇA E COMBATE A INCÊNDIO",
-                            "combate_incêndio",
-                            "Inclua: extintores, sinalização, hidrantes (se houver)."))
+                           "combate_incêndio", "Inclua: extintores, sinalização, hidrantes."))
             num += 1
 
-        # Esquadrias
         if ctx.esquadrias:
             tipos = set(v.tipo for v in ctx.esquadrias.values())
-            secoes.append((str(num), "ESQUADRIAS, VIDROS E FERRAGENS",
-                            "esquadrias",
-                            f"Tipos identificados: {', '.join(tipos)}. "
-                            "Inclua portas, janelas, vidros e ferragens."))
+            secoes.append((str(num), "ESQUADRIAS, VIDROS E FERRAGENS", "esquadrias",
+                           f"Tipos identificados: {', '.join(tipos)}. "
+                           "Inclua portas, janelas, vidros e ferragens."))
             num += 1
 
-        # Acabamentos — sempre
         secoes.append((str(num), "ACABAMENTOS", "acabamentos",
-                        "Inclua: pisos, revestimentos, pinturas, forros, louças e metais. "
-                        "Adapte ao quadro de ambientes identificados."))
+                       "Inclua: pisos, revestimentos, pinturas, forros, louças e metais."))
         num += 1
 
-        # Comunicações ambientais e sinalização
-        secoes.append((str(num), "COMUNICAÇÕES AMBIENTAIS E SINALIZAÇÃO",
-                        "sinalização",
-                        "Inclua: placa obrigatória de obra, sinalização de trânsito, "
-                        "sinalização de segurança e piso tátil."))
+        secoes.append((str(num), "COMUNICAÇÕES AMBIENTAIS E SINALIZAÇÃO", "sinalização",
+                       "Inclua: placa de obra, sinalização de trânsito, segurança e piso tátil."))
         num += 1
 
-        # Entrega da obra — sempre
         secoes.append((str(num), "ENTREGA DA OBRA", "entrega",
-                        "Inclua: ligações definitivas, ensaios/testes, limpeza final, as-built e licenças."))
+                       "Inclua: ligações definitivas, testes, limpeza final, as-built e licenças."))
 
         return secoes

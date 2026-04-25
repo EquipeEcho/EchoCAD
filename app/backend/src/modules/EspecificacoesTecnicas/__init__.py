@@ -46,7 +46,7 @@ def gerar_especificacoes(
     )
 
     # 2. Gerar especificações via IA
-    key = api_key or os.getenv("ANTHROPIC_API_KEY")
+    key = "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" or os.getenv("GROQ_API_KEY")
     generator = SpecGenerator(api_key=key)
     specs = generator.gerar(ctx)
 

@@ -57,6 +57,7 @@ def _add_table(doc, headers: List[str], rows: List[List[str]]):
     """Adiciona uma tabela formatada ao documento."""
     from docx.shared import Pt, RGBColor
     from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement  # Importação necessária para o XML
 
     table = doc.add_table(rows=1 + len(rows), cols=len(headers))
     table.style = 'Table Grid'
@@ -69,13 +70,16 @@ def _add_table(doc, headers: List[str], rows: List[List[str]]):
               hdr_cells[i].paragraphs[0].add_run(h)
         run.font.bold = True
         run.font.size = Pt(9)
-        # Fundo azul escuro no cabeçalho
+        
+        # --- CORREÇÃO DO FUNDO AZUL ---
         tc = hdr_cells[i]._tc
         tcPr = tc.get_or_add_tcPr()
-        shd = tc._new_tcShd()
+        
+        shd = OxmlElement('w:shd') # Criando o elemento XML manualmente
         shd.set(qn('w:fill'), '003366')
-        shd.set(qn('w:color'), 'FFFFFF')
+        shd.set(qn('w:val'), 'clear') # Define como preenchimento sólido
         tcPr.append(shd)
+        
         # Texto branco
         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
 
@@ -87,12 +91,16 @@ def _add_table(doc, headers: List[str], rows: List[List[str]]):
             p = row_cells[j].paragraphs[0]
             run = p.runs[0] if p.runs else p.add_run(str(cell_text))
             run.font.size = Pt(9)
-            # Linhas alternadas
+            
+            # Linhas alternadas (Zebra)
             if i % 2 == 0:
                 tc = row_cells[j]._tc
                 tcPr = tc.get_or_add_tcPr()
-                shd = tc._new_tcShd()
+                
+                # --- CORREÇÃO DO FUNDO CINZA ---
+                shd = OxmlElement('w:shd')
                 shd.set(qn('w:fill'), 'F5F5F5')
+                shd.set(qn('w:val'), 'clear')
                 tcPr.append(shd)
 
 
@@ -306,3 +314,9 @@ def _build_with_xml(specs: EspecificacoesTecnicas, output_path: str) -> Path:
 def build_docx(specs: EspecificacoesTecnicas, output_path: str) -> Path:
     """Ponto de entrada público para construção do documento."""
     return _build_docx(specs, output_path)
+
+if __name__ == "__main__":
+    # Teste rápido
+    from spec_generator import SpecGenerator
+    specs = SpecGenerator.gerar_especificacao()
+    build_docx(specs, "output/EspecificacoesTecnicas_Exemplo.docx")
