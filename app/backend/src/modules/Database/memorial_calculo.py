@@ -12,7 +12,7 @@ def create_memorial_calculo(db: Session, memorial: MemorialCalculoCreate):
 
 
 def read_memorial_calculo(db: Session, memorial_id: int):
-    return db.query(MemorialCalculo).filter(MemorialCalculo.ID == memorial_id).first()
+    return db.query(MemorialCalculo).filter(MemorialCalculo.id == memorial_id).first()
 
 
 def read_all_memoriais_calculo(db: Session):

@@ -11,7 +11,7 @@ from .coordenada import CoordenadaCreate
 from .processamento import ProcessamentoCreate
 
 __all__ = [
-    'UsuarioCreate',
+    'CreateUser',
     'ProjetoCreate',
     'ComandoIACreate',
     'DocumentoGeradoCreate',

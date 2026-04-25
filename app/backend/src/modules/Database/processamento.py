@@ -12,7 +12,7 @@ def create_processamento(db: Session, proc: ProcessamentoCreate):
 
 
 def read_processamento(db: Session, processamento_id: int):
-    return db.query(Processamento).filter(Processamento.ID == processamento_id).first()
+    return db.query(Processamento).filter(Processamento.id == processamento_id).first()
 
 
 def read_all_processamentos(db: Session):

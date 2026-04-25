@@ -1,22 +1,32 @@
 from datetime import datetime
-from sqlalchemy import ForeignKey, String, Text
+from typing import TYPE_CHECKING
+
+from pydantic import ConfigDict
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.models.base import Base
-from typing import TYPE_CHECKING
-from pydantic import ConfigDict
 
 if TYPE_CHECKING:
     from .arquivos import Arquivo
 
 
 class Processamento(Base):
-    __tablename__ = 'Processamento'
-    Status: Mapped[str] = mapped_column(String(50), nullable=False)
-    Data_inicio: Mapped[datetime] = mapped_column(nullable=True)
-    Data_fim: Mapped[datetime] = mapped_column(nullable=True)
-    Log_erro: Mapped[str] = mapped_column(Text, nullable=True)
-    Versao_parser: Mapped[str] = mapped_column(String(50), nullable=True)
-    idArquivos: Mapped[int] = mapped_column(ForeignKey('Arquivos.ID'), nullable=False)
+    __tablename__ = "Processamento"
 
-    arquivo: Mapped['Arquivo'] = relationship('Arquivo', init=False)
+    status: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None)
+    data_inicio: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, default=None
+    )
+    data_fim: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True, default=None
+    )
+    log_erro: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    versao_parser: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, default=None
+    )
+    id_arquivos: Mapped[int | None] = mapped_column(
+        ForeignKey("Arquivos.id"), nullable=True, default=None
+    )
+
+    arquivo: Mapped["Arquivo | None"] = relationship("Arquivo", init=False)
     model_config = ConfigDict(from_attributes=True)

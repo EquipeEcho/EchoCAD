@@ -10,10 +10,13 @@ if TYPE_CHECKING:
 
 
 class User(Base):
-    __tablename__ = 'Usuario'
-    Nome: Mapped[str] = mapped_column(String(100), nullable=False)
-    Email: Mapped[str] = mapped_column(String(150), unique=True)
-    Senha: Mapped[str] = mapped_column(String(255), nullable=False)
+    __tablename__ = "Usuario"
+
+    nome: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
+    senha: Mapped[str] = mapped_column(String(255), nullable=False)
+
     projects: Mapped[List["Project"]] = relationship(
-        "Project", back_populates="user", init=False)
+        "Project", back_populates="user", init=False
+    )
     model_config = ConfigDict(from_attributes=True)
