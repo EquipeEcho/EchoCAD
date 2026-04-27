@@ -1,24 +1,23 @@
 from agno.agent import Agent
-from modules.core.agents.model_provider import fast_model
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List
 
-class Response (BaseModel):
-    layers: dict[int, str]
+class LayerList(BaseModel):
+    layers: List[str] = Field(..., description="Lista dos nomes exatos dos layers selecionados do DXF.")
 
-def get_selector_agent(tools):
+def get_selector_agent(model, tools):
     return Agent(
         name='Layer Selector Agent',
-        model=fast_model,
-        output_schema=Response,
-        description='Seleciona os layers úteis com base no contexto estruturado e na lista real do DXF.',
+        model=model,
+        description='Seleciona os layers corretos com base no contexto e na lista real do DXF.',
         instructions=[
             "Você é um Engenheiro de Sistemas especialista em CAD/BIM.",
-            "Sua tarefa é analisar os layers recebidos, inferir quais fazem parte do contexto.",
-            "Ao interir os layers corretos, devolver no formato apenas os layers inferidos",
-            "REGRAS:",
-            "1. Você DEVE chamar 'get_layers' para ver quais camadas existem de verdade.",
-            "2. Selecione apenas os números dos layers que tenham impacto direto na execução do objetivo (eletrica, spda, etc).",
-            "3. O retorno deve ser feito com o resultado da tool 'get_set_layers'",
+            "VOCÊ DEVE OBRIGATORIAMENTE SEGUIR ESTES PASSOS:",
+            "1. Chame a ferramenta 'get_layers' para ver os nomes reais dos layers no arquivo.",
+            "2. Analise a lista retornada e identifique quais pertencem à disciplina solicitada (ex: Elétrica).",
+            "3. Se o contexto for 'Elétrica', procure por layers que comecem com 'ELE-' ou contenham 'ELET'.",
+            "4. Retorne a lista de nomes EXATOS dos layers selecionados.",
+            "NUNCA invente nomes que não estão na lista de 'get_layers'.",
         ],
         tools=tools,
     )

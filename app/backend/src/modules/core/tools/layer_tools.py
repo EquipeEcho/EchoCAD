@@ -19,36 +19,18 @@ class LayerTools:
         # Converter para string caso venha como Path, pois alguns métodos preferem str
         self.doc = entity_dxf.doc
         self.msp = self.doc.modelspace()  # Aqui estão os desenhos
-        self.names_sorted = sorted(
-            [layer.dxf.name for layer in self.doc.layers])
-        self.layer_dict = {i: name for i, name in enumerate(self.names_sorted)}
 
-    def get_layers(self) -> dict[int, str]:
+    def get_layers(self) -> list[str]:
         """
-        Retorna um dicionário de camadas onde a chave é um índice inteiro
-        e o valor é o nome da camada, ordenados alfabeticamente.
-        """
-
-        return self.layer_dict
-
-    def get_set_layers(self, indices: set[int]) -> dict[int, str]:
-        """
-        Filtra o dicionário de camadas para retornar apenas os nomes das camadas associados 
-        aos índices numéricos fornecidos.
-
-        Esta ferramenta é útil quando o usuário seleciona camadas específicas por número 
-        (ex: após listar todas as camadas) e você precisa recuperar os nomes técnicos 
-        delas para realizar cálculos ou leituras no arquivo DXF/CAD.
-
-        Args:
-            indices (set[int]): Um conjunto de números inteiros representando as chaves 
-                            das camadas desejadas (obtidas anteriormente via get_layers).
+        Returns a list of all existing layers in the DXF file.
 
         Returns:
-            dict[int, str]: Um dicionário contendo apenas os pares {índice: nome_da_camada} 
-                            que correspondem aos índices solicitados e existem no documento.
+            list[str]: A list containing the names of the layers.
         """
-        return {k: self.layer_dict[k] for k in indices if k in self.layer_dict}
+
+        layers = [layer.dxf.name for layer in self.doc.layers]
+
+        return layers
 
     def check_exists(self, name: str) -> bool:
         """
