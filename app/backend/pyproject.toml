@@ -25,6 +25,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "groq>=1.2.0",
+    "jupyter>=1.1.1",
     "pytest>=9.0.3",
 ]
 

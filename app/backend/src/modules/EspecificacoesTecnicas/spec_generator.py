@@ -5,7 +5,6 @@
 
 import json
 import logging
-import re
 import textwrap
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional

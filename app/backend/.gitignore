@@ -2,3 +2,6 @@ uploads/
 **/chroma_db/
 *.dxf
 *.env
+*.db
+
+test.py
