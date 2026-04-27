@@ -1,191 +1,93 @@
-"""API FastAPI para leitura de dados da coleção vetorial 'normas'."""
+"""Aplicacao principal do sistema RAG com agno, ChromaDB e Ollama."""
 
+import argparse
 import tempfile
-import uuid
 from pathlib import Path
-from typing import Any
 
-from fastapi import FastAPI, File, Query, UploadFile
-from pydantic import BaseModel
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 
-from src.modules.chroma_vector.db import get_collection
-from src.modules.chroma_vector.document_processor import extract_text_from_file
+from src.modules.chroma_vector.ingest_agent import ingest_file
+from src.modules.chroma_vector.rag_agent import perguntar
 
 app = FastAPI(
-    title="API de Normas com ChromaDB",
-    description="API simples para leitura e busca por similaridade em um banco vetorial local.",
-    version="1.0.0",
+    title="EchoCAD RAG Local — agno",
+    description="RAG agentico com agno Knowledge + ChromaDB + Ollama llama3.",
+    version="2.0.0",
 )
-
-
-class NormaCreate(BaseModel):
-    """Modelo para criar uma norma manualmente."""
-
-    id: str
-    document: str
-    metadata: dict[str, str]
-
-
-def _format_all_documents(raw_data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Converte retorno do ChromaDB em uma lista de itens estruturados.
-
-    Args:
-        raw_data: Resultado bruto retornado por collection.get(...).
-
-    Returns:
-        list[dict[str, Any]]: Lista com id, documento e metadados.
-    """
-    ids = raw_data.get("ids", []) or []
-    documents = raw_data.get("documents", []) or []
-    metadatas = raw_data.get("metadatas", []) or []
-
-    items: list[dict[str, Any]] = []
-    for idx, doc_id in enumerate(ids):
-        items.append(
-            {
-                "id": doc_id,
-                "document": documents[idx] if idx < len(documents) else None,
-                "metadata": metadatas[idx] if idx < len(metadatas) else None,
-            }
-        )
-
-    return items
-
-
-def _format_query_results(raw_data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Converte resultado de query em itens legíveis para a API.
-
-    O ChromaDB retorna listas aninhadas por causa do suporte a múltiplas
-    consultas no mesmo request. Como usamos apenas uma query por vez,
-    pegamos o índice 0 de cada lista.
-    """
-    ids = (raw_data.get("ids") or [[]])[0]
-    documents = (raw_data.get("documents") or [[]])[0]
-    metadatas = (raw_data.get("metadatas") or [[]])[0]
-    distances = (raw_data.get("distances") or [[]])[0]
-
-    items: list[dict[str, Any]] = []
-    for idx, doc_id in enumerate(ids):
-        items.append(
-            {
-                "id": doc_id,
-                "document": documents[idx] if idx < len(documents) else None,
-                "metadata": metadatas[idx] if idx < len(metadatas) else None,
-                "distance": distances[idx] if idx < len(distances) else None,
-            }
-        )
-
-    return items
-
-
-@app.get("/normas")
-def list_normas() -> dict[str, Any]:
-    """Retorna todos os documentos armazenados na coleção 'normas'."""
-    collection = get_collection()
-
-    # Inclui documentos e metadados no retorno.
-    raw_data = collection.get(include=["documents", "metadatas"])
-    items = _format_all_documents(raw_data)
-
-    return {
-        "collection": "normas",
-        "total": len(items),
-        "items": items,
-    }
-
-
-@app.get("/buscar")
-def buscar_normas(query: str = Query(..., min_length=1)) -> dict[str, Any]:
-    """Busca os 5 documentos mais similares ao texto informado."""
-    collection = get_collection()
-
-    # Busca semântica com top 5 resultados mais próximos.
-    raw_data = collection.query(
-        query_texts=[query],
-        n_results=5,
-        include=["documents", "metadatas", "distances"],
-    )
-    items = _format_query_results(raw_data)
-
-    return {
-        "query": query,
-        "total": len(items),
-        "results": items,
-    }
 
 
 @app.get("/")
 def health_check() -> dict[str, str]:
-    """Endpoint simples para confirmar que a API está ativa."""
-    return {"status": "ok", "message": "API no ar."}
+    """Status da API."""
+    return {"status": "ok", "service": "echocad-rag-agno"}
 
 
-@app.post("/normas")
-def criar_norma(norma: NormaCreate) -> dict[str, str]:
-    """Insere uma norma manualmente na coleção."""
-    collection = get_collection()
-
-    collection.add(
-        ids=[norma.id],
-        documents=[norma.document],
-        metadatas=[norma.metadata],
-    )
-
-    return {"message": "Norma inserida com sucesso", "id": norma.id}
-
-
-@app.post("/upload-documento")
-async def upload_documento(file: UploadFile = File(...)) -> dict[str, Any]:
-    """Faz upload de um arquivo DOCX ou PDF e adiciona à coleção.
-
-    Extrai o texto completo do documento e o adiciona como uma norma.
-    """
-    # Valida o tipo de arquivo
-    if file.filename is None:
-        return {"error": "Arquivo sem nome"}
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)) -> dict[str, str | int]:
+    """Recebe PDF/DOCX, ingere no ChromaDB via agno Knowledge."""
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Arquivo sem nome")
 
     suffix = Path(file.filename).suffix.lower()
-    if suffix not in [".docx", ".pdf"]:
-        return {"error": "Apenas arquivos .docx e .pdf são suportados"}
+    if suffix not in {".pdf", ".docx"}:
+        raise HTTPException(status_code=400, detail="Apenas .pdf e .docx sao suportados")
 
+    temp_path: str | None = None
     try:
-        # Salva temporariamente o arquivo recebido
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            content = await file.read()
-            tmp.write(content)
-            tmp_path = tmp.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            temp_file.write(await file.read())
+            temp_path = temp_file.name
 
-        # Extrai o texto do arquivo
-        extracted_text = extract_text_from_file(tmp_path)
+        result = ingest_file(temp_path)
+        result["arquivo"] = file.filename
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Falha na ingestao: {exc}") from exc
+    finally:
+        if temp_path and Path(temp_path).exists():
+            Path(temp_path).unlink(missing_ok=True)
 
-        if not extracted_text:
-            return {"error": "Nenhum texto foi extraído do documento"}
 
-        # Gera um ID único para a norma
-        norma_id = f"norma-{uuid.uuid4().hex[:8]}"
+@app.get("/perguntar")
+def endpoint_perguntar(
+    pergunta_usuario: str = Query(..., alias="pergunta", min_length=1),
+) -> dict[str, str]:
+    """Executa pergunta no agente RAG agentico e retorna resposta."""
+    try:
+        resposta = perguntar(pergunta_usuario)
+        return {"resposta": resposta}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Falha ao responder: {exc}") from exc
 
-        # Adiciona à coleção
-        collection = get_collection()
-        collection.add(
-            ids=[norma_id],
-            documents=[extracted_text],
-            metadatas=[
-                {
-                    "filename": file.filename,
-                    "file_type": suffix[1:].upper(),
-                }
-            ],
-        )
 
-        # Remove arquivo temporário
-        Path(tmp_path).unlink()
+def _run_cli_example(files: list[str], question: str | None) -> None:
+    """Uso local sem API."""
+    for file_path in files:
+        result = ingest_file(file_path)
+        print(f"Ingestao concluida: {result}")
 
-        return {
-            "message": "Documento processado e adicionado com sucesso",
-            "id": norma_id,
-            "filename": file.filename,
-            "text_length": len(extracted_text),
-        }
+    if question:
+        answer = perguntar(question)
+        print("\nPergunta:", question)
+        print("Resposta:", answer)
 
-    except Exception as e:
-        return {"error": f"Erro ao processar arquivo: {str(e)}"}
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Sistema RAG local — agno + ChromaDB + Ollama")
+    parser.add_argument("--ingest", nargs="*", default=[], help="Arquivos PDF/DOCX para ingestao")
+    parser.add_argument("--ask", default=None, help="Pergunta para o agente RAG")
+    parser.add_argument("--serve", action="store_true", help="Inicia a API FastAPI")
+    return parser
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    args = _build_parser().parse_args()
+
+    if args.serve:
+        uvicorn.run(app, host="0.0.0.0", port=8010)
+    else:
+        _run_cli_example(files=args.ingest, question=args.ask)

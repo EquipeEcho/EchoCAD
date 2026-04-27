@@ -1,32 +1,27 @@
-"""Configuração e acesso ao ChromaDB.
+"""Conexao com ChromaDB via agno — banco vetorial persistente com embeddings Ollama."""
 
-Este módulo centraliza a conexão com o banco vetorial e disponibiliza
-funções utilitárias para obter a coleção usada pela API.
-"""
+from agno.knowledge.embedder.ollama import OllamaEmbedder
+from agno.vectordb.chroma import ChromaDb
 
-from pathlib import Path
+# Caminho de persistencia local do ChromaDB.
+CHROMA_PATH = "./chroma_db"
 
-import chromadb
-from chromadb.api.models.Collection import Collection
-
-# Diretório local onde o ChromaDB salva os dados persistentemente.
-CHROMA_PATH = Path(__file__).parent / "chroma_db"
-
-# Nome da coleção principal usada neste projeto.
+# Nome da colecao principal.
 COLLECTION_NAME = "normas"
 
+# Modelo de embedding local via Ollama.
+# Usa nomic-embed-text (128 dims) por ser leve e especifico para embeddings.
+# Ajuste o id e dimensions se preferir outro modelo disponivel no seu Ollama.
+EMBED_MODEL = "nomic-embed-text"
+EMBED_DIMENSIONS = 768
 
-def get_collection() -> Collection:
-    """Retorna a coleção 'normas', criando-a se necessário.
 
-    Returns:
-        Collection: Instância da coleção conectada ao banco vetorial local.
-    """
-    # Garante que a pasta de persistência exista antes de iniciar o client.
-    CHROMA_PATH.mkdir(parents=True, exist_ok=True)
-
-    # Cliente com persistência local em disco.
-    client = chromadb.PersistentClient(path=str(CHROMA_PATH))
-
-    # Busca a coleção existente ou cria uma nova com o nome definido.
-    return client.get_or_create_collection(name=COLLECTION_NAME)
+def get_vector_db() -> ChromaDb:
+    """Retorna instancia configurada do ChromaDb com embedder Ollama."""
+    embedder = OllamaEmbedder(id=EMBED_MODEL, dimensions=EMBED_DIMENSIONS)
+    return ChromaDb(
+        collection=COLLECTION_NAME,
+        path=CHROMA_PATH,
+        persistent_client=True,
+        embedder=embedder,
+    )

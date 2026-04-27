@@ -1,113 +1,197 @@
-# API FastAPI + ChromaDB (colecao normas)
+# Sistema RAG Local — agno + ChromaDB + Ollama
 
-Projeto simples para leitura e busca por similaridade em uma colecao vetorial local usando ChromaDB.
+Carregue documentos PDF/DOCX, armazene no ChromaDB e faça perguntas respondidas com IA local (Ollama llama3). Construído com **agno**: Agentic RAG nativo, chunking semantico com LLM e embeddings locais.
+
+## Como funciona
+
+```
+PDF/DOCX → agno PDFReader/DocxReader → AgenticChunking (llama3)
+         → OllamaEmbedder (nomic-embed-text) → ChromaDB (./chroma_db)
+                                                      ↓
+pergunta → agno Agent (search_knowledge=True) → llama3 → resposta
+```
+
+O `Agent` com `search_knowledge=True` implementa **Agentic RAG**: o proprio agente decide quando e o que buscar no banco vetorial, sem injetar contexto cego em todas as queries.
+
+---
 
 ## Estrutura
 
-- `main.py`: API FastAPI e endpoints (GET e POST)
-- `db.py`: conexao com ChromaDB e acesso a colecao `normas`
-- `seed_data.py`: script opcional para inserir dados de exemplo
-- `document_processor.py`: funcoes para extrair texto de DOCX e PDF
-- `batch_process.py`: script para processar multiplos arquivos em lote
-- `chroma_db/`: pasta de persistencia local do ChromaDB
+| Arquivo              | Responsabilidade                                               |
+| -------------------- | -------------------------------------------------------------- |
+| `db.py`              | `ChromaDb` + `OllamaEmbedder` (nomic-embed-text)               |
+| `document_loader.py` | `PDFReader` e `DocxReader` do agno                             |
+| `chunking.py`        | `AgenticChunking` (llama3) + `RecursiveChunking` como fallback |
+| `ingest_agent.py`    | `Knowledge.insert()` com chunker e metadata                    |
+| `rag_agent.py`       | `Agent(knowledge=..., search_knowledge=True)`                  |
+| `main.py`            | API FastAPI `/upload` e `/perguntar`, mais modo CLI            |
+| `chroma_db/`         | Pasta de persistencia local (criada automaticamente)           |
 
-## Como executar
+---
 
-1. Criar ambiente virtual (opcional, recomendado):
+## Requisitos
 
-```bash
-python -m venv .venv
-```
+- Python 3.10+
+- [Ollama](https://ollama.com) instalado e rodando localmente
+- `agno>=2.5.12`, `chromadb`, `pypdf`, `python-docx` instalados
 
-2. Ativar ambiente virtual:
+---
 
-- Windows (PowerShell):
+## 1. Instalar dependencias
+
+A partir de `app/backend/`:
 
 ```powershell
-.venv\Scripts\Activate.ps1
+# Com uv (recomendado — ja configurado no projeto)
+uv sync
+
+# Ou com pip
+pip install agno chromadb pypdf python-docx fastapi uvicorn python-multipart
 ```
 
-3. Instalar dependencias:
+---
+
+## 2. Baixar os modelos no Ollama
+
+Em um terminal separado, antes de qualquer coisa:
 
 ```bash
-pip install -r requirements.txt
+# Modelo de inferencia (respostas)
+ollama pull llama3
+
+# Modelo de embeddings (vetorizacao dos documentos)
+ollama pull nomic-embed-text
+
+# Iniciar o servidor Ollama (se nao estiver rodando)
+ollama serve
 ```
 
-4. (Opcional) Inserir dados de exemplo:
+Ollama fica disponivel em `http://localhost:11434`. Mantenha-o rodando enquanto usa o sistema.
+
+---
+
+## 3. Iniciar a API
+
+A partir de `app/backend/`:
+
+```powershell
+python -m src.modules.chroma_vector.main --serve
+```
+
+- API: `http://localhost:8010`
+- Documentacao interativa (Swagger): `http://localhost:8010/docs`
+
+---
+
+## 4. Carregar um documento
+
+> **Atencao:** `/upload` aceita apenas `POST`. Acessar a URL direto no navegador retorna `405 Method Not Allowed` — isso e normal. Use o Swagger ou curl como mostrado abaixo.
+
+### Via curl
 
 ```bash
-python seed_data.py
+curl -X POST "http://localhost:8010/upload" \
+  -F "file=@C:/caminho/seu_arquivo.pdf"
 ```
 
-5. Iniciar API com uvicorn:
+### Via Swagger
+
+1. Acesse `http://localhost:8010/docs`
+2. Clique em `POST /upload` → **Try it out**
+3. Selecione o arquivo PDF ou DOCX
+4. Clique em **Execute**
+
+Formatos aceitos: `.pdf` e `.docx`.
+
+Resposta esperada:
+
+```json
+{
+  "arquivo": "norma_abnt.pdf",
+  "status": "ok"
+}
+```
+
+> O agno processa o arquivo em background: leitura → chunking semantico com llama3 → embedding com nomic-embed-text → persistencia no ChromaDB.
+
+---
+
+## 5. Fazer uma pergunta
+
+### Via curl
 
 ```bash
-uvicorn main:app --reload
+curl "http://localhost:8010/perguntar?pergunta=Qual+o+escopo+desta+norma?"
 ```
 
-6. Testar endpoints:
+### Via Swagger
 
-- Lista completa: `GET http://127.0.0.1:8000/normas`
-- Busca semantica: `GET http://127.0.0.1:8000/buscar?query=seguranca`
-- Docs interativa: `http://127.0.0.1:8000/docs`
+1. Clique em `GET /perguntar` → **Try it out**
+2. Preencha o campo `pergunta`
+3. Clique em **Execute**
 
-## Adicionar Normas via Arquivo (DOCX/PDF)
+Resposta esperada:
 
-### Opcao 1: Upload individual via API
-
-Use o endpoint `/upload-documento` para fazer upload de um arquivo DOCX ou PDF:
-
-```bash
-curl -X POST "http://127.0.0.1:8000/upload-documento" \
-  -F "file=@seu_arquivo.pdf"
+```json
+{
+  "resposta": "De acordo com o documento norma_abnt.pdf, o escopo desta norma abrange..."
+}
 ```
 
-Ou via a interface Swagger em `http://127.0.0.1:8000/docs`:
+Se nenhum documento relevante for encontrado, o agente informa explicitamente que nao localizou a informacao.
 
-- Clique em `/upload-documento`
-- Clique em "Try it out"
-- Selecione seu arquivo DOCX ou PDF
-- Clique em "Execute"
+---
 
-### Opcao 2: Processar multiplos arquivos em lote
+## 6. Usar via linha de comando (sem API)
 
-Coloque todos os seus arquivos DOCX e PDF em uma pasta, depois execute:
+```powershell
+# Ingerir um arquivo
+python -m src.modules.chroma_vector.main --ingest C:/docs/norma.pdf
 
-```bash
-python batch_process.py ./caminho_da_pasta_com_documentos
+# Ingerir varios arquivos
+python -m src.modules.chroma_vector.main --ingest C:/docs/norma.pdf C:/docs/manual.docx
+
+# Fazer uma pergunta (apos ingestao previa)
+python -m src.modules.chroma_vector.main --ask "Quais sao os requisitos minimos?"
+
+# Ingerir e perguntar na mesma execucao
+python -m src.modules.chroma_vector.main --ingest C:/docs/norma.pdf --ask "Qual o objetivo do documento?"
 ```
 
-Exemplo:
+---
 
-```bash
-python batch_process.py ./documentos
-```
+## Endpoints
 
-O script vai:
+| Metodo | Endpoint                  | Descricao                                     |
+| ------ | ------------------------- | --------------------------------------------- |
+| `GET`  | `/`                       | Health check                                  |
+| `POST` | `/upload`                 | Carrega PDF/DOCX, ingere no ChromaDB via agno |
+| `GET`  | `/perguntar?pergunta=...` | Pergunta ao agente RAG agentico               |
 
-1. Procurar por todos os arquivos `.docx` e `.pdf`
-2. Extrair o texto completo de cada um
-3. Adicionar automaticamente ao ChromaDB com ID único
+---
 
-### Opcao 3: Criar norma manualmente
+## Solucao de problemas
 
-```bash
-curl -X POST "http://127.0.0.1:8000/normas" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "norma-custom-001",
-    "document": "Seu texto de norma aqui...",
-    "metadata": {"categoria": "seguranca", "codigo": "NBR-12345"}
-  }'
-```
+| Sintoma                          | Causa provavel                   | Solucao                                                   |
+| -------------------------------- | -------------------------------- | --------------------------------------------------------- |
+| `ImportError: chromadb`          | Pacote nao instalado             | `pip install chromadb`                                    |
+| `ImportError: pypdf`             | Pacote nao instalado             | `pip install pypdf`                                       |
+| `ImportError: python-docx`       | Pacote nao instalado             | `pip install python-docx`                                 |
+| Timeout na ingestao              | llama3 lento no chunking         | Normal em CPUs. Aguarde ou use `RecursiveChunking` direto |
+| Resposta vazia / "nao encontrei" | Documento nao ingerido ainda     | Execute `/upload` antes de perguntar                      |
+| `nomic-embed-text not found`     | Modelo de embedding ausente      | `ollama pull nomic-embed-text`                            |
+| Banco vazio apos reinicio        | `chroma_db/` em diretorio errado | Execute sempre a partir de `app/backend/`                 |
 
-## Tipos Suportados
+---
 
-- **PDF**: Extrai texto de todas as paginas (incluindo numero da pagina)
-- **DOCX**: Extrai texto de parágrafos
+## Observacoes
 
-## Notas
-
-- ChromaDB usa embedding automatico (modelo padrão)
+- O banco vetorial e salvo em `./chroma_db/` relativo ao diretorio de execucao. **Execute sempre a partir de `app/backend/`**.
+- O `AgenticChunking` envia cada bloco ao llama3 para divisao semantica. Se o modelo nao estiver disponivel ou falhar, o sistema cai automaticamente para `RecursiveChunking` sem interromper a ingestao.
+- Embeddings sao gerados localmente pelo `nomic-embed-text` via Ollama — nenhum dado sai da maquina.
 - Quanto maior o texto, melhor a busca por similaridade
 - Os arquivos temporarios de upload sao deletados automaticamente
+
+```
+
+```
