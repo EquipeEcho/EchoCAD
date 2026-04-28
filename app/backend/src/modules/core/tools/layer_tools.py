@@ -27,7 +27,7 @@ class LayerTools:
         Returns:
             list[str]: A list containing the names of the layers.
         """
-
+        print("[DEBUG] Tool get_layers called")
         layers = [layer.dxf.name for layer in self.doc.layers]
 
         return layers
@@ -42,6 +42,7 @@ class LayerTools:
         Returns:
             bool: True if the layer exists, False otherwise.
         """
+        print(f"[DEBUG] Tool check_exists called for: {name}")
         return name in self.doc.layers
 
     def get_entities_by_layer(self, layer_name: str):

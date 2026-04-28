@@ -28,14 +28,14 @@ def create_echo_team(dxf_path: str, model_type="strong"):
     
     # Selector Agent MUST use the tools to avoid hallucination
     selector = layer_select_agent.get_selector_agent(
-        model=main_model, 
+        model=model_provider.text_comprehension, 
         tools=[tools.get_layers, tools.check_exists]
     )
 
     # 4. Create the Team
     echoteam = Team(
         name="Echo Team",
-        model=main_model,
+        model=model_provider.privacity_model,
         members=[ctx_agent, selector],
         instructions=[
             "1. Primeiro, chame o ContextAgent para analisar o prompt do usuário e entender a disciplina da obra.",

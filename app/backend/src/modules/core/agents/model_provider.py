@@ -22,4 +22,6 @@ def get_ollama_model(model_name='qwen2.5'):
     return Ollama(id=model_name)
 
 # Default privacy model
-privacity_model = get_ollama_model('qwen2.5')
+privacity_model = get_ollama_model('qwen3.5:9B')
+
+text_comprehension = get_ollama_model('qwen2.5:7B')
