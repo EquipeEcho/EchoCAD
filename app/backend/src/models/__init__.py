@@ -1,12 +1,13 @@
-from .database.usuario import User
-from .database.projeto import Project
 from .file_cad import FileCad
-from .database.comandos_ia import ComandoIA
-from .database.documentos_gerados import DocumentoGerado
+from .database.usuario import Usuario
+from .database.projeto import Projeto
+from .database.norma import Norma
+from .database.projeto_norma import ProjetoNorma
+from .database.planta_cad import PlantaCad
+from .database.projeto_planta import ProjetoPlanta
 from .database.especificacoes_tecnicas import EspecificacaoTecnica
-from .database.calculos import Calculo
 from .database.memoriais_calculo import MemorialCalculo
-from .database.elementos import Elemento
-from .database.arquivos import Arquivo
-from .database.coordenadas import Coordenada
-from .database.processamento import Processamento
+
+# Backward compatibility aliases for old names
+User = Usuario
+Project = Projeto

@@ -13,7 +13,7 @@ import time
 
 import requests
 
-from dxf_context_extractor import ContextoDXF
+from .dxf_context_extractor import ContextoDXF
 
 logger = logging.getLogger(__name__)
 

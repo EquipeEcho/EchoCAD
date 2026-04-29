@@ -1,32 +1,31 @@
 from typing import TYPE_CHECKING
-
-from pydantic import ConfigDict
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.models.base import Base
 
 if TYPE_CHECKING:
-    from .calculos import Calculo
-    from .documentos_gerados import DocumentoGerado
+    from .projeto import Projeto
 
 
 class MemorialCalculo(Base):
-    __tablename__ = "Memoriais_calculo"
+    __tablename__ = "Memorial_calculo"
 
-    id_documentos_gerados: Mapped[int | None] = mapped_column(
-        ForeignKey("Documentos_gerados.id"), nullable=True, default=None
-    )
-    id_calculos: Mapped[int | None] = mapped_column(
-        ForeignKey("Calculos.id"), nullable=True, default=None
-    )
-    resultados: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
-    norma_referencia: Mapped[str | None] = mapped_column(
-        String(150), nullable=True, default=None
-    )
-    observacoes: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
+    arquivo: Mapped[str | None] = mapped_column(String(255), nullable=False)
 
-    documento: Mapped["DocumentoGerado | None"] = relationship(
-        "DocumentoGerado", init=False
+    id_projeto: Mapped[int] = mapped_column(ForeignKey("Projeto.id"), nullable=False)
+    id_antigo: Mapped[int | None] = mapped_column(
+        ForeignKey("Memorial_calculo.id"), nullable=True, default=None
     )
-    calculo: Mapped["Calculo | None"] = relationship("Calculo", init=False)
-    model_config = ConfigDict(from_attributes=True)
+
+    versao: Mapped[int | None] = mapped_column(Integer, nullable=False, default=1)
+    melhorias: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+
+    projeto: Mapped["Projeto"] = relationship(
+        "Projeto", back_populates="memoriais_calculo", init=False
+    )
+    antigo: Mapped["MemorialCalculo | None"] = relationship(
+        "MemorialCalculo",
+        remote_side="MemorialCalculo.id",
+        init=False,
+    )

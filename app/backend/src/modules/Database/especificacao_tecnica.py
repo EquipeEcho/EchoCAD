@@ -12,7 +12,9 @@ def create_especificacao_tecnica(db: Session, espec: EspecificacaoTecnicaCreate)
 
 
 def read_especificacao_tecnica(db: Session, especificacao_id: int):
-    return db.query(EspecificacaoTecnica).filter(EspecificacaoTecnica.id == especificacao_id).first()
+    return db.query(EspecificacaoTecnica).filter(
+        EspecificacaoTecnica.id == especificacao_id
+    ).first()
 
 
 def read_all_especificacoes_tecnicas(db: Session):

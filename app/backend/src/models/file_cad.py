@@ -8,6 +8,7 @@ from src.models.base import Base
 class FileCad(Base):
     __tablename__ = 'files_cad'
 
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
     filename: Mapped[str] = mapped_column(String(100), nullable=False)
     file_size: Mapped[int] = mapped_column(nullable=False) 
     file_hash: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)

@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
-from src.models import Project
+from src.models import Projeto
 from ...schemas.database.projeto import ProjetoCreate
 
 
 def create_projeto(db: Session, project: ProjetoCreate):
-    new_project = Project(**project.model_dump())
+    new_project = Projeto(**project.model_dump())
     db.add(new_project)
     db.commit()
     db.refresh(new_project)
@@ -12,8 +12,8 @@ def create_projeto(db: Session, project: ProjetoCreate):
 
 
 def read_projeto(db: Session, projeto_id: int):
-    return db.query(Project).filter(Project.id == projeto_id).first()
+    return db.query(Projeto).filter(Projeto.id == projeto_id).first()
 
 
 def read_all_projetos(db: Session):
-    return db.query(Project).all()
+    return db.query(Projeto).all()

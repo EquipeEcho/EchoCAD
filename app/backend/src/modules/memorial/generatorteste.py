@@ -14,8 +14,8 @@ from openpyxl.styles import (
 )
 from openpyxl.utils import get_column_letter
 
-from src.modules.Memorial.dxf_extractor import CADExtractor, ProjetoMemorial
-from src.modules.Memorial.sinapi import buscar_preco_sinapi, carregar_sinapi
+from .dxf_extractor import CADExtractor, ProjetoMemorial
+from ..BuscarPrecos.sinapi import buscar_preco_sinapi, carregar_sinapi
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
