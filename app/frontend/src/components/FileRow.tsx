@@ -10,13 +10,21 @@ type FileAction = {
   tone?: "neutral" | "danger";
 };
 
+type FileRowMeta = {
+  label: string;
+  value: string;
+};
+
 type FileRowProps = {
   name: string;
   kind: FileKind;
   date?: string;
   size?: string;
+  hint?: string;
+  metaItems?: FileRowMeta[];
+  statusControl?: ReactNode;
   actions: FileAction[];
-  variant?: "upload" | "history";
+  variant?: "upload" | "history" | "standard";
 };
 
 // Exibe uma linha com dados e ações de um arquivo.
@@ -25,9 +33,28 @@ export function FileRow({
   kind,
   date,
   size,
+  hint,
+  metaItems,
+  statusControl,
   actions,
   variant = "upload",
 }: FileRowProps) {
+  const resolvedHint =
+    hint ??
+    (variant === "history"
+      ? "Projeto salvo"
+      : variant === "standard"
+        ? "Norma técnica"
+        : "Pronto para processamento");
+  const resolvedMetaItems =
+    metaItems ??
+    (variant === "history"
+      ? [
+          { label: "Data", value: date || "-" },
+          { label: "Tamanho", value: size || "-" },
+        ]
+      : []);
+
   return (
     <div
       className={`file-row file-row--${variant}`}
@@ -42,26 +69,22 @@ export function FileRow({
           <p className="file-row__name">{name}</p>
           <div className="file-row__subline">
             <span className="file-row__kind">{kind.toUpperCase()}</span>
-            <span className="file-row__hint">
-              {variant === "history"
-                ? "Projeto salvo"
-                : "Pronto para processamento"}
-            </span>
+            <span className="file-row__hint">{resolvedHint}</span>
           </div>
         </div>
       </div>
 
-      {variant === "history" ? (
-        <>
-          <div className="file-row__meta-block">
-            <span className="file-row__meta-label">Data</span>
-            <p className="file-row__meta">{date}</p>
+      {resolvedMetaItems.length > 0 ? (
+        resolvedMetaItems.map((item) => (
+          <div className="file-row__meta-block" key={item.label}>
+            <span className="file-row__meta-label">{item.label}</span>
+            <p className="file-row__meta">{item.value}</p>
           </div>
-          <div className="file-row__meta-block">
-            <span className="file-row__meta-label">Tamanho</span>
-            <p className="file-row__meta">{size}</p>
-          </div>
-        </>
+        ))
+      ) : null}
+
+      {statusControl ? (
+        <div className="file-row__control">{statusControl}</div>
       ) : null}
 
       <div className="file-row__actions">

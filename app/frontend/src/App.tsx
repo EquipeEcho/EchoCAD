@@ -5,6 +5,7 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { HomePage } from "./pages/HomePage";
 import { ProcessingPage } from "./pages/ProcessingPage";
 import { ResultPage } from "./pages/ResultPage";
+import { StandardsPage } from "./pages/StandardsPage";
 
 // Define as rotas principais da aplicação.
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/processando" element={<ProcessingPage />} />
         <Route path="/resultado" element={<ResultPage />} />
         <Route path="/historico" element={<HistoryPage />} />
+        <Route path="/normas" element={<StandardsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

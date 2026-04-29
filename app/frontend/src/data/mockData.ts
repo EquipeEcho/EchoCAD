@@ -2,6 +2,7 @@ import {
   FileKind,
   GeneratedDocument,
   HistoryDocument,
+  TechnicalStandard,
   UploadDocument,
 } from "../types/documents";
 import { formatInputDate, getTodayInputValue } from "../utils/date";
@@ -98,6 +99,49 @@ export const mockHistoryDocuments: HistoryDocument[] = [
       "EchoCAD-7011",
       ["Rede_Hidraulica.dxf", "Memorial_Hidraulico.pdf"]
     ),
+  },
+];
+
+export const mockTechnicalStandards: TechnicalStandard[] = [
+  {
+    id: "standard-nbr-6118",
+    name: "NBR 6118 - Projeto de estruturas de concreto",
+    code: "NBR 6118",
+    category: "Estrutural",
+    date: "2023",
+    size: "4.8 MB",
+    kind: "pdf",
+    enabled: true,
+  },
+  {
+    id: "standard-nbr-5410",
+    name: "NBR 5410 - Instalacoes eletricas de baixa tensao",
+    code: "NBR 5410",
+    category: "Eletrica",
+    date: "2004",
+    size: "3.6 MB",
+    kind: "pdf",
+    enabled: true,
+  },
+  {
+    id: "standard-nbr-6120",
+    name: "NBR 6120 - Cargas para o calculo de estruturas",
+    code: "NBR 6120",
+    category: "Cargas",
+    date: "2019",
+    size: "2.1 MB",
+    kind: "pdf",
+    enabled: false,
+  },
+  {
+    id: "standard-nbr-8800",
+    name: "NBR 8800 - Projeto de estruturas de aco",
+    code: "NBR 8800",
+    category: "Estrutural",
+    date: "2008",
+    size: "5.2 MB",
+    kind: "pdf",
+    enabled: false,
   },
 ];
 

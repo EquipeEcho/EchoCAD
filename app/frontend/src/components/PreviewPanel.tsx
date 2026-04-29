@@ -24,6 +24,13 @@ export function PreviewPanel({ document }: PreviewPanelProps) {
     });
   }
 
+  if (document.projectInfo?.modelType) {
+    documentFacts.push({
+      label: "Tipo de modelo",
+      value: document.projectInfo.modelType,
+    });
+  }
+
   return (
     <section className="preview-panel surface-card" aria-labelledby="preview-title">
       <div className="preview-panel__header">
@@ -80,6 +87,17 @@ export function PreviewPanel({ document }: PreviewPanelProps) {
               <div className="preview-paper__panel">
                 <h4 className="preview-paper__panel-title">Observações</h4>
                 <p className="preview-paper__note">{document.projectInfo.notes}</p>
+              </div>
+            ) : null}
+
+            {document.projectInfo?.additionalInstructions ? (
+              <div className="preview-paper__panel">
+                <h4 className="preview-paper__panel-title">
+                  Instruções adicionais
+                </h4>
+                <p className="preview-paper__note">
+                  {document.projectInfo.additionalInstructions}
+                </p>
               </div>
             ) : null}
 
