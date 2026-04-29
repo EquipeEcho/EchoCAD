@@ -1,7 +1,11 @@
 import { ChangeEvent, DragEvent, MouseEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePrototype } from "../providers/PrototypeProvider";
-import { UploadDocument, UploadStatusTone } from "../types/documents";
+import {
+  ProjectSaveInput,
+  UploadDocument,
+  UploadStatusTone,
+} from "../types/documents";
 import { Button } from "./Button";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { FileList } from "./FileList";
@@ -13,6 +17,7 @@ import {
   TrashIcon,
   UploadIcon,
 } from "./Icons";
+import { ProjectSaveModal } from "./ProjectSaveModal";
 
 // Monta a mensagem de status após selecionar arquivos.
 function buildUploadStatusMessage(
@@ -51,6 +56,16 @@ function buildUploadStatusMessage(
   };
 }
 
+function getSuggestedProjectName(files: UploadDocument[]) {
+  const primaryFileName = files[0]?.name.replace(/\.[^.]+$/, "");
+
+  if (!primaryFileName) {
+    return "";
+  }
+
+  return primaryFileName.replace(/[_-]+/g, " ").trim();
+}
+
 // Controla a seleção e o envio dos arquivos do frontend.
 export function UploadPanel() {
   const navigate = useNavigate();
@@ -62,7 +77,7 @@ export function UploadPanel() {
   const [statusTone, setStatusTone] = useState<UploadStatusTone>("info");
   const [filePendingRemoval, setFilePendingRemoval] =
     useState<UploadDocument | null>(null);
-  const [showSendConfirmation, setShowSendConfirmation] = useState(false);
+  const [showProjectSaveModal, setShowProjectSaveModal] = useState(false);
   const {
     uploadedFiles,
     addUploadedFiles,
@@ -140,18 +155,29 @@ export function UploadPanel() {
     setFilePendingRemoval(null);
   };
 
-  // Envia os arquivos selecionados para o backend.
-  const handleSendConfirm = () => {
-    setShowSendConfirmation(false);
-
+  const handleStartProcessingClick = () => {
     if (uploadedFiles.length === 0) {
       showToast("Nenhum arquivo selecionado.", "error");
       return;
     }
 
-    // envia os arquivos para a próxima página
+    setShowProjectSaveModal(true);
+  };
+
+  // Envia os arquivos e o contexto do projeto para a página de processamento.
+  const handleProjectSave = (projectInfo: ProjectSaveInput) => {
+    if (uploadedFiles.length === 0) {
+      showToast("Nenhum arquivo selecionado.", "error");
+      setShowProjectSaveModal(false);
+      return;
+    }
+
+    setShowProjectSaveModal(false);
     navigate("/processando", {
-      state: { files: uploadedFiles }
+      state: {
+        files: uploadedFiles,
+        projectInfo,
+      },
     });
   };
 
@@ -263,7 +289,7 @@ export function UploadPanel() {
               <Button
                 variant="success"
                 trailingIcon={<ChevronPlayIcon />}
-                onClick={() => setShowSendConfirmation(true)}
+                onClick={handleStartProcessingClick}
               >
                 Iniciar processamento
               </Button>
@@ -286,19 +312,13 @@ export function UploadPanel() {
         onConfirm={handleRemoveConfirm}
       />
 
-      <ConfirmationModal
-        open={showSendConfirmation}
-        title="Iniciar processamento"
-        description={
-          <p>
-            Você está prestes a processar {uploadedFiles.length} documento(s).
-            Deseja continuar?
-          </p>
-        }
-        confirmLabel="Iniciar"
-        confirmTone="success"
-        onClose={() => setShowSendConfirmation(false)}
-        onConfirm={handleSendConfirm}
+      <ProjectSaveModal
+        open={showProjectSaveModal}
+        initialProjectName={getSuggestedProjectName(uploadedFiles)}
+        subtitle="Informe os dados do projeto que serão enviados junto com os arquivos para orientar a IA."
+        cancelLabel="Cancelar"
+        onClose={() => setShowProjectSaveModal(false)}
+        onSave={handleProjectSave}
       />
     </section>
   );

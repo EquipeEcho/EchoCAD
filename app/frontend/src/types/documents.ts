@@ -15,7 +15,9 @@ export interface ProjectSaveInput {
   name: string;
   projectDate: string;
   responsible: string;
+  modelType: string;
   notes: string;
+  additionalInstructions: string;
 }
 
 export interface ProjectInfo extends ProjectSaveInput {
@@ -50,6 +52,18 @@ export interface HistoryDocument {
   size: string;
   document: GeneratedDocument;
   projectInfo?: ProjectInfo;
+}
+
+export interface TechnicalStandard {
+  id: string;
+  name: string;
+  code: string;
+  category: string;
+  date: string;
+  size: string;
+  kind: FileKind;
+  enabled: boolean;
+  file?: File;
 }
 
 export interface ToastState {

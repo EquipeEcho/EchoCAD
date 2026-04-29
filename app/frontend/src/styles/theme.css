@@ -84,6 +84,26 @@
   color: var(--color-text-soft);
 }
 
+[data-theme="dark"] .standards-upload__icon {
+  background: var(--color-blue-soft);
+}
+
+[data-theme="dark"] .standard-switch {
+  color: var(--color-text-soft);
+}
+
+[data-theme="dark"] .standard-switch__track {
+  background: var(--color-border-strong);
+}
+
+[data-theme="dark"] .standard-switch.is-enabled {
+  color: var(--color-green-strong);
+}
+
+[data-theme="dark"] .standard-switch.is-enabled .standard-switch__track {
+  background: var(--color-green);
+}
+
 [data-theme="dark"] .toast {
   border-color: var(--color-border);
   background: rgba(17, 25, 36, 0.96);
@@ -103,6 +123,21 @@
 [data-theme="dark"] .modal-card__close:focus-visible {
   background: var(--color-surface-soft);
   color: var(--color-text);
+}
+
+[data-theme="dark"] .project-save-modal .modal-card__header {
+  background:
+    linear-gradient(180deg, rgba(21, 31, 44, 0.96), rgba(17, 25, 36, 0.98)),
+    var(--color-surface);
+}
+
+[data-theme="dark"] .project-save-modal__icon {
+  border-color: rgba(110, 168, 255, 0.24);
+  background: var(--color-blue-soft);
+}
+
+[data-theme="dark"] .project-save-modal .modal-card__actions {
+  background: rgba(17, 25, 36, 0.94);
 }
 
 [data-theme="dark"] .form-field__label {
@@ -130,7 +165,8 @@
 
 [data-theme="dark"] .preview-panel__eyebrow,
 [data-theme="dark"] .preview-paper__heading,
-[data-theme="dark"] .history-columns {
+[data-theme="dark"] .history-columns,
+[data-theme="dark"] .standards-columns {
   color: var(--color-text-accent);
 }
 

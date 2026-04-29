@@ -287,6 +287,15 @@
   grid-template-columns: minmax(0, 1.55fr) minmax(7rem, 0.5fr) minmax(6rem, 0.4fr) auto;
 }
 
+.file-row--standard {
+  grid-template-columns:
+    minmax(0, 1.45fr)
+    minmax(7rem, 0.5fr)
+    minmax(7rem, 0.45fr)
+    minmax(9rem, 0.5fr)
+    auto;
+}
+
 .file-row__main {
   display: flex;
   align-items: center;
@@ -398,6 +407,12 @@
   gap: 0.55rem;
 }
 
+.file-row__control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .file-row__action--danger {
   color: var(--color-red);
 }
@@ -466,6 +481,60 @@
   border-color: rgba(220, 38, 38, 0.12);
   background: rgba(220, 38, 38, 0.06);
   color: var(--color-red);
+}
+
+.standard-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 2.6rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.standard-switch:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.standard-switch__track {
+  width: 2.75rem;
+  height: 1.55rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: #d8dee8;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.standard-switch__thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(17, 17, 17, 0.18);
+  transition: transform 0.2s ease;
+}
+
+.standard-switch.is-enabled {
+  color: var(--color-green-strong);
+}
+
+.standard-switch.is-enabled .standard-switch__track {
+  background: var(--color-green);
+}
+
+.standard-switch.is-enabled .standard-switch__thumb {
+  transform: translateX(1.2rem);
+}
+
+.standard-switch__label {
+  min-width: 6.4rem;
+  text-align: left;
 }
 
 .toast {
@@ -588,25 +657,114 @@
 }
 
 .project-save-modal {
-  width: min(100%, 42rem);
+  width: min(100%, 48rem);
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.project-save-modal .modal-card__header {
+  align-items: center;
+  padding: 1.45rem 1.55rem;
+  border-bottom: 1px solid var(--color-border);
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.98)),
+    var(--color-surface);
+}
+
+.project-save-modal__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.project-save-modal__icon {
+  width: 2.85rem;
+  height: 2.85rem;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(59, 130, 246, 0.16);
+  border-radius: 0.8rem;
+  background: var(--color-blue-soft);
+  color: var(--color-blue);
+}
+
+.project-save-modal__icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.project-save-modal .modal-card__title {
+  font-size: 1.45rem;
+  line-height: 1.15;
 }
 
 .project-save-modal__subtitle {
-  margin: 0.55rem 0 0;
+  max-width: 36rem;
+  margin: 0.5rem 0 0;
   color: var(--color-text-muted);
   line-height: 1.6;
 }
 
 .project-form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  margin-top: 0;
+}
+
+.project-form__body {
+  display: grid;
+  gap: 1.25rem;
+  min-height: 0;
+  overflow: auto;
+  padding: 1.45rem 1.55rem 1.55rem;
+}
+
+.project-form__section {
   display: grid;
   gap: 1rem;
-  margin-top: 1.35rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 1.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.project-form__section:last-of-type {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.project-form__section-label {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
 }
 
 .project-form__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.project-form__grid--three {
+  grid-template-columns:
+    minmax(8rem, 0.85fr)
+    minmax(9rem, 1fr)
+    minmax(12rem, 1.2fr);
 }
 
 .form-field {
@@ -633,7 +791,12 @@
   font: inherit;
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+select.form-field__control {
+  cursor: pointer;
 }
 
 .form-field__control:focus {
@@ -646,6 +809,19 @@
   min-height: 7rem;
   resize: vertical;
   line-height: 1.6;
+}
+
+.form-field__control--textarea-compact {
+  min-height: 5.4rem;
+}
+
+.project-save-modal .modal-card__actions {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 1rem 1.55rem;
+  border-top: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
 }
 
 .empty-state {

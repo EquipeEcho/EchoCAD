@@ -1,18 +1,31 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { InfoCircleIcon } from "../components/Icons";
 import { ProgressIndicator } from "../components/ProgressIndicator";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { usePrototype } from "../providers/PrototypeProvider";
+import { ProjectSaveInput, UploadDocument } from "../types/documents";
 
 const progressSteps = [12, 26, 39, 57, 71, 86, 100];
+
+type ProcessingRouteState = {
+  files?: UploadDocument[];
+  projectInfo?: ProjectSaveInput;
+};
 
 // Mostra o andamento do processamento simulado.
 export function ProcessingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { uploadedFiles, completeProcessing } = usePrototype();
+  const routeState = location.state as ProcessingRouteState | null;
+  const filesToProcess =
+    routeState?.files && routeState.files.length > 0
+      ? routeState.files
+      : uploadedFiles;
+  const projectInfo = routeState?.projectInfo;
 
   const [progress, setProgress] = useState(progressSteps[0]);
   const [isProcessingDone, setIsProcessingDone] = useState(false);
@@ -21,7 +34,7 @@ export function ProcessingPage() {
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    if (uploadedFiles.length === 0) return;
+    if (filesToProcess.length === 0) return;
 
     let stepIndex = 0;
 
@@ -37,16 +50,16 @@ export function ProcessingPage() {
     }, 520);
 
     return () => window.clearInterval(intervalId);
-  }, [uploadedFiles.length]);
+  }, [filesToProcess.length]);
 
   useEffect(() => {
-    if (uploadedFiles.length === 0 || hasStartedRef.current) return;
+    if (filesToProcess.length === 0 || hasStartedRef.current) return;
 
     hasStartedRef.current = true;
 
     const processFiles = async () => {
       try {
-        const doc = uploadedFiles[0];
+        const doc = filesToProcess[0];
 
         const formData = new FormData();
         formData.append("file", doc.file);
@@ -65,7 +78,7 @@ export function ProcessingPage() {
 
         const apiResults = [{ file_url: fileUrl }];
 
-        completeProcessing(apiResults);
+        completeProcessing(apiResults, projectInfo, filesToProcess);
         setIsProcessingDone(true);
 
       } catch (error) {
@@ -75,7 +88,7 @@ export function ProcessingPage() {
     };
 
     processFiles();
-  }, [completeProcessing, navigate, uploadedFiles]);
+  }, [completeProcessing, filesToProcess, navigate, projectInfo]);
 
   useEffect(() => {
     if (
@@ -92,7 +105,7 @@ export function ProcessingPage() {
 
   }, [progress, isProcessingDone, navigate]);
 
-  if (uploadedFiles.length === 0) {
+  if (filesToProcess.length === 0) {
     return (
       <main className="page">
         <div className="page__content page__content--narrow">
@@ -109,7 +122,7 @@ export function ProcessingPage() {
     );
   }
 
-  const expectedTime = uploadedFiles.length >= 3 ? "3 minutos" : "2 minutos";
+  const expectedTime = filesToProcess.length >= 3 ? "3 minutos" : "2 minutos";
 
   return (
     <main className="page">

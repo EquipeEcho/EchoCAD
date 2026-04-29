@@ -8,7 +8,7 @@ import { Logo } from "./Logo";
 export function AppHeader() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const homeIsActive = location.pathname !== "/historico";
+  const homeIsActive = !["/historico", "/normas"].includes(location.pathname);
   const isDarkMode = theme === "dark";
 
   return (
@@ -29,6 +29,12 @@ export function AppHeader() {
               to="/historico"
             >
               {"Hist\u00F3rico"}
+            </NavLink>
+            <NavLink
+              className={`nav-link${location.pathname === "/normas" ? " is-active" : ""}`}
+              to="/normas"
+            >
+              Normas
             </NavLink>
           </nav>
 

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { EchoCadIcon } from "./Icons";
+import echoLogo from "../assets/logo-echo.jpeg";
 
 type LogoProps = {
   to?: string;
@@ -15,7 +15,7 @@ export function Logo({ to = "/", subtle = false }: LogoProps) {
       to={to}
     >
       <span className="brand-mark" aria-hidden="true">
-        <EchoCadIcon />
+        <img className="brand-logo" src={echoLogo} alt="" />
       </span>
       <span className="brand-text">EchoCAD</span>
     </Link>
