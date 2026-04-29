@@ -1,7 +1,5 @@
+.env
 .vscode/
-<<<<<<< HEAD
 .pytest_cache/
 .uploads/
-=======
 *.db
->>>>>>> main
