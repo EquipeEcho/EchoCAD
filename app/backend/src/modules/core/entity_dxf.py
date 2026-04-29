@@ -25,6 +25,7 @@ class EntityDxf:
         """
         self.doc = readfile(dxf_file_path)
         self.msp = self.doc.modelspace()
+        self.psp = self.doc.layout()
 
     def get_layers(self) -> list[str]:
         """
