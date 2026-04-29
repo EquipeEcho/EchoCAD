@@ -1,5 +1,6 @@
 uploads/
 **/chroma_db/
+**/tmp
 *.dxf
 *.env
 *.db
