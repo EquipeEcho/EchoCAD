@@ -9,21 +9,11 @@ from pathlib import Path
 
 from agno.knowledge.knowledge import Knowledge
 
-from src.modules.chroma_vector.chunking import get_agentic_chunker, get_fallback_chunker
+from src.modules.chroma_vector.chunking import get_fallback_chunker
 from src.modules.chroma_vector.db import get_vector_db
 
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx"}
-
-
-def _build_knowledge(use_fallback: bool = False) -> Knowledge:
-    """Monta instancia Knowledge com a estrategia de chunking adequada."""
-    chunker = get_fallback_chunker() if use_fallback else get_agentic_chunker()
-    return Knowledge(
-        vector_db=get_vector_db(),
-        # O agno passa o chunker via reader factory internamente.
-        # Definimos no insert() atraves do parametro reader quando necessario.
-    )
 
 
 def ingest_file(path: str) -> dict[str, str | int]:
@@ -36,33 +26,21 @@ def ingest_file(path: str) -> dict[str, str | int]:
     if suffix not in SUPPORTED_EXTENSIONS:
         raise ValueError("Formato nao suportado. Use apenas .pdf ou .docx")
 
+    from agno.knowledge.reader.pdf_reader import PDFReader
+    from agno.knowledge.reader.docx_reader import DocxReader
+
+    chunker = get_fallback_chunker()
     knowledge = Knowledge(vector_db=get_vector_db())
 
-    try:
-        # Tenta primeiro com AgenticChunking (Ollama).
-        from agno.knowledge.reader.pdf_reader import PDFReader
-        from agno.knowledge.reader.docx_reader import DocxReader
+    reader_cls = PDFReader if suffix == ".pdf" else DocxReader
+    reader = reader_cls(chunking_strategy=chunker)
 
-        reader_cls = PDFReader if suffix == ".pdf" else DocxReader
-        reader = reader_cls(chunking_strategy=get_agentic_chunker())
-
-        knowledge.insert(
-            path=str(file_path),
-            reader=reader,
-            metadata={"source": file_path.name, "extension": suffix},
-            upsert=True,
-        )
-    except Exception:
-        # Fallback para RecursiveChunking se o modelo falhar.
-        reader_cls = PDFReader if suffix == ".pdf" else DocxReader
-        reader = reader_cls(chunking_strategy=get_fallback_chunker())
-
-        knowledge.insert(
-            path=str(file_path),
-            reader=reader,
-            metadata={"source": file_path.name, "extension": suffix},
-            upsert=True,
-        )
+    knowledge.insert(
+        path=str(file_path),
+        reader=reader,
+        metadata={"source": file_path.name, "extension": suffix},
+        upsert=True,
+    )
 
     return {
         "arquivo": file_path.name,

@@ -4,7 +4,7 @@ from src.routes.route_database import router as database_router
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.routes.upload import router as upload_router
-from src.routes.especificacoes import router as especificacoes_router
+#from src.routes.especificacoes import router as especificacoes_router
 
 app = FastAPI(
     title="EchoCAD API",
@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(upload_router)
-app.include_router(especificacoes_router)
+#app.include_router(especificacoes_router)
 app.include_router(database_router)
 
 
