@@ -50,6 +50,22 @@ async def upload(file: UploadFile = File(...)) -> dict[str, str | int]:
             Path(temp_path).unlink(missing_ok=True)
 
 
+@app.delete("/colecao")
+def limpar_colecao() -> dict[str, str]:
+    """Apaga todos os documentos da colecao vetorial para re-ingestao limpa."""
+    import chromadb
+    from src.modules.chroma_vector.db import CHROMA_PATH, COLLECTION_NAME
+
+    client = chromadb.PersistentClient(path=CHROMA_PATH)
+    try:
+        col = client.get_collection(COLLECTION_NAME)
+        total = col.count()
+        client.delete_collection(COLLECTION_NAME)
+        return {"status": "ok", "documentos_removidos": str(total)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Falha ao limpar colecao: {exc}") from exc
+
+
 @app.get("/perguntar")
 def endpoint_perguntar(
     pergunta_usuario: str = Query(..., alias="pergunta", min_length=1),
