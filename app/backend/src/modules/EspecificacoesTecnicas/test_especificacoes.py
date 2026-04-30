@@ -199,13 +199,13 @@ def main():
     logger.info("(Pode levar alguns minutos - a IA gera cada secao separadamente)")
     logger.info("=" * 60)
 
-    api_key = "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" or os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         logger.error(
-            "ANTHROPIC_API_KEY nao definida. Defina antes de rodar:\n"
+            "GROQ_API_KEY nao definida. Defina antes de rodar:\n"
             "\n"
             "  Windows PowerShell:\n"
-            "    $env:ANTHROPIC_API_KEY = 'sk-ant-sua-chave-aqui'\n"
+            "    $env:GROQ_API_KEY = 'gsk-sua-chave-aqui'\n"
             "\n"
             "  Windows CMD:\n"
             "    set ANTHROPIC_API_KEY=sk-ant-sua-chave-aqui\n"

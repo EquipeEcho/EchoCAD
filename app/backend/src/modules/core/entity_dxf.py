@@ -1,108 +1,202 @@
 import json
+import math
 from pathlib import Path
 from ezdxf.filemanagement import readfile
 from ezdxf.query import EntityQuery
 from collections import defaultdict
-from deprecated import deprecated
+from typing import List, Dict, Any, Tuple
 
 
 class EntityDxf:
     """
-    Gerencia operações de camadas em arquivos DXF.
-
-    Esta classe encapsula a lógica de leitura e validação de 
-    camadas usando a biblioteca ezdxf.
-
-    Attributes:
-        doc: O objeto de documento ezdxf carregado.
-        msp: O modelspace extraído de doc.
+    Gerencia operações avançadas de extração e análise espacial em arquivos DXF.
     """
 
     def __init__(self, dxf_file_path: str | Path):
-        """
-        Inicializa o EntityDxf carregando o arquivo DXF.
-
-        Args:
-            dxf_file_path (Path | str): O caminho para o arquivo DXF.
-        """
         self.doc = readfile(dxf_file_path)
         self.msp = self.doc.modelspace()
-        self.psp = self.doc.layout()
+        self.layers = [layer.dxf.name for layer in self.doc.layers]
 
     def get_layers(self) -> list[str]:
+        return self.layers
+
+    def get_grouped_entities_summary(self, layers: List[str]) -> Dict[str, Any]:
         """
-        Retorna uma lista de todas as camadas (layers) existentes no arquivo DXF.
-
-        Returns:
-            list[str]: Uma lista contendo os nomes das camadas.
+        Agrupa entidades por layer e tipo, calculando métricas básicas (contagem, comprimento).
         """
-        layers = [layer.dxf.name for layer in self.doc.layers]
+        summary = {}
+        if not layers: return {"error": "Nenhum layer fornecido"}
+        
+        for layer in layers:
+            try:
+                entities = self.msp.query(f'*[layer=="{layer}"]')
+            except Exception:
+                continue
+                
+            layer_data = defaultdict(lambda: {"count": 0, "total_length": 0.0})
+            
+            for e in entities:
+                etype = e.dxftype()
+                layer_data[etype]["count"] += 1
+                
+                # Cálculo de comprimento para tipos lineares
+                length = 0.0
+                if etype == 'LINE':
+                    length = math.dist(e.dxf.start, e.dxf.end)
+                elif etype == 'LWPOLYLINE':
+                    vertices = list(e.vertices())
+                    length = sum(math.dist(vertices[i], vertices[i+1]) for i in range(len(vertices)-1))
+                elif etype in ('ARC', 'CIRCLE'):
+                    # Simplificação para resumo; detalhamento virá em outra função
+                    length = e.dxf.radius * (e.dxf.end_angle - e.dxf.start_angle if etype == 'ARC' else 2 * math.pi)
+                
+                layer_data[etype]["total_length"] += length
+                
+            summary[layer] = layer_data
+        return summary
 
-        return layers
-
-    def check_exists(self, name: str) -> bool:
+    def get_detailed_entities(self, layers: List[str], max_entities: int = 100) -> List[Dict[str, Any]]:
         """
-        Verifica se uma camada específica existe no desenho.
-
-        Args:
-            name (str): O nome da camada a ser verificada.
-
-        Returns:
-            bool: True se a camada existir, False caso contrário.
+        Retorna uma lista detalhada de entidades. Se houver muitas, retorna um resumo para evitar estouro de contexto.
         """
-        return name in self.doc.layers
+        detailed = []
+        for layer in layers:
+            entities = self.msp.query(f'*[layer=="{layer}"]')
+            count = len(entities)
+            
+            # Se houver muitas entidades, processamos apenas as primeiras e avisamos a IA
+            processed_entities = entities[:max_entities]
+            for e in processed_entities:
+                data = {
+                    "id": e.dxf.handle,
+                    "type": e.dxftype(),
+                    "layer": e.dxf.layer,
+                }
+                
+                if e.dxftype() == 'LINE':
+                    data["length"] = math.dist(e.dxf.start, e.dxf.end)
+                    data["coords"] = (e.dxf.start[:2], e.dxf.end[:2])
+                elif e.dxftype() == 'LWPOLYLINE':
+                    data["vertices"] = [v[:2] for v in e.vertices()]
+                elif e.dxftype() == 'INSERT':
+                    data["name"] = e.dxf.name
+                    data["pos"] = e.dxf.insert[:2]
+                elif e.dxftype() in ('TEXT', 'MTEXT'):
+                    data["text"] = e.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text
+                
+                detailed.append(data)
+            
+            if count > max_entities:
+                detailed.append({"info": f"Tratados {max_entities} de {count} itens no layer {layer}. O resumo quantitativo já contém o total."})
+                
+        return detailed
 
-    def get_entities_by_layer(self, layer_name: str) -> EntityQuery:
+    def get_connectivity_graph(self, layers: List[str], epsilon: float = 0.1) -> Dict[str, Any]:
         """
-        Recupera todas as entidades gráficas pertencentes a uma camada específica.
-
-        Utiliza o sistema de busca (query) do ezdxf para filtrar elementos como 
-        LINE, ARC, TEXT, CIRCLE, entre outros, que estejam atribuídos ao 
-        layer informado.
-
-        Args:
-            layer_name (str): O nome da camada (layer) a ser filtrada. 
-                Nota: O ezdxf geralmente trata nomes de camadas como 
-                case-insensitive nesta consulta.
-
-        Returns:
-            EntityQuery: Uma coleção (objeto de consulta) contendo todas as 
-                entidades encontradas na camada. Se a camada não existir ou 
-                estiver vazia, retorna uma consulta vazia.
-
-        Example:
-            >>> entities = dxf_handler.get_entities_by_layer("ELE-TOMADAS")
-            >>> print(len(entities))
-            15
+        Mapeia a conectividade entre entidades (fios, tubos, paredes) criando um grafo.
+        Retorna grupos de entidades conectadas e suas somas totais.
         """
-        # A query '*' seleciona todos os tipos de entidades.
-        # O filtro [layer=="..."] restringe a busca à camada especificada.
-        return self.msp.query(f'*[layer=="{layer_name}"]')
+        detailed = self.get_detailed_entities(layers, max_entities=200)
+        nodes = []
+        
+        # Extrair pontos de conexão
+        for ent in detailed:
+            if "info" in ent: continue
+            points = []
+            if ent["type"] == 'LINE':
+                points = ent["coords"]
+            elif ent["type"] == 'LWPOLYLINE':
+                points = ent["vertices"]
+            elif ent["type"] == 'INSERT':
+                points = [ent["pos"]]
+            
+            ent["connection_points"] = points
+            nodes.append(ent)
 
-    def get_types_in_layers(self, layers: list[str]) -> str:
-        """
-        ### Retorna todos as entidades nos layers selecionados.
+        # Algoritmo de busca de componentes conectados (simplificado)
+        connections = []
+        visited = set()
+        clusters = []
 
-        Args:
-            layers: uma lista com os layers a serem inspecionados.
+        def are_connected(ent1, ent2):
+            for p1 in ent1["connection_points"]:
+                for p2 in ent2["connection_points"]:
+                    if math.dist(p1[:2], p2[:2]) < epsilon:
+                        return True
+            return False
 
-        Returns:
-            str: Um json contendo os layers selecionados e seus entidades com
-            suas respectivas contagens.
-        """
-        tipos_por_layer = defaultdict(lambda: defaultdict(int))
-        selected = [e for e in self.msp if e.dxf.layer in layers]
-        for e in selected:
-            layer = e.dxf.layer
-            tipo = e.dxftype()
-            tipos_por_layer[layer][tipo] += 1
-        return json.dumps(tipos_por_layer)
+        for i, ent1 in enumerate(nodes):
+            if i in visited: continue
+            
+            current_cluster = [ent1]
+            visited.add(i)
+            
+            # Busca em largura para encontrar todos os conectados
+            queue = [ent1]
+            while queue:
+                current = queue.pop(0)
+                for j, ent2 in enumerate(nodes):
+                    if j not in visited and are_connected(current, ent2):
+                        visited.add(j)
+                        current_cluster.append(ent2)
+                        queue.append(ent2)
+            
+            clusters.append(current_cluster)
 
-    @deprecated(reason='Esse método precisa de revisão pois pode retornar texto sujo')
-    def get_text_from_layer(self, layer_name: str) -> list[str]:
+        # Sintetizar resultados por cluster
+        synthesis = []
+        for cluster in clusters:
+            total_length = sum(e.get("length", 0) for e in cluster)
+            # Para polilinhas, calcular comprimento
+            for e in cluster:
+                if e["type"] == 'LWPOLYLINE':
+                    v = e["vertices"]
+                    total_length += sum(math.dist(v[k], v[k+1]) for k in range(len(v)-1))
+            
+            types = defaultdict(int)
+            names = set()
+            for e in cluster:
+                types[e["type"]] += 1
+                if "name" in e: names.add(e["name"])
+                if "text" in e: names.add(e["text"])
+            
+            synthesis.append({
+                "entities_count": len(cluster),
+                "total_length": round(total_length, 3),
+                "types": dict(types),
+                "identifiers": list(names),
+                "entities_ids": [e["id"] for e in cluster]
+            })
+
+        return {"clusters": synthesis}
+
+    def find_text_near_entities(self, entity_ids: List[str], search_radius: float = 1.0) -> Dict[str, str]:
         """
-        Extrai especificamente apenas os conteúdos de texto de uma camada.
-        Útil para cruzar com as palavras-chave do agente.
+        Busca textos próximos a determinadas entidades para capturar metadados (ex: bitola, material).
         """
-        entities = self.msp.query(f'TEXT MTEXT[layer=="{layer_name}"]')
-        return [e.dxf.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text for e in entities]
+        # Implementação de busca espacial rápida (pode ser otimizada com R-tree se necessário)
+        all_texts = []
+        for e in self.msp.query('TEXT MTEXT'):
+            all_texts.append({
+                "text": e.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text,
+                "pos": (e.dxf.insert.x, e.dxf.insert.y)
+            })
+            
+        results = {}
+        for hid in entity_ids:
+            ent = self.doc.entitydb.get(hid)
+            if not ent: continue
+            
+            # Posição aproximada da entidade
+            pos = (0, 0)
+            if ent.dxftype() == 'INSERT':
+                pos = (ent.dxf.insert.x, ent.dxf.insert.y)
+            elif ent.dxftype() == 'LINE':
+                pos = ((ent.dxf.start.x + ent.dxf.end.x)/2, (ent.dxf.start.y + ent.dxf.end.y)/2)
+            # ... mais tipos ...
+            
+            nearby = [t["text"] for t in all_texts if math.dist(pos, t["pos"]) < search_radius]
+            if nearby:
+                results[hid] = " | ".join(nearby)
+        
+        return results
