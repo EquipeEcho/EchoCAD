@@ -1,7 +1,8 @@
 from agno.agent import Agent
 from agno.models.ollama import Ollama
 
-Agent(
+context_agent = Agent(
+    id='context-agent',
     name='ContextAgent',
     model=Ollama(
         id='qwen2.5:7b',
@@ -10,7 +11,8 @@ Agent(
             "num_ctx": 1024,
         },
     ),
-    description='Faz a triagem de informações sobre a natureza do projeto.',
+    role='Dado um contexto textual com instruções, analisa e retorna as disciplinas de engenharia relevantes',
+    description='Identifique as disciplinas de engenharia relacionadas a um contexto recebido',
     instructions=[
         """
         Você é um classificador técnico de disciplinas de engenharia civil baseado em termos presentes em memoriais de cálculo, planilhas e projetos CAD/DXF.

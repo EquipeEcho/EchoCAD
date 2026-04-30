@@ -5,7 +5,7 @@ from agno.models.ollama import Ollama
 from .entity_dxf import EntityDxf
 
 
-def create_echo_team(entity: EntityDxf, model_id: str, members: list[Agent | Team], options: dict[str, int | float] = {}):
+def create_team(entity: EntityDxf, model_id: str, members: list[Agent | Team], options: dict[str, int | float] = {}):
     """
     Factory function to create the Echo Team with its agents.
     This facilitates memory discharge as agents are created per session/request.
@@ -18,9 +18,14 @@ def create_echo_team(entity: EntityDxf, model_id: str, members: list[Agent | Tea
             options=options
         ),
         members=members,
-        instructions=[],
+        instructions=[
+            'formato esperado pelo classificator_agent = {disciplina:str, layers:[str]}'
+        ],
         markdown=True,
-        tools=[entity.get_layers]
+        use_json_mode=True,
+        tools=[entity.get_layers, entity.check_exists,
+               entity.get_types_in_layers, entity.get_entities_by_layer],
+        debug_mode=True,
     )
 
     return team

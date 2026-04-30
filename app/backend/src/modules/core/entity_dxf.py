@@ -1,6 +1,8 @@
+import json
 from pathlib import Path
 from ezdxf.filemanagement import readfile
 from ezdxf.query import EntityQuery
+from collections import defaultdict
 from deprecated import deprecated
 
 
@@ -77,6 +79,25 @@ class EntityDxf:
         # O filtro [layer=="..."] restringe a busca à camada especificada.
         return self.msp.query(f'*[layer=="{layer_name}"]')
 
+    def get_types_in_layers(self, layers: list[str]) -> str:
+        """
+        ### Retorna todos as entidades nos layers selecionados.
+
+        Args:
+            layers: uma lista com os layers a serem inspecionados.
+
+        Returns:
+            str: Um json contendo os layers selecionados e seus entidades com
+            suas respectivas contagens.
+        """
+        tipos_por_layer = defaultdict(lambda: defaultdict(int))
+        selected = [e for e in self.msp if e.dxf.layer in layers]
+        for e in selected:
+            layer = e.dxf.layer
+            tipo = e.dxftype()
+            tipos_por_layer[layer][tipo] += 1
+        return json.dumps(tipos_por_layer)
+
     @deprecated(reason='Esse método precisa de revisão pois pode retornar texto sujo')
     def get_text_from_layer(self, layer_name: str) -> list[str]:
         """
@@ -84,4 +105,4 @@ class EntityDxf:
         Útil para cruzar com as palavras-chave do agente.
         """
         entities = self.msp.query(f'TEXT MTEXT[layer=="{layer_name}"]')
-        return [e.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text for e in entities]
+        return [e.dxf.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text for e in entities]
