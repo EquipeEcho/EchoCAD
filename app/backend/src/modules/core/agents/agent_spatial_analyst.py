@@ -1,15 +1,19 @@
 from agno.agent import Agent
-from agno.models.groq import Groq
+from agno.models.ollama import Ollama
 
-def create_spatial_analyst_agent(tools):
+
+def create_spatial_analyst_agent(tools: list):
     return Agent(
         id='spatial-analyst',
         name='Spatial Analyst',
         role='Analisa a conectividade espacial entre entidades DXF para identificar sistemas contínuos',
         description='Identifica grupos de entidades conectadas (como redes elétricas ou paredes) e calcula comprimentos totais.',
-        model=Groq(
-            id='llama-3.3-70b-versatile',
-            temperature=0,
+        model=Ollama(
+            id='qwen2.5:3b',
+            options={
+                "temperature": 0.0,
+                "num_ctx": 2048,
+            }
         ),
         instructions=[
             '''

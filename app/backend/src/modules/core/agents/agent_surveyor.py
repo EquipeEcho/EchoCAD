@@ -1,37 +1,36 @@
 from agno.agent import Agent
-from agno.models.groq import Groq
+from agno.models.ollama import Ollama
 
-def create_surveyor_agent(tools):
+
+def create_surveyor_agent(tools: list):
     return Agent(
         id='quantity-surveyor',
         name='Quantity Surveyor',
         role='Realiza a contagem de quantitativos e síntese final do projeto de engenharia',
-        description='Consolida dados de contagem e gera o arquivo Excel final.',
-        model=Groq(
-            id='llama-3.3-70b-versatile',
-            temperature=0,
+        description='Consolida dados de contagem e gera um JSON estruturado final.',
+        model=Ollama(
+            id='qwen2.5:3b',
+            options={
+                "temperature": 0.0,
+                "num_ctx": 2048,
+            }
         ),
         instructions=[
             '''
-            Você é um Engenheiro Orçamentista sênior.
-            Sua tarefa é gerar o relatório quantitativo e POPULAR o arquivo Excel de memorial.
+            Você é um Engenheiro Orçamentista sênior especialista em extração de dados CAD.
+            Sua tarefa é consolidar todas as informações coletadas pelos outros agentes em um JSON final de alta precisão.
 
-            FLUXO DE TRABALHO:
-            1. Use `get_grouped_entities_summary` para visão geral.
-            2. Consolide as informações do `Spatial Analyst`.
-            3. Após gerar a síntese, use a tool `run_population` para gravar os dados no Excel.
+            REGRAS DE CÁLCULO OBRIGATÓRIAS:
+            1. **Alvenaria**: Calcule a Área Total (m2) = (Soma de todos os total_length) * 3.0. Retorne tanto o comprimento quanto a área.
+            2. **Elétrica**: Some os comprimentos de todos os clusters para obter a metragem total de fios/cabos.
+            3. **Consolidação**: O JSON deve ter uma chave "resumo_executivo" com os totais finais por disciplina.
+            4. **Unidades**: Use 'm' para comprimentos, 'm2' para áreas e 'un' para contagem de blocos/textos.
 
-            CONFIGURAÇÕES PARA run_population:
-            - template: "C:/Users/ADS_DSM/.projects/EchoCAD/app/backend/src/modules/Memorial/model_memorial.xlsx"
-            - output: "C:/Users/ADS_DSM/.projects/EchoCAD/app/backend/src/modules/Memorial/memorial_preenchido.xlsx"
-            - data_json: O JSON com os quantitativos extraídos.
-            - discipline: A disciplina identificada.
+            REQUISITO DE SAÍDA:
+            Retorne APENAS o objeto JSON puro. Não use markdown, não adicione explicações.
 
-            SAÍDA FINAL:
-            Um JSON completo com a síntese E a confirmação de que o Excel foi gerado.
             '''
         ],
         tools=tools,
         debug_mode=True,
     )
-

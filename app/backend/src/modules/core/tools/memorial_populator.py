@@ -1,7 +1,6 @@
 import openpyxl
 from pathlib import Path
 import json
-import logging
 
 class MemorialPopulator:
     """
