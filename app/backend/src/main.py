@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from src.routes.upload import router
 from src.routes.route_database import router as database_router
 from fastapi.middleware.cors import CORSMiddleware
 

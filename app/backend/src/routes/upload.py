@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 # Local Application (Módulos internos do seu projeto)
 from src.controller.file_controller import save_file_metadata
 from src.database import get_session
-from src.modules.Memorial.generatorteste import run_integration
 
 
 
@@ -37,10 +36,10 @@ async def upload(file: UploadFile = File(...), db: Session = Depends(get_session
         )
     
     # Validar extensão do arquivo
-    if not file.filename.lower().endswith(('dwg', 'dxf', 'pdf', 'xml')):
+    if not file.filename.lower().endswith(('dxf', 'pdf', 'doc', 'docx')):
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail='Formato não suportado. Use .dwg, .dxf, .pdf ou .xml'
+            detail='Formato não suportado.'
         )
 
     

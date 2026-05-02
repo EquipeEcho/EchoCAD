@@ -3,15 +3,21 @@ from sqlalchemy.orm import sessionmaker
 from src.config import settings
 
 # Usando MySQL conforme configurado no alembic.ini
-engine = create_engine(settings.database_url, echo=True)
-SessionLocal = sessionmaker(bind=engine)
+engine = create_engine(settings.database_url, echo=True, pool_pre_ping=True)
+
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
 
 def get_session():
     session = SessionLocal()
     try:
         yield session
-    except:
+    except Exception:
         session.rollback()
         raise
     finally:
