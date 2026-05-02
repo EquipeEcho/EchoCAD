@@ -1,31 +1,39 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { InfoCircleIcon } from "../components/Icons";
 import { ProgressIndicator } from "../components/ProgressIndicator";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { usePrototype } from "../providers/PrototypeProvider";
+import { ProjectSaveInput, UploadDocument } from "../types/documents";
 
 const progressSteps = [12, 26, 39, 57, 71, 86, 100];
+
+type ProcessingRouteState = {
+  files?: UploadDocument[];
+  projectInfo?: ProjectSaveInput;
+};
 
 // Mostra o andamento do processamento simulado.
 export function ProcessingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { uploadedFiles, completeProcessing } = usePrototype();
+  const routeState = location.state as ProcessingRouteState | null;
+  const filesToProcess =
+    routeState?.files && routeState.files.length > 0
+      ? routeState.files
+      : uploadedFiles;
+  const projectInfo = routeState?.projectInfo;
 
   const [progress, setProgress] = useState(progressSteps[0]);
-  const [results, setResults] = useState<any[]>([]);
-  const [isProcessingDone, setIsProcessingDone] = useState(false);
-
   const hasFinishedRef = useRef(false);
-  const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    if (uploadedFiles.length === 0) return;
+    if (filesToProcess.length === 0) return;
 
     let stepIndex = 0;
-
     const intervalId = window.setInterval(() => {
       stepIndex += 1;
 
@@ -38,65 +46,33 @@ export function ProcessingPage() {
     }, 520);
 
     return () => window.clearInterval(intervalId);
-  }, [uploadedFiles.length]);
-
-  useEffect(() => {
-    if (uploadedFiles.length === 0 || hasStartedRef.current) return;
-
-    hasStartedRef.current = true;
-
-    const processFiles = async () => {
-      try {
-        const doc = uploadedFiles[0];
-
-        const formData = new FormData();
-        formData.append("file", doc.file);
-
-        const response = await fetch("http://127.0.0.1:8000/upload/", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error("Erro no envio");
-        }
-
-        const blob = await response.blob();
-        const fileUrl = URL.createObjectURL(blob);
-
-        const apiResults = [{ file_url: fileUrl }];
-
-        completeProcessing(apiResults);
-        setIsProcessingDone(true);
-
-      } catch (error) {
-        console.error(error);
-        navigate("/", { replace: true });
-      }
-    };
-
-    processFiles();
-  }, [uploadedFiles, navigate]);
+  }, [filesToProcess.length]);
 
   useEffect(() => {
     if (
       progress < 100 ||
-      !isProcessingDone ||
-      hasFinishedRef.current
+      hasFinishedRef.current ||
+      filesToProcess.length === 0
     ) {
       return;
     }
 
-    hasFinishedRef.current = true;
+    const timeoutId = window.setTimeout(() => {
+      if (hasFinishedRef.current) {
+        return;
+      }
 
-    navigate("/resultado", {
-      replace: true,
-      state: { results }
-    });
+      hasFinishedRef.current = true;
+      completeProcessing([], projectInfo, filesToProcess);
+      navigate("/resultado", { replace: true });
+    }, 500);
 
-  }, [progress, isProcessingDone, results, navigate]);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [completeProcessing, filesToProcess, navigate, progress, projectInfo]);
 
-  if (uploadedFiles.length === 0) {
+  if (filesToProcess.length === 0) {
     return (
       <main className="page">
         <div className="page__content page__content--narrow">
@@ -113,7 +89,7 @@ export function ProcessingPage() {
     );
   }
 
-  const expectedTime = uploadedFiles.length >= 3 ? "3 minutos" : "2 minutos";
+  const expectedTime = filesToProcess.length >= 3 ? "3 minutos" : "2 minutos";
 
   return (
     <main className="page">
@@ -128,7 +104,7 @@ export function ProcessingPage() {
             eyebrow="Processamento"
             titleId="processing-title"
             title="Aguarde enquanto seus dados são processados"
-            description={`Tempo esperado: ${expectedTime}. Estamos analisando os arquivos técnicos e consolidando o memorial de cálculo.`}
+            description={`Tempo estimado: ${expectedTime}. Estamos analisando os arquivos técnicos e consolidando o memorial de cálculo.`}
             align="center"
           />
 

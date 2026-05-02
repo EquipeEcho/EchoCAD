@@ -1,7 +1,7 @@
 import { SectionTitle } from "../components/SectionTitle";
 import { UploadPanel } from "../components/UploadPanel";
 
-// Exibe a tela inicial com a area de upload.
+// Exibe a tela inicial com a área de upload.
 export function HomePage() {
   return (
     <main className="page page--home">
@@ -11,7 +11,7 @@ export function HomePage() {
             <SectionTitle
               eyebrow="EchoCAD"
               titleId="home-heading"
-              title="Análise de Dados CAD"
+              title="Análise de dados CAD"
               description="Plataforma para automatização de documentos técnicos. Envie seus projetos para gerar memoriais de cálculo e especificações técnicas de forma clara, rápida e organizada."
             />
           </div>

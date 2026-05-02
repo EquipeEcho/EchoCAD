@@ -1,7 +1,11 @@
-import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, MouseEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePrototype } from "../providers/PrototypeProvider";
-import { UploadDocument, UploadStatusTone } from "../types/documents";
+import {
+  ProjectSaveInput,
+  UploadDocument,
+  UploadStatusTone,
+} from "../types/documents";
 import { Button } from "./Button";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { FileList } from "./FileList";
@@ -13,13 +17,16 @@ import {
   TrashIcon,
   UploadIcon,
 } from "./Icons";
+import { ProjectSaveModal } from "./ProjectSaveModal";
+import { PlantaCADModal, PlantaCADInfo } from "./PlantaCADModal";
+import { createProjeto, createMultiplePlantasCAD } from "../services/api";
 
-// Monta a mensagem de status apos selecionar arquivos.
+// Monta a mensagem de status após selecionar arquivos.
 function buildUploadStatusMessage(
   addedCount: number,
   duplicateCount: number,
   invalidCount: number,
-  totalCount: number
+  totalCount: number,
 ) {
   if (addedCount > 0) {
     return {
@@ -33,7 +40,7 @@ function buildUploadStatusMessage(
 
   if (invalidCount > 0) {
     return {
-      message: "Somente arquivos PDF, DWG, DXF e XML são aceitos.",
+      message: "Somente arquivos PDF, DWG e DXF são aceitos.",
       tone: "error" as UploadStatusTone,
     };
   }
@@ -46,23 +53,36 @@ function buildUploadStatusMessage(
   }
 
   return {
-    message: "Formatos aceitos: PDF, DWG, DXF e XML.",
+    message: "Formatos aceitos: PDF, DWG e DXF.",
     tone: "info" as UploadStatusTone,
   };
 }
 
-// Controla a selecao e o envio dos arquivos do frontend.
+function getSuggestedProjectName(files: UploadDocument[]) {
+  const primaryFileName = files[0]?.name.replace(/\.[^.]+$/, "");
+
+  if (!primaryFileName) {
+    return "";
+  }
+
+  return primaryFileName.replace(/[_-]+/g, " ").trim();
+}
+
+// Controla a seleção e o envio dos arquivos do frontend.
 export function UploadPanel() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
-    "Formatos aceitos: PDF, DWG, DXF e XML."
+    "Formatos aceitos: PDF, DWG e DXF.",
   );
   const [statusTone, setStatusTone] = useState<UploadStatusTone>("info");
   const [filePendingRemoval, setFilePendingRemoval] =
     useState<UploadDocument | null>(null);
-  const [showSendConfirmation, setShowSendConfirmation] = useState(false);
+  const [showProjectSaveModal, setShowProjectSaveModal] = useState(false);
+  const [showPlantaCADModal, setShowPlantaCADModal] = useState(false);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [currentPlantaInfo, setCurrentPlantaInfo] = useState<PlantaCADInfo | null>(null);
   const {
     uploadedFiles,
     addUploadedFiles,
@@ -79,7 +99,7 @@ export function UploadPanel() {
       result.addedCount,
       result.duplicateCount,
       result.invalidCount,
-      nextTotalCount
+      nextTotalCount,
     );
 
     setStatusMessage(nextStatus.message);
@@ -90,8 +110,10 @@ export function UploadPanel() {
         result.addedCount === 1
           ? "Arquivo adicionado com sucesso."
           : `${result.addedCount} arquivos adicionados com sucesso.`,
-        "success"
+        "success",
       );
+      // Mostrar modal de planta CAD quando novos arquivos são adicionados
+      setShowPlantaCADModal(true);
     } else if (result.invalidCount > 0) {
       showToast(nextStatus.message, "error");
     }
@@ -107,6 +129,14 @@ export function UploadPanel() {
     inputRef.current.click();
   };
 
+  // Evita que o clique do botão dispare também o clique da área de upload.
+  const handleFilePickerButtonClick = (
+    event: MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation();
+    openFilePicker();
+  };
+
   // Trata arquivos escolhidos pelo input.
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) {
@@ -116,14 +146,14 @@ export function UploadPanel() {
     applyFileSelection(event.target.files);
   };
 
-  // Trata arquivos soltos na area de upload.
+  // Trata arquivos soltos na área de upload.
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
     applyFileSelection(event.dataTransfer.files);
   };
 
-  // Remove o arquivo apos confirmacao do usuario.
+  // Remove o arquivo após confirmação do usuário.
   const handleRemoveConfirm = () => {
     if (!filePendingRemoval) {
       return;
@@ -134,19 +164,77 @@ export function UploadPanel() {
     setFilePendingRemoval(null);
   };
 
-  // Envia os arquivos selecionados para o backend.
-  const handleSendConfirm = () => {
-    setShowSendConfirmation(false);
-
+  const handleStartProcessingClick = () => {
     if (uploadedFiles.length === 0) {
       showToast("Nenhum arquivo selecionado.", "error");
       return;
     }
 
-    // envia os arquivos para a próxima página
-    navigate("/processando", {
-      state: { files: uploadedFiles }
-    });
+    setShowProjectSaveModal(true);
+  };
+
+  // Captura informações de planta CAD quando arquivos são adicionados
+  const handlePlantaCADSave = (plantaInfo: PlantaCADInfo) => {
+    setCurrentPlantaInfo(plantaInfo);
+    setShowPlantaCADModal(false);
+  };
+
+  // Envia os arquivos, planta CAD e informações do projeto para o processamento
+  const handleProjectSave = async (projectInfo: ProjectSaveInput) => {
+    if (uploadedFiles.length === 0) {
+      showToast("Nenhum arquivo selecionado.", "error");
+      setShowProjectSaveModal(false);
+      return;
+    }
+
+    if (!currentPlantaInfo) {
+      showToast("Informações da planta CAD não encontradas.", "error");
+      return;
+    }
+
+    setIsSavingProject(true);
+    setShowProjectSaveModal(false);
+
+    try {
+      // Criar projeto
+      // Nota: Usando id_usuario = 1 como padrão. Em um app real, obtenha do sistema de autenticação
+      const createdProject = await createProjeto({
+        nome: projectInfo.name,
+        descricao: projectInfo.descricao,
+        cliente: projectInfo.cliente,
+        id_usuario: 1, // TODO: Obter ID real do usuário do sistema de autenticação
+      });
+
+      showToast("Projeto criado com sucesso!", "success");
+
+      // Criar entradas de planta CAD para cada arquivo enviado
+      const plantasData = uploadedFiles.map((file) => ({
+        tipo: currentPlantaInfo.tipo,
+        arquivo: currentPlantaInfo.arquivo || file.name,
+      }));
+
+      await createMultiplePlantasCAD(plantasData, createdProject.id);
+
+      showToast("Plantas CAD criadas com sucesso!", "success");
+
+      // Navegar para página de processamento com informações do projeto
+      navigate("/processando", {
+        state: {
+          files: uploadedFiles,
+          projectInfo,
+          projectId: createdProject.id,
+        },
+      });
+    } catch (error) {
+      console.error("Erro ao salvar projeto:", error);
+      showToast(
+        error instanceof Error ? error.message : "Erro ao salvar projeto",
+        "error"
+      );
+      setIsSavingProject(false);
+      // Reabrir modal para que o usuário tente novamente
+      setShowProjectSaveModal(true);
+    }
   };
 
   return (
@@ -161,7 +249,7 @@ export function UploadPanel() {
         ref={inputRef}
         className="upload-panel__input"
         type="file"
-        accept=".dwg,.dxf,.pdf,.xml"
+        accept=".dwg,.dxf,.pdf"
         multiple
         onChange={handleInputChange}
       />
@@ -190,9 +278,14 @@ export function UploadPanel() {
           </div>
           <p className="upload-empty__title">Envie seus arquivos técnicos</p>
           <p className="upload-empty__description">
-            Arraste documentos CAD ou clique para selecionar arquivos do computador.
+            Arraste documentos CAD ou clique para selecionar arquivos do
+            computador.
           </p>
-          <Button variant="primary" size="lg" onClick={openFilePicker}>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={handleFilePickerButtonClick}
+          >
             Selecionar arquivos
           </Button>
         </div>
@@ -257,9 +350,9 @@ export function UploadPanel() {
               <Button
                 variant="success"
                 trailingIcon={<ChevronPlayIcon />}
-                onClick={() => setShowSendConfirmation(true)}
+                onClick={handleStartProcessingClick}
               >
-                Iniciar processamento
+                Salvar projeto
               </Button>
             </div>
           </div>
@@ -271,8 +364,8 @@ export function UploadPanel() {
         title="Remover arquivo"
         description={
           <p>
-            Deseja remover <strong>{filePendingRemoval?.name}</strong> da lista de
-            upload?
+            Deseja remover <strong>{filePendingRemoval?.name}</strong> da lista
+            de upload?
           </p>
         }
         confirmLabel="Remover"
@@ -280,19 +373,23 @@ export function UploadPanel() {
         onConfirm={handleRemoveConfirm}
       />
 
-      <ConfirmationModal
-        open={showSendConfirmation}
-        title="Iniciar processamento"
-        description={
-          <p>
-            Você está prestes a processar {uploadedFiles.length} documento(s). Deseja
-            continuar?
-          </p>
-        }
-        confirmLabel="Iniciar"
-        confirmTone="success"
-        onClose={() => setShowSendConfirmation(false)}
-        onConfirm={handleSendConfirm}
+      <ProjectSaveModal
+        open={showProjectSaveModal}
+        initialProjectName={getSuggestedProjectName(uploadedFiles)}
+        subtitle="Preencha os dados do projeto que será salvo no sistema."
+        cancelLabel="Cancelar"
+        onClose={() => setShowProjectSaveModal(false)}
+        onSave={handleProjectSave}
+      />
+
+      <PlantaCADModal
+        open={showPlantaCADModal}
+        onClose={() => {
+          if (!isSavingProject) {
+            setShowPlantaCADModal(false);
+          }
+        }}
+        onSave={handlePlantaCADSave}
       />
     </section>
   );

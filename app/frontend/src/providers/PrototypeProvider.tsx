@@ -10,37 +10,66 @@ import {
   buildGeneratedDocumentFromUploads,
   buildHistoryDocumentFromGenerated,
   getFileKindFromName,
-  mockHistoryDocuments,
+  mockTechnicalStandards,
 } from "../data/mockData";
 import {
   AddFilesResult,
   GeneratedDocument,
   HistoryDocument,
+  ProjectInfo,
+  ProjectSaveInput,
+  TechnicalStandard,
   ToastState,
   ToastTone,
   UploadDocument,
 } from "../types/documents";
+import { formatInputDate } from "../utils/date";
+
+type ProcessingResult = {
+  file_url: string;
+};
 
 type PrototypeContextValue = {
   uploadedFiles: UploadDocument[];
   historyDocuments: HistoryDocument[];
+  technicalStandards: TechnicalStandard[];
+  isLoadingHistory: boolean;
+  historyError: string | null;
   currentDocument: GeneratedDocument | null;
+  shouldPromptProjectSave: boolean;
   toast: ToastState | null;
   addUploadedFiles: (fileList: FileList | File[]) => AddFilesResult;
   removeUploadedFile: (documentId: string) => void;
   clearUploadedFiles: () => void;
-  completeProcessing: (apiResults: any[]) => GeneratedDocument | null;
+  completeProcessing: (
+    apiResults?: ProcessingResult[],
+    projectInfo?: ProjectSaveInput,
+    sourceFiles?: UploadDocument[],
+  ) => GeneratedDocument | null;
+  saveCurrentProject: (projectInfo: ProjectSaveInput) => void;
   openHistoryPreview: (documentId: string) => void;
   removeHistoryDocument: (documentId: string) => void;
   downloadHistoryBundle: () => void;
+  addTechnicalStandards: (fileList: FileList | File[]) => AddFilesResult;
+  toggleStandard: (standardId: string) => void;
+  downloadStandard: (standardId: string) => void;
   simulatePreviewAction: (fileName: string) => void;
-  downloadDocumentAsset: (url: string, label: string) => void;
+  downloadDocumentAsset: (url: string | undefined, label: string) => void;
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+const LIST_PROJETOS_URL = "http://127.0.0.1:8000/projeto/";
 
-// Converte um arquivo valido para o formato usado no upload.
+type ProjetoApiItem = {
+  id?: number | string;
+  nome?: string;
+  descricao?: string | null;
+  cliente?: string | null;
+  data_criacao?: string | null;
+};
+
+// Converte um arquivo válido para o formato usado no upload.
 function buildUploadDocument(file: File): UploadDocument | null {
   const kind = getFileKindFromName(file.name);
 
@@ -52,19 +81,67 @@ function buildUploadDocument(file: File): UploadDocument | null {
     id: `${file.name}-${file.size}-${file.lastModified}`,
     name: file.name,
     kind,
-    file: file
+    file,
   };
 }
 
-// Centraliza o estado do prototipo e das simulacoes.
+function buildProjectInfo(projectInput: ProjectSaveInput): ProjectInfo {
+  return {
+    name: projectInput.name.trim(),
+    cliente: projectInput.cliente?.trim(),
+    descricao: projectInput.descricao?.trim(),
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function formatFileSize(file: File) {
+  if (file.size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(file.size / 1024))} KB`;
+  }
+
+  return `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function buildTechnicalStandard(file: File): TechnicalStandard | null {
+  const kind = getFileKindFromName(file.name);
+
+  if (kind !== "pdf") {
+    return null;
+  }
+
+  const nameWithoutExtension = file.name.replace(/\.[^.]+$/, "");
+  const codeMatch = nameWithoutExtension.match(/NBR\s*\d+/i);
+  const code = codeMatch
+    ? codeMatch[0].toUpperCase().replace(/\s+/, " ")
+    : "Norma";
+
+  return {
+    id: `standard-${file.name}-${file.size}-${file.lastModified}`,
+    name: nameWithoutExtension,
+    code,
+    category: "Personalizada",
+    date: String(new Date(file.lastModified).getFullYear()),
+    size: formatFileSize(file),
+    kind,
+    enabled: true,
+    file,
+  };
+}
+
+// Centraliza o estado do protótipo e das simulações.
 export function PrototypeProvider({ children }: PropsWithChildren) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadDocument[]>([]);
   const uploadedFilesRef = useRef<UploadDocument[]>([]);
-  const [historyDocuments, setHistoryDocuments] =
-    useState<HistoryDocument[]>(mockHistoryDocuments);
+  const [historyDocuments, setHistoryDocuments] = useState<HistoryDocument[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [technicalStandards, setTechnicalStandards] = useState<TechnicalStandard[]>(
+    mockTechnicalStandards,
+  );
   const [currentDocument, setCurrentDocument] = useState<GeneratedDocument | null>(
     null
   );
+  const [shouldPromptProjectSave, setShouldPromptProjectSave] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
@@ -81,6 +158,66 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     };
   }, [toast]);
 
+  useEffect(() => {
+    const fetchProjetos = async () => {
+      setIsLoadingHistory(true);
+      setHistoryError(null);
+
+      try {
+        const response = await fetch(LIST_PROJETOS_URL);
+        if (!response.ok) {
+          throw new Error(`Erro ao buscar projetos: ${response.status}`);
+        }
+
+        const projetos = (await response.json()) as ProjetoApiItem[];
+        const normalizedHistory = projetos.map((projeto) => {
+          const projectId = String(projeto.id ?? `projeto-${Math.random()}`);
+          const createdAt = projeto.data_criacao
+            ? new Date(projeto.data_criacao)
+            : new Date();
+          const previewLines = [
+            projeto.descricao?.trim() || "Sem descrição informada.",
+            `Cliente: ${projeto.cliente?.trim() || "Não informado"}`,
+          ];
+
+          return {
+            id: projectId,
+            name: projeto.nome?.trim() || `Projeto ${projectId}`,
+            kind: "pdf" as const,
+            date: createdAt.toLocaleDateString("pt-BR"),
+            size: "N/A",
+            document: {
+              id: projectId,
+              title: projeto.nome?.trim() || `Projeto ${projectId}`,
+              subtitle: "Projeto cadastrado no banco de dados",
+              createdAt: createdAt.toLocaleString("pt-BR"),
+              reference: `PROJ-${projectId}`,
+              versionLabel: "v1",
+              summary: projeto.descricao?.trim() || "Projeto sem descrição.",
+              previewLines,
+              tableRows: [
+                { label: "Cliente", value: projeto.cliente?.trim() || "Não informado" },
+                { label: "ID do projeto", value: projectId },
+              ],
+              sourceFiles: [],
+              file_urls: [],
+            },
+          };
+        });
+
+        setHistoryDocuments(normalizedHistory);
+      } catch (error) {
+        console.error(error);
+        setHistoryError("Não foi possível carregar os projetos.");
+        setHistoryDocuments([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchProjetos();
+  }, []);
+
   // Exibe uma notificacao temporaria na interface.
   const showToast = (message: string, tone: ToastTone = "info") => {
     setToast({
@@ -90,13 +227,13 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     });
   };
 
-  // Mantem o estado e a referencia de uploads sincronizados.
+  // Mantém o estado e a referência de uploads sincronizados.
   const syncUploadedFiles = (nextFiles: UploadDocument[]) => {
     uploadedFilesRef.current = nextFiles;
     setUploadedFiles(nextFiles);
   };
 
-  // Adiciona apenas arquivos validos e nao duplicados.
+  // Adiciona apenas arquivos válidos e não duplicados.
   const addUploadedFiles = (fileList: FileList | File[]): AddFilesResult => {
     const incomingFiles = Array.from(fileList);
     const parsedFiles = incomingFiles.map(buildUploadDocument);
@@ -133,7 +270,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   // Remove um arquivo da lista de upload.
   const removeUploadedFile = (documentId: string) => {
     syncUploadedFiles(
-      uploadedFilesRef.current.filter((document) => document.id !== documentId)
+      uploadedFilesRef.current.filter((document) => document.id !== documentId),
     );
   };
 
@@ -142,43 +279,91 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     syncUploadedFiles([]);
   };
 
-  // Gera o documento final e atualiza o historico.
-  const completeProcessing = (apiResults: any[]) => {
-    if (apiResults.length === 0) {
+  // Gera o documento final e usa os dados do projeto quando vierem do upload.
+  const completeProcessing = (
+    apiResults: ProcessingResult[] = [],
+    projectInput?: ProjectSaveInput,
+    sourceFiles?: UploadDocument[],
+  ) => {
+    const filesToProcess = sourceFiles?.length
+      ? sourceFiles
+      : uploadedFilesRef.current;
+
+    if (filesToProcess.length === 0) {
       return null;
     }
 
-    const generatedDocument: GeneratedDocument = {
-      id: Date.now().toString(),
-      title: "Memorial de Cálculo",
-      subtitle: "Gerado automaticamente",
-      createdAt: new Date().toISOString(),
-      reference: "REF-001",
-      versionLabel: "v1.0",
-      summary: "Documento gerado com sucesso.",
-
-      previewLines: [],
-      tableRows: [],
-      sourceFiles: [],
-
-      file_urls: apiResults.map((res) => res.file_url),
+    const baseDocument: GeneratedDocument = {
+      ...buildGeneratedDocumentFromUploads(filesToProcess),
+      file_urls: apiResults.map((result) => result.file_url),
     };
-
-    const historyDocument = buildHistoryDocumentFromGenerated(generatedDocument);
+    const projectInfo = projectInput ? buildProjectInfo(projectInput) : null;
+    const generatedDocument: GeneratedDocument = projectInfo
+      ? {
+          ...baseDocument,
+          title: `Memorial de cálculo - ${projectInfo.name}`,
+          createdAt: new Date().toLocaleDateString("pt-BR"),
+          projectInfo,
+        }
+      : baseDocument;
 
     setCurrentDocument(generatedDocument);
-    setHistoryDocuments((currentHistory) => [historyDocument, ...currentHistory]);
+    setShouldPromptProjectSave(!projectInfo);
+
+    if (projectInfo) {
+      const historyDocument =
+        buildHistoryDocumentFromGenerated(generatedDocument);
+
+      setHistoryDocuments((currentHistory) => [
+        historyDocument,
+        ...currentHistory.filter(
+          (document) => document.document.id !== generatedDocument.id,
+        ),
+      ]);
+    }
 
     syncUploadedFiles([]);
-    showToast("Processamento concluído com sucesso.", "success");
+    showToast(
+      projectInfo
+        ? "Processamento concluído e projeto salvo no histórico."
+        : "Processamento concluído com sucesso.",
+      "success",
+    );
 
     return generatedDocument;
   };
 
-  // Abre um documento do historico na area de resultado.
+  // Salva ou atualiza as informações do projeto no documento atual.
+  const saveCurrentProject = (projectInput: ProjectSaveInput) => {
+    if (!currentDocument) {
+      showToast("Nenhum documento disponível para salvar.", "error");
+      return;
+    }
+
+    const projectInfo = buildProjectInfo(projectInput);
+    const savedDocument: GeneratedDocument = {
+      ...currentDocument,
+      title: `Memorial de cálculo - ${projectInfo.name}`,
+      createdAt: new Date().toLocaleDateString("pt-BR"),
+      projectInfo,
+    };
+    const historyDocument = buildHistoryDocumentFromGenerated(savedDocument);
+
+    setCurrentDocument(savedDocument);
+    setShouldPromptProjectSave(false);
+    setHistoryDocuments((currentHistory) => [
+      historyDocument,
+      ...currentHistory.filter(
+        (document) => document.document.id !== savedDocument.id,
+      ),
+    ]);
+    showToast("Projeto salvo no histórico.", "success");
+  };
+
+  // Abre um documento do histórico na área de resultado.
   const openHistoryPreview = (documentId: string) => {
     const historyDocument = historyDocuments.find(
-      (document) => document.id === documentId
+      (document) => document.id === documentId,
     );
 
     if (!historyDocument) {
@@ -187,17 +372,18 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     }
 
     setCurrentDocument(historyDocument.document);
+    setShouldPromptProjectSave(false);
   };
 
-  // Remove um item do historico salvo.
+  // Remove um item do histórico salvo.
   const removeHistoryDocument = (documentId: string) => {
     setHistoryDocuments((currentHistory) =>
-      currentHistory.filter((document) => document.id !== documentId)
+      currentHistory.filter((document) => document.id !== documentId),
     );
     showToast("Documento removido do histórico.", "info");
   };
 
-  // Simula o download de todos os itens do historico.
+  // Simula o download de todos os itens do histórico.
   const downloadHistoryBundle = () => {
     if (historyDocuments.length === 0) {
       showToast("Não há documentos no histórico para download.", "error");
@@ -207,13 +393,151 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     showToast("Pacote do histórico pronto para download.", "success");
   };
 
-  // Simula a abertura de um arquivo para visualizacao.
   const simulatePreviewAction = (fileName: string) => {
-    showToast(`Pré-visualização simulada: ${fileName}.`, "info");
+    const selectedUpload = uploadedFilesRef.current.find(
+      (document) => document.name === fileName,
+    );
+
+    if (!selectedUpload?.file) {
+      showToast(`Pré-visualização de ${fileName} indisponível.`, "info");
+      return;
+    }
+
+    if (selectedUpload.kind !== "pdf") {
+      showToast(
+        `Pré-visualização de ${selectedUpload.kind.toUpperCase()} ainda não está disponível no navegador.`,
+        "info",
+      );
+      return;
+    }
+
+    const objectUrl = window.URL.createObjectURL(selectedUpload.file);
+    const previewWindow = window.open(
+      objectUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+
+    window.setTimeout(() => {
+      window.URL.revokeObjectURL(objectUrl);
+    }, 1000);
+
+    showToast(
+      previewWindow
+        ? `Pré-visualização de ${fileName} aberta.`
+        : "Permita pop-ups para abrir a pré-visualização.",
+      previewWindow ? "success" : "error",
+    );
   };
 
-  // Simula o download de um arquivo gerado.
-  const downloadDocumentAsset = async (url: string, label: string) => {
+  const addTechnicalStandards = (
+    fileList: FileList | File[],
+  ): AddFilesResult => {
+    const incomingFiles = Array.from(fileList);
+    const parsedStandards = incomingFiles.map(buildTechnicalStandard);
+    const knownNames = new Set(
+      technicalStandards.map((standard) => standard.name.toLowerCase()),
+    );
+    const nextStandards = [...technicalStandards];
+    let duplicateCount = 0;
+    let invalidCount = 0;
+    let addedCount = 0;
+
+    parsedStandards.forEach((standard) => {
+      if (!standard) {
+        invalidCount += 1;
+        return;
+      }
+
+      const standardKey = standard.name.toLowerCase();
+
+      if (knownNames.has(standardKey)) {
+        duplicateCount += 1;
+        return;
+      }
+
+      knownNames.add(standardKey);
+      nextStandards.push(standard);
+      addedCount += 1;
+    });
+
+    if (addedCount > 0) {
+      setTechnicalStandards(nextStandards);
+      showToast(
+        addedCount === 1
+          ? "Norma adicionada e habilitada para a IA."
+          : `${addedCount} normas adicionadas e habilitadas para a IA.`,
+        "success",
+      );
+    } else if (invalidCount > 0) {
+      showToast("Somente normas em PDF são aceitas.", "error");
+    } else if (duplicateCount > 0) {
+      showToast("As normas selecionadas já estavam na lista.", "info");
+    }
+
+    return { addedCount, duplicateCount, invalidCount };
+  };
+
+  const toggleStandard = (standardId: string) => {
+    const selectedStandard = technicalStandards.find(
+      (standard) => standard.id === standardId,
+    );
+
+    if (!selectedStandard) {
+      showToast("Norma não encontrada.", "error");
+      return;
+    }
+
+    setTechnicalStandards((currentStandards) =>
+      currentStandards.map((standard) =>
+        standard.id === standardId
+          ? { ...standard, enabled: !standard.enabled }
+          : standard,
+      ),
+    );
+    showToast(
+      `${selectedStandard.code} ${
+        selectedStandard.enabled ? "desabilitada" : "habilitada"
+      } para consulta da IA.`,
+      "info",
+    );
+  };
+
+  const downloadStandard = (standardId: string) => {
+    const selectedStandard = technicalStandards.find(
+      (standard) => standard.id === standardId,
+    );
+
+    if (!selectedStandard) {
+      showToast("Norma indisponível para download.", "error");
+      return;
+    }
+
+    if (selectedStandard.file) {
+      const objectUrl = window.URL.createObjectURL(selectedStandard.file);
+      const link = document.createElement("a");
+
+      link.href = objectUrl;
+      link.download = selectedStandard.file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    }
+
+    showToast(`Download de ${selectedStandard.code} iniciado.`, "success");
+  };
+
+  // Baixa o arquivo gerado pelo backend.
+  const downloadDocumentAsset = async (
+    url: string | undefined,
+    label: string,
+  ) => {
+    if (!url) {
+      showToast("Arquivo indisponível para download.", "error");
+      return;
+    }
+
     try {
       const response = await fetch(url);
 
@@ -222,19 +546,18 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       }
 
       const blob = await response.blob();
-
+      const objectUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
 
-      // define nome do arquivo
+      link.href = objectUrl;
       link.download = label.includes(".") ? label : `${label}.xlsx`;
 
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(objectUrl);
 
       showToast(`Download de ${label} iniciado.`, "success");
-
     } catch (error) {
       console.error(error);
       showToast("Erro ao baixar o arquivo.", "error");
@@ -246,15 +569,23 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       value={{
         uploadedFiles,
         historyDocuments,
+        technicalStandards,
+        isLoadingHistory,
+        historyError,
         currentDocument,
+        shouldPromptProjectSave,
         toast,
         addUploadedFiles,
         removeUploadedFile,
         clearUploadedFiles,
         completeProcessing,
+        saveCurrentProject,
         openHistoryPreview,
         removeHistoryDocument,
         downloadHistoryBundle,
+        addTechnicalStandards,
+        toggleStandard,
+        downloadStandard,
         simulatePreviewAction,
         downloadDocumentAsset,
         showToast,
@@ -265,7 +596,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   );
 }
 
-// Retorna o contexto principal do prototipo.
+// Retorna o contexto principal do protótipo.
 export function usePrototype() {
   const context = useContext(PrototypeContext);
 

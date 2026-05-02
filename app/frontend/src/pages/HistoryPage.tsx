@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { ConfirmationModal } from "../components/ConfirmationModal";
 import { EmptyState } from "../components/EmptyState";
-import { DownloadIcon, EyeIcon, InfoCircleIcon, TrashIcon } from "../components/Icons";
+import {
+  DownloadIcon,
+  EyeIcon,
+  InfoCircleIcon,
+  TrashIcon,
+} from "../components/Icons";
 import { FileList } from "../components/FileList";
 import { FileRow } from "../components/FileRow";
 import { SectionTitle } from "../components/SectionTitle";
@@ -11,26 +16,46 @@ import { SurfaceCard } from "../components/SurfaceCard";
 import { usePrototype } from "../providers/PrototypeProvider";
 import { HistoryDocument } from "../types/documents";
 
-// Lista os documentos gerados anteriormente.
+const API_BASE_URL = "http://127.0.0.1:8000";
+
+async function downloadFile(url: string, fileName: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Erro ao baixar ${fileName}`);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(objectUrl);
+}
+
 export function HistoryPage() {
   const navigate = useNavigate();
   const {
     historyDocuments,
-    downloadDocumentAsset,
-    downloadHistoryBundle,
+    isLoadingHistory,
+    historyError,
     openHistoryPreview,
     removeHistoryDocument,
   } = usePrototype();
   const [pendingRemoval, setPendingRemoval] = useState<HistoryDocument | null>(null);
-  const [confirmBundleDownload, setConfirmBundleDownload] = useState(false);
+  const [downloadingProjectId, setDownloadingProjectId] = useState<string | null>(null);
 
-  // Abre o documento escolhido na tela de resultado.
+  const isDownloading = useMemo(() => {
+    return (projectId: string) => downloadingProjectId === projectId;
+  }, [downloadingProjectId]);
+
   const handleOpenPreview = (documentId: string) => {
     openHistoryPreview(documentId);
     navigate("/resultado");
   };
 
-  // Confirma a remocao do item selecionado.
   const handleRemove = () => {
     if (!pendingRemoval) {
       return;
@@ -40,10 +65,37 @@ export function HistoryPage() {
     setPendingRemoval(null);
   };
 
-  // Dispara o download do pacote completo do historico.
-  const handleBundleDownload = () => {
-    downloadHistoryBundle();
-    setConfirmBundleDownload(false);
+  const handleDownloadProjectFiles = async (document: HistoryDocument) => {
+    const projectId = Number(document.id);
+    if (!Number.isFinite(projectId)) {
+      window.alert("ID do projeto inválido para download.");
+      return;
+    }
+
+    if (downloadingProjectId !== null) {
+      return;
+    }
+
+    setDownloadingProjectId(document.id);
+    try {
+      await Promise.all([
+        downloadFile(
+          `${API_BASE_URL}/especificacao_tecnica/projeto/${projectId}/download`,
+          `projeto_${projectId}_especificacoes_tecnicas.py`,
+        ),
+        downloadFile(
+          `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`,
+          `projeto_${projectId}_memorial_calculo.py`,
+        ),
+      ]);
+    } catch (error) {
+      console.error(error);
+      window.alert(
+        "Não foi possível baixar os arquivos do projeto. Verifique se o backend está online.",
+      );
+    } finally {
+      setDownloadingProjectId(null);
+    }
   };
 
   return (
@@ -51,27 +103,30 @@ export function HistoryPage() {
       <div className="page__content history-page">
         <SectionTitle
           eyebrow="Histórico"
-          title="Histórico de Gerações"
-          description="Acompanhe os memoriais e arquivos gerados ao longo das simulações do protótipo."
-          actions={
-            historyDocuments.length > 0 ? (
-              <Button
-                variant="secondary"
-                leadingIcon={<DownloadIcon />}
-                onClick={() => setConfirmBundleDownload(true)}
-              >
-                Baixar Todos
-              </Button>
-            ) : null
-          }
+          title="Histórico de Projetos"
+          description="Lista de todos os projetos cadastrados no banco de dados."
         />
 
         <SurfaceCard as="section" className="history-surface">
-          {historyDocuments.length === 0 ? (
+          {isLoadingHistory ? (
             <EmptyState
               icon={<InfoCircleIcon />}
-              title="Nenhum documento gerado até o momento"
-              description="Adicione dados na tela inicial para criar o primeiro memorial no histórico."
+              title="Carregando projetos..."
+              description="Estamos consultando os dados no endpoint de Projeto."
+            />
+          ) : historyError ? (
+            <EmptyState
+              icon={<InfoCircleIcon />}
+              title="Não foi possível listar os projetos"
+              description={historyError}
+              actionLabel="Tentar novamente"
+              onAction={() => window.location.reload()}
+            />
+          ) : historyDocuments.length === 0 ? (
+            <EmptyState
+              icon={<InfoCircleIcon />}
+              title="Nenhum projeto cadastrado até o momento"
+              description="Crie um projeto no backend para que ele apareça nesta lista."
               actionLabel="Adicionar dados"
               onAction={() => navigate("/")}
             />
@@ -81,9 +136,9 @@ export function HistoryPage() {
                 className="history-list"
                 header={
                   <div className="history-columns" aria-hidden="true">
-                    <span>Arquivo</span>
+                    <span>Projeto</span>
                     <span>Data</span>
-                    <span>Tamanho</span>
+                    <span>Detalhe</span>
                     <span>Ações</span>
                   </div>
                 }
@@ -99,9 +154,11 @@ export function HistoryPage() {
                       size={document.size}
                       actions={[
                         {
-                          label: `Baixar ${document.name}`,
+                          label: isDownloading(document.id)
+                            ? `Baixando arquivos de ${document.name}`
+                            : `Baixar arquivos de ${document.name}`,
                           icon: <DownloadIcon />,
-                          onClick: () => downloadDocumentAsset(document.name, document.document.file_urls[0]), // Usando a URL do arquivo para download
+                          onClick: () => handleDownloadProjectFiles(document),
                         },
                         {
                           label: `Visualizar ${document.name}`,
@@ -128,33 +185,17 @@ export function HistoryPage() {
             </>
           )}
         </SurfaceCard>
-
         <ConfirmationModal
           open={Boolean(pendingRemoval)}
-          title="Remover documento"
+          title="Remover projeto da lista"
           description={
             <p>
-              Deseja remover <strong>{pendingRemoval?.name}</strong> do histórico?
+              Deseja remover <strong>{pendingRemoval?.name}</strong> da lista local?
             </p>
           }
           confirmLabel="Remover"
           onClose={() => setPendingRemoval(null)}
           onConfirm={handleRemove}
-        />
-
-        <ConfirmationModal
-          open={confirmBundleDownload}
-          title="Baixar todos os documentos"
-          description={
-            <p>
-              Vamos preparar os itens do histórico para download em um pacote
-              único. Deseja continuar?
-            </p>
-          }
-          confirmLabel="Baixar"
-          confirmTone="success"
-          onClose={() => setConfirmBundleDownload(false)}
-          onConfirm={handleBundleDownload}
         />
       </div>
     </main>
