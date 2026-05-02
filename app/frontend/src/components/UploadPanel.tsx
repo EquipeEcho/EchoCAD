@@ -135,7 +135,7 @@ export function UploadPanel() {
   };
 
   // Envia os arquivos selecionados para o backend.
-  const handleSendConfirm = async () => {
+  const handleSendConfirm = () => {
     setShowSendConfirmation(false);
 
     if (uploadedFiles.length === 0) {
@@ -143,36 +143,10 @@ export function UploadPanel() {
       return;
     }
 
-    try {
-      /* Atualmente ele está enviando uma requisição por arquivo */
-      /* Futuras alterações devem ser feitas para enviar apenas uma requisição */
-      for (const doc of uploadedFiles) {
-        const formData = new FormData();
-        formData.append("file", doc.file);
-
-        const response = await fetch("http://127.0.0.1:8000/upload/", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error("Erro no envio");
-        }
-
-        const blob = await response.blob();
-        console.log("Resposta:", blob);
-      }
-
-      showToast("Processamento concluído!", "success");
-
-      console.log("bom dia");
-      navigate("/processando");
-      console.log("tudo bom?");
-
-    } catch (error) {
-      console.error(error);
-      showToast("Erro ao enviar arquivos.", "error");
-    }
+    // envia os arquivos para a próxima página
+    navigate("/processando", {
+      state: { files: uploadedFiles }
+    });
   };
 
   return (

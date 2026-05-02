@@ -29,12 +29,12 @@ type PrototypeContextValue = {
   addUploadedFiles: (fileList: FileList | File[]) => AddFilesResult;
   removeUploadedFile: (documentId: string) => void;
   clearUploadedFiles: () => void;
-  completeProcessing: () => GeneratedDocument | null;
+  completeProcessing: (apiResults: any[]) => GeneratedDocument | null;
   openHistoryPreview: (documentId: string) => void;
   removeHistoryDocument: (documentId: string) => void;
   downloadHistoryBundle: () => void;
   simulatePreviewAction: (fileName: string) => void;
-  downloadDocumentAsset: (label: string) => void;
+  downloadDocumentAsset: (url: string, label: string) => void;
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
@@ -143,18 +143,32 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   };
 
   // Gera o documento final e atualiza o historico.
-  const completeProcessing = () => {
-    const filesToProcess = uploadedFilesRef.current;
-
-    if (filesToProcess.length === 0) {
+  const completeProcessing = (apiResults: any[]) => {
+    if (apiResults.length === 0) {
       return null;
     }
 
-    const generatedDocument = buildGeneratedDocumentFromUploads(filesToProcess);
+    const generatedDocument: GeneratedDocument = {
+      id: Date.now().toString(),
+      title: "Memorial de Cálculo",
+      subtitle: "Gerado automaticamente",
+      createdAt: new Date().toISOString(),
+      reference: "REF-001",
+      versionLabel: "v1.0",
+      summary: "Documento gerado com sucesso.",
+
+      previewLines: [],
+      tableRows: [],
+      sourceFiles: [],
+
+      file_urls: apiResults.map((res) => res.file_url),
+    };
+
     const historyDocument = buildHistoryDocumentFromGenerated(generatedDocument);
 
     setCurrentDocument(generatedDocument);
     setHistoryDocuments((currentHistory) => [historyDocument, ...currentHistory]);
+
     syncUploadedFiles([]);
     showToast("Processamento concluído com sucesso.", "success");
 
@@ -199,9 +213,32 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   };
 
   // Simula o download de um arquivo gerado.
-  const downloadDocumentAsset = (label: string) => {
-    const assetLabel = label.includes(".") ? "arquivo" : label;
-    showToast(`Download de ${assetLabel} iniciado.`, "success");
+  const downloadDocumentAsset = async (url: string, label: string) => {
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error("Erro ao baixar arquivo");
+      }
+
+      const blob = await response.blob();
+
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+
+      // define nome do arquivo
+      link.download = label.includes(".") ? label : `${label}.xlsx`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      showToast(`Download de ${label} iniciado.`, "success");
+
+    } catch (error) {
+      console.error(error);
+      showToast("Erro ao baixar o arquivo.", "error");
+    }
   };
 
   return (

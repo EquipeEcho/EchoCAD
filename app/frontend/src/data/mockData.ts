@@ -35,14 +35,15 @@ function buildPreviewDocument(
       { label: "Carga acidental média", value: "4,5 kN/m²" },
       { label: "Fator de combinação", value: "1,40" },
     ],
+    file_urls: sourceFiles.map((fileName) => `https://example.com/files/${fileName}`), // URLs fictícias para os arquivos de origem
   };
 }
 
 export const mockUploadDocuments: UploadDocument[] = [
-  { id: "upload-1", name: "Planta_Batalhao_A1.dwg", kind: "dwg" },
-  { id: "upload-2", name: "Memorial_Preliminar.pdf", kind: "pdf" },
-  { id: "upload-3", name: "Croqui_Infraestrutura.dxf", kind: "dxf" },
-  { id: "upload-4", name: "Analise_Estrutural_C.xml", kind: "xml" },
+  { id: "upload-1", name: "Planta_Batalhao_A1.dwg", kind: "dwg", file: new File([], "Planta_Batalhao_A1.dwg") },
+  { id: "upload-2", name: "Memorial_Preliminar.pdf", kind: "pdf", file: new File([], "Memorial_Preliminar.pdf") },
+  { id: "upload-3", name: "Croqui_Infraestrutura.dxf", kind: "dxf", file: new File([], "Croqui_Infraestrutura.dxf") },
+  { id: "upload-4", name: "Analise_Estrutural_C.xml", kind: "xml", file: new File([], "Analise_Estrutural_C.xml") },
 ];
 
 export const mockHistoryDocuments: HistoryDocument[] = [

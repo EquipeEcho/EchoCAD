@@ -101,7 +101,7 @@ export function HistoryPage() {
                         {
                           label: `Baixar ${document.name}`,
                           icon: <DownloadIcon />,
-                          onClick: () => downloadDocumentAsset(document.name),
+                          onClick: () => downloadDocumentAsset(document.name, document.document.file_urls[0]), // Usando a URL do arquivo para download
                         },
                         {
                           label: `Visualizar ${document.name}`,

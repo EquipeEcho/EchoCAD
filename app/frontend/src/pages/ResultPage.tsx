@@ -58,20 +58,34 @@ export function ResultPage() {
         <PreviewPanel document={currentDocument} />
 
         <div className="result-actions">
+        {currentDocument.file_urls.map((url, index) => (
           <Button
+            key={index}
             variant="primary"
             leadingIcon={<DownloadIcon />}
-            onClick={() => downloadDocumentAsset("XML")}
+            onClick={() =>
+              downloadDocumentAsset(url, `arquivo-${index + 1}.xlsx`)
+            }
           >
-            Baixar XML
+            Baixar XLSX
           </Button>
+        ))}
+
+          {/* Ainda não existe um retorno como PDF, então ficará comentado por enquanto
           <Button
             variant="success"
             leadingIcon={<DownloadIcon />}
-            onClick={() => downloadDocumentAsset("PDF")}
+            onClick={() =>
+              downloadDocumentAsset(
+                currentDocument.file_url,
+                "memorial.pdf"
+              )
+            }
           >
             Baixar PDF
           </Button>
+          */}
+
           <Button variant="secondary" onClick={handleBack}>
             Voltar
           </Button>

@@ -24,9 +24,13 @@ export interface GeneratedDocument {
   reference: string;
   versionLabel: string;
   summary: string;
+
   previewLines: string[];
   tableRows: PreviewTableRow[];
+
   sourceFiles: string[];
+
+  file_urls: string[];
 }
 
 export interface HistoryDocument {
