@@ -25,7 +25,7 @@ async def create_project(project_schema: ProjetoSchema, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
-@router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK) # , response_model=List[ProjetoSchema]
+@router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK, response_model=List[ProjectPublic])
 async def list_projects(db: Session = Depends(get_session)):
     """
     Rota para listar todos os projetos existentes.

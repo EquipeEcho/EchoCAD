@@ -59,7 +59,7 @@ type PrototypeContextValue = {
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
-const LIST_PROJETOS_URL = "http://127.0.0.1:8000/projeto/";
+const LIST_PROJETOS_URL = "http://localhost:8000/projeto/";
 
 type ProjetoApiItem = {
   id?: number | string;
