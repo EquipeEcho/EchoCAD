@@ -47,6 +47,7 @@ class EspecificacaoTecnica(Base):
     arquivo: Mapped[str] = mapped_column(String(255), nullable=False) # ok def
 
     id_projeto: Mapped[int] = mapped_column(ForeignKey("projeto.id"), nullable=False) # ok deve existir
+    projeto: Mapped["Projeto"] = relationship("Projeto", back_populates="especificacoes_tecnicas", init=False)
 
 
 
@@ -62,7 +63,7 @@ class Norma(Base):
 
     data_criacao: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), init=False)
     
-    projetos: Mapped[List["Projeto"]] = relationship("Projeto", back_populates="normas", init=False)
+    projetos: Mapped[List["Projeto"]] = relationship("Projeto", secondary="projeto_norma", back_populates="normas", init=False)
 
 
 class ProjetoNorma(Base):
@@ -88,20 +89,24 @@ class Usuario(Base):
     senha: Mapped[str] = mapped_column(String(255), nullable=False) # ok
     cargo: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None) # ok
     
-    projetos: Mapped[List["Projeto"]] = relationship("Projeto", back_populates="usuario", init=False)
+    projetos: Mapped[List["Projeto"]] = relationship("Projeto", back_populates="user", init=False)
 
 
 class Projeto(Base):
     """
-    Representa um projeto base, onde serão conectadas as demais informações.
+    Representa um registro de projeto na tabela do banco de dodos,
+    contém os campos relacioandos à entidade Projeto.
     """
     __tablename__ = "projeto"
 
     id: Mapped[int] = mapped_column(primary_key=True, init=False) # der
-    nome: Mapped[str] = mapped_column(String(150), nullable=False) # der
-    descricao: Mapped[str | None] = mapped_column(Text, nullable=True, default=None) # der
-    cliente: Mapped[str | None] = mapped_column(String(150), nullable=True, default=None) # der
-    data_criacao: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now(), init=False) # not der / util
+    name: Mapped[str] = mapped_column(String(150), nullable=False) # der
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, default=None) # der
+    client: Mapped[str | None] = mapped_column(String(150), nullable=True, default=None) # der
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now(), init=False) # not der / util
+
+    # revisar essa regra na sprint 3
+    id_user: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), nullable=True, init=True, default=None)
 
     # TODO: sprint 3
     # usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="projetos", init=False)
@@ -116,4 +121,5 @@ class Projeto(Base):
 
     plantas_cad: Mapped[List['PlantaCad']] = relationship("PlantaCad", back_populates="projeto", init=False) # ok revisado
     memoriais_calculo: Mapped[List["MemorialCalculo"]] = relationship("MemorialCalculo", back_populates="projeto", init=False) # ok revisado
-    normas: Mapped[List["Norma"]] = relationship("Norma", back_populates="projetos", init=False) # ok revisado
+    normas: Mapped[List["Norma"]] = relationship("Norma", secondary="projeto_norma", back_populates="projetos", init=False) # ok revisado
+    user: Mapped["Usuario"] = relationship("Usuario", back_populates="projetos", init=False)

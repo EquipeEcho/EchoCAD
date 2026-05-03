@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "mysql+pymysql://user:password@localhost:3306/test_db?charset=utf8mb4"
+    database_url: str = "mysql+pymysql://echocad_admin:echocad_admin_password@localhost:3306/echocad_db?charset=utf8mb4"
     main_model: str = 'qwen2.5:7b'
     agent_model: str = 'qwen2.5:3b'
     fast_model: str = 'qwen2.5:1.5b'

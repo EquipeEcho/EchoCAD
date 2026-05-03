@@ -1,8 +1,8 @@
-"""inicializaçao do banco de dados
+"""inicializaçao do banco de dados.
 
-Revision ID: aa0a9b8d3a25
+Revision ID: bff4dbc79b56
 Revises: 
-Create Date: 2026-05-02 22:05:46.886566
+Create Date: 2026-05-03 09:15:59.861770
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'aa0a9b8d3a25'
+revision: str = 'bff4dbc79b56'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -29,10 +29,10 @@ def upgrade() -> None:
     )
     op.create_table('projeto',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('nome', sa.String(length=150), nullable=False),
-    sa.Column('descricao', sa.Text(), nullable=True),
-    sa.Column('cliente', sa.String(length=150), nullable=True),
-    sa.Column('data_criacao', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('name', sa.String(length=150), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('client', sa.String(length=150), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('usuario',

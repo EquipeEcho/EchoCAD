@@ -1,0 +1,39 @@
+from typing import List
+
+from fastapi import APIRouter, Depends
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+from ..controller.projeto_crud import create_projeto, read_all_projetos
+from ..database import get_session
+from ..schemas.user_schema import ProjetoSchema
+from ..schemas.system_schema import Success
+
+router = APIRouter(prefix='/projeto', tags=['projeto'])
+
+
+@router.post('/', summary='Criar projeto', status_code=status.HTTP_201_CREATED, response_model=Success)
+async def create_project(project_schema: ProjetoSchema, db: Session = Depends(get_session)):
+    """
+    Rota para criação de um novo projeto.
+    """
+    try:
+        result = create_projeto(db, project_schema)
+        return ({'object': result.name, 'message': "Criado com sucesso"})
+
+    except Exception as e:
+        msg = 'Erro ao criar o projeto'
+        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
+
+
+@router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK) # , response_model=List[ProjetoSchema]
+async def list_projects(db: Session = Depends(get_session)):
+    """
+    Rota para listar todos os projetos existentes.
+    """
+    try:
+        result = read_all_projetos(db)
+        return result
+
+    except Exception as e:
+        msg = 'Erro ao buscar os projetos existentes'
+        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
