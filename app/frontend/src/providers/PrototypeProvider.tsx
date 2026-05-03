@@ -133,6 +133,9 @@ function buildTechnicalStandard(file: File): TechnicalStandard | null {
   };
 }
 
+// URL base da API
+const API_BASE_URL = "http://127.0.0.1:8000";
+
 // Centraliza o estado do protótipo e das simulações.
 export function PrototypeProvider({ children }: PropsWithChildren) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadDocument[]>([]);
@@ -505,12 +508,36 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     setShouldPromptProjectSave(false);
   };
 
-  // Remove um item do histórico salvo.
-  const removeHistoryDocument = (documentId: string) => {
-    setHistoryDocuments((currentHistory) =>
-      currentHistory.filter((document) => document.id !== documentId),
-    );
-    showToast("Documento removido do histórico.", "info");
+  // Remove um item do histórico salvo E do banco de dados.
+  const removeHistoryDocument = async (documentId: string) => {
+    try {
+      // Chamada DELETE para o backend remover projeto e arquivos
+      const response = await fetch(
+        `${API_BASE_URL}/projeto/${documentId}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showToast(
+          `Erro ao remover projeto: ${errorData.detail || "Erro desconhecido"}`,
+          "error"
+        );
+        return;
+      }
+
+      // Remove do estado local após sucesso
+      setHistoryDocuments((currentHistory) =>
+        currentHistory.filter((document) => document.id !== documentId),
+      );
+      showToast("Projeto removido com sucesso (pasta renomeada para .deleted).", "success");
+    } catch (error) {
+      console.error("Erro ao remover projeto:", error);
+      showToast(
+        "Erro ao remover projeto. Verifique se o backend está online.",
+        "error"
+      );
+    }
   };
 
   // Simula o download de todos os itens do histórico.

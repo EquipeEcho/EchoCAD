@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useId } from "react";
+import { ReactNode, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./Button";
 import { CloseIcon } from "./Icons";
@@ -12,7 +12,7 @@ type ConfirmationModalProps = {
   cancelLabel?: string;
   confirmTone?: "primary" | "success";
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 };
 
 // Exibe uma confirmação antes de ações sensíveis.
@@ -28,6 +28,16 @@ export function ConfirmationModal({
 }: ConfirmationModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.resolve(onConfirm());
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -86,10 +96,10 @@ export function ConfirmationModal({
         </div>
 
         <div className="modal-card__actions">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={isLoading}>
             {cancelLabel}
           </Button>
-          <Button variant={confirmTone} onClick={onConfirm}>
+          <Button variant={confirmTone} onClick={handleConfirm} disabled={isLoading}>
             {confirmLabel}
           </Button>
         </div>

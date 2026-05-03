@@ -3,6 +3,7 @@ from agno.team import Team
 from agno.models.ollama import Ollama
 
 from .entity_dxf import EntityDxf
+from .tools.memorial_populator import run_population
 
 # def set_project_context(run_context: RunContext, discipline: str = None, layers: list = None) -> str:
 #     """Armazena a disciplina e os layers selecionados no estado global da sessão."""
@@ -20,7 +21,8 @@ def create_team(entity: EntityDxf, members: list[Agent | Team]):
         entity.get_grouped_entities_summary,
         entity.get_detailed_entities,
         entity.get_connectivity_graph,
-        entity.find_text_near_entities
+        entity.find_text_near_entities,
+        run_population,  # Adiciona ferramenta de população de Excel
     ]
 
     # Atualiza as ferramentas de cada agente se elas não foram injetadas

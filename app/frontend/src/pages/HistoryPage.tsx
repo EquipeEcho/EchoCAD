@@ -56,12 +56,12 @@ export function HistoryPage() {
     navigate("/resultado");
   };
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
     if (!pendingRemoval) {
       return;
     }
 
-    removeHistoryDocument(pendingRemoval.id);
+    await removeHistoryDocument(pendingRemoval.id);
     setPendingRemoval(null);
   };
 
