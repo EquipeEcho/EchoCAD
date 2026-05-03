@@ -7,12 +7,14 @@ import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { usePrototype } from "../providers/PrototypeProvider";
 import { ProjectSaveInput, UploadDocument } from "../types/documents";
+import { processProject } from "../services/api";
 
 const progressSteps = [12, 26, 39, 57, 71, 86, 100];
 
 type ProcessingRouteState = {
   files?: UploadDocument[];
   projectInfo?: ProjectSaveInput;
+  projectId?: number;
 };
 
 // Mostra o andamento do processamento simulado.
@@ -57,20 +59,34 @@ export function ProcessingPage() {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      if (hasFinishedRef.current) {
-        return;
-      }
-
+    const startActualProcessing = async () => {
+      if (hasFinishedRef.current) return;
       hasFinishedRef.current = true;
-      completeProcessing([], projectInfo, filesToProcess);
-      navigate("/resultado", { replace: true });
+
+      try {
+        let results = [];
+        if (routeState?.projectId) {
+          const apiResponse = await processProject(routeState.projectId);
+          results = apiResponse.results || [];
+        }
+        
+        completeProcessing(results, projectInfo, filesToProcess);
+        navigate("/resultado", { replace: true });
+      } catch (error) {
+        console.error("Erro no processamento real:", error);
+        completeProcessing([], projectInfo, filesToProcess);
+        navigate("/resultado", { replace: true });
+      }
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      startActualProcessing();
     }, 500);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [completeProcessing, filesToProcess, navigate, progress, projectInfo]);
+  }, [completeProcessing, filesToProcess, navigate, progress, projectInfo, routeState?.projectId]);
 
   if (filesToProcess.length === 0) {
     return (

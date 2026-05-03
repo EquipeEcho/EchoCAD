@@ -130,6 +130,24 @@ export async function listProjetos(): Promise<ProjectResponse[]> {
   return response.json();
 }
 
+/**
+ * Starts AI processing for a project
+ * @param projectId The project ID
+ * @returns The processing results
+ */
+export async function processProject(projectId: number) {
+  const response = await fetch(`${API_BASE_URL}/processamento/${projectId}`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Erro ao processar projeto");
+  }
+
+  return response.json();
+}
+
 // Criar norma (upsert já acontece no backend)
 export async function createNorma(data: {
   nome: string;

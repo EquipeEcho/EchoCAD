@@ -1,10 +1,8 @@
 from agno.agent import Agent
-from agno.team import Team, TeamMode
+from agno.team import Team
 from agno.models.ollama import Ollama
-from agno.run import RunContext
 
-from entity_dxf import EntityDxf
-from tools.memorial_populator import run_population
+from .entity_dxf import EntityDxf
 
 # def set_project_context(run_context: RunContext, discipline: str = None, layers: list = None) -> str:
 #     """Armazena a disciplina e os layers selecionados no estado global da sessão."""
@@ -15,7 +13,21 @@ from tools.memorial_populator import run_population
 #     return f"Contexto atualizado: Disciplina={run_context.session_state.get('discipline')}, Layers={run_context.session_state.get('selected_layers')}"
 
 def create_team(entity: EntityDxf, members: list[Agent | Team]):
-    
+    # Define as ferramentas disponíveis para os agentes a partir do EntityDxf
+    dxf_tools = [
+        entity.get_layers,
+        entity.check_exists,
+        entity.get_grouped_entities_summary,
+        entity.get_detailed_entities,
+        entity.get_connectivity_graph,
+        entity.find_text_near_entities
+    ]
+
+    # Atualiza as ferramentas de cada agente se elas não foram injetadas
+    for member in members:
+        if isinstance(member, Agent):
+            member.tools = dxf_tools
+
     team = Team(
         name="Echo Team",
         model=Ollama(

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.routes.upload_router import router as upload_router
 from src.routes.projeto_router import router as projeto_router
 from src.routes.planta_router import router as planta_router
+from src.routes.processamento import router as processamento_router
 
 app = FastAPI(
     title="EchoCAD API",
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(upload_router)
 app.include_router(projeto_router)
 app.include_router(planta_router)
+app.include_router(processamento_router)
 
 
 # Rota de boas vindas, indicando que está online.
