@@ -13,14 +13,16 @@ async def create_user(user: CreateUser, db: Session = Depends(get_session)):
     return safe_create(create_usuario, db, user, "Erro ao criar usuário")
 
 
-@router.get('/', summary='Listar todos os usuários')
-async def list_users(db: Session = Depends(get_session)):
-    return safe_read(read_all_usuarios, db, "Erro ao buscar usuários")
+# implementação futura
+# @router.get('/', summary='Listar todos os usuários')
+# async def list_users(db: Session = Depends(get_session)):
+#     return safe_read(read_all_usuarios, db, "Erro ao buscar usuários")
 
 
-@router.get('/{usuario_id}', summary='Buscar usuário por ID')
-async def get_user(usuario_id: int, db: Session = Depends(get_session)):
-    return read_usuario(db, usuario_id)
+# verificar depois
+# @router.get('/{usuario_id}', summary='Buscar usuário por ID')
+# async def get_user(usuario_id: int, db: Session = Depends(get_session)):
+#     return read_usuario(db, usuario_id)
 
 
 @router.post('/login', summary='Login de usuário')

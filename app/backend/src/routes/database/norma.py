@@ -19,6 +19,7 @@ async def list_normas(db: Session = Depends(get_session)):
     return safe_read(read_all_normas, db, "Erro ao buscar normas")
 
 
-@router.get("/{norma_id}", summary="Buscar norma por ID")
-async def get_norma(norma_id: int, db: Session = Depends(get_session)):
-    return read_norma(db, norma_id)
+# VER DEPOis
+# @router.get("/{norma_id}", summary="Buscar norma por ID")
+# async def get_norma(norma_id: int, db: Session = Depends(get_session)):
+#     return read_norma(db, norma_id)

@@ -17,7 +17,7 @@ async def create_project(project: ProjetoCreate, db: Session = Depends(get_sessi
 async def list_projects(db: Session = Depends(get_session)):
     return safe_read(read_all_projetos, db, "Erro ao buscar projetos")
 
-
-@router.get('/{projeto_id}', summary='Buscar projeto por ID')
-async def get_project(projeto_id: int, db: Session = Depends(get_session)):
-    return read_projeto(db, projeto_id)
+# desabilitado por enquanto
+# @router.get('/{projeto_id}', summary='Buscar projeto por ID')
+# async def get_project(projeto_id: int, db: Session = Depends(get_session)):
+#     return read_projeto(db, projeto_id)

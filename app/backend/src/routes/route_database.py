@@ -3,9 +3,7 @@ from .database import (
     usuario_router,
     projeto_router,
     norma_router,
-    projeto_norma_router,
     planta_cad_router,
-    projeto_planta_router,
     especificacao_tecnica_router,
     memorial_calculo_router,
 )
@@ -22,9 +20,7 @@ router = APIRouter()
 router.include_router(usuario_router, prefix='/usuario')
 router.include_router(projeto_router, prefix='/projeto')
 router.include_router(norma_router, prefix='/norma')
-router.include_router(projeto_norma_router, prefix='/projeto_norma')
 router.include_router(planta_cad_router, prefix='/planta_cad')
-router.include_router(projeto_planta_router, prefix='/projeto_planta')
 router.include_router(especificacao_tecnica_router,
                       prefix='/especificacao_tecnica')
 router.include_router(memorial_calculo_router, prefix='/memorial_calculo')
