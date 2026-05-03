@@ -24,13 +24,13 @@ DEFAULT_PATH.mkdir(parents=True, exist_ok=True)
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED, response_model=UploadResponse)
-async def upload(file: UploadFile = File(...)): # db: Session = Depends(get_session)
+async def upload(file: UploadFile = File(...)):  # db: Session = Depends(get_session)
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Nome do arquivo é requerido'
         )
-    
+
     # Validar extensão do arquivo
     if not file.filename.lower().endswith(('dxf', 'pdf', 'doc', 'docx')):
         raise HTTPException(
@@ -38,14 +38,13 @@ async def upload(file: UploadFile = File(...)): # db: Session = Depends(get_sess
             detail='Formato não suportado.'
         )
 
-    
     try:
         file_path = DEFAULT_PATH.joinpath(file.filename)
-        
+
         # Salvar arquivo no disco
         with open(file_path, 'wb') as buffer:
             shutil.copyfileobj(file.file, buffer)
-        
+
         return {
             "message": "Upload realizado com sucesso",
             "filename": file.filename,

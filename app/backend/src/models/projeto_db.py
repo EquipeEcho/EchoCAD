@@ -54,7 +54,7 @@ class EspecificacaoTecnica(Base):
 # isso aqui teria que entrar como RAG / CHROMA, mas vou deixar por enquanto só até implantar o rag
 class Norma(Base):
     """
-    Representação de uma norma técnica.
+    Representação de uma registro de norma técnica no banco de dados.
     """
     __tablename__ = "normas"
 
