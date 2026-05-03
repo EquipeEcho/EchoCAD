@@ -6,6 +6,8 @@ from src.routes.projeto_router import router as projeto_router
 from src.routes.planta_router import router as planta_router
 from src.routes.processamento import router as processamento_router
 from src.routes.especificacoes import router as especificacoes_router
+from src.routes.norma_router import router as norma_router
+from src.routes.download import router as download_router
 
 app = FastAPI(
     title="EchoCAD API",
@@ -27,6 +29,8 @@ app.include_router(projeto_router)
 app.include_router(planta_router)
 app.include_router(processamento_router)
 app.include_router(especificacoes_router)
+app.include_router(norma_router)
+app.include_router(download_router)
 
 
 # Rota de boas vindas, indicando que está online.

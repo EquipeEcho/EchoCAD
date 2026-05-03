@@ -13,9 +13,10 @@ import { createNorma, listNormas } from "../services/api";
 type Norma = {
   id: number;
   nome: string;
-  conexao?: string;
-  status: boolean;
-  projetos: number[];
+  //conexao?: string;
+  //status: boolean;
+  //projetos: number[];
+  //datacriacao: string;
 };
 
 type StandardSwitchProps = {
@@ -98,33 +99,43 @@ export function StandardsPage() {
     inputRef.current.click();
   };
 
-  const applyStandardsSelection = async (files: FileList | File[]) => {
-    let added = 0;
-    let invalid = 0;
+  // No arquivo StandardsPage.tsx
 
-    for (const file of Array.from(files)) {
-      if (!file.name.endsWith(".pdf")) {
-        invalid++;
-        continue;
-      }
+const applyStandardsSelection = async (files: FileList | File[]) => {
+  let added = 0;
+  let invalid = 0;
 
-      try {
-        await createNorma({
-          nome: file.name,
-          conexao: file.name,
-          status: true,
-          ids_projeto: [1],
-        });
+  
 
-        added++;
-      } catch (err) {
-        console.error(err);
-      }
+  for (const file of Array.from(files)) {
+    if (!file.name.endsWith(".pdf")) {
+      invalid++;
+      continue;
     }
 
-    setUploadStatus(buildStandardsUploadStatus(added, 0, invalid));
+    try {
+  await createNorma({
+    // 1. Limitamos o tamanho do nome ou removemos o prefixo longo
+        nome: file.name.substring(0, 90), 
+        
+        // 2. Garantimos que a string de conexão não passe de 100 caracteres
+        // Se o nome for muito grande, pegamos apenas os primeiros caracteres + .pdf
+        
+        
+        // 3. Enviamos como STRING, já que o backend pediu string e não boolean
+        status: "true", 
+        
+        ids_projeto: [1],
+      });
 
-    await loadNormas();
+      added++;
+    } catch (err: any) {
+      console.error("Falha ao enviar:", err.message);
+    }
+  }
+
+  setUploadStatus(buildStandardsUploadStatus(added, 0, invalid));
+  await loadNormas();
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {

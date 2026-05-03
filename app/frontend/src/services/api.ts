@@ -30,6 +30,12 @@ interface PlantaCADResponse {
   id_projeto: number;
 }
 
+interface NormaCreatePayload {
+  nome: string;
+  //status?: string;
+  ids_projeto: number[]; // Verifique se no Python está "ids_projeto" ou "projeto_id"
+}
+
 /**
  * Creates a new project in the database
  * @param projectData Project information to create
@@ -197,12 +203,7 @@ export async function getProjectResult(projectId: number) {
 }
 
 // Criar norma (upsert já acontece no backend)
-export async function createNorma(data: {
-  nome: string;
-  conexao?: string;
-  status?: boolean;
-  ids_projeto: number[];
-}) {
+export async function createNorma(data: NormaCreatePayload) {
   const response = await fetch(`${API_BASE_URL}/norma/`, {
     method: "POST",
     headers: {
@@ -212,8 +213,10 @@ export async function createNorma(data: {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Erro ao criar norma");
+    // Melhoria: Capturar o erro detalhado do FastAPI (422)
+    const errorData = await response.json();
+    console.error("Erro detalhado do servidor:", errorData);
+    throw new Error(errorData.detail?.[0]?.msg || "Erro ao criar norma");
   }
 
   return response.json();
