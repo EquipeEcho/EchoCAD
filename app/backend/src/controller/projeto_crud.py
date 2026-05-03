@@ -1,5 +1,3 @@
-from typing import List
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ..database import get_session
@@ -44,7 +42,7 @@ def read_projeto(db: Session, projeto_id: int) -> Projeto | None:
     return db.execute(query).scalar_one_or_none()
 
 
-def read_all_projetos(db: Session) -> List[Projeto]:
+def read_all_projetos(db: Session) -> list[Projeto]:
     """
     Recupera todos os registros de projetos armazenados no banco de dados.
 

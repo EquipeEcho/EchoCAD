@@ -51,7 +51,7 @@ class NormaSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PlantaCadCreate(BaseModel):
+class PlantaSchema(BaseModel):
     """Schema para criação de planta CAD"""
 
     tipo: str | None = Field(None, max_length=100)

@@ -23,9 +23,9 @@ class MemorialCalculo(Base):
     projeto: Mapped["Projeto"] = relationship("Projeto", back_populates="memoriais_calculo", init=True) # ok revisado
 
 
-class PlantaCad(Base):
+class Planta(Base):
     """
-    Arquivo CAD pertencente ao projeto.
+    Representa o registro de uma planta cad no banco de dados.
     """
     __tablename__ = "planta_cad"
 
@@ -119,7 +119,7 @@ class Projeto(Base):
         "EspecificacaoTecnica", back_populates="projeto", init=False
     )
 
-    plantas_cad: Mapped[List['PlantaCad']] = relationship("PlantaCad", back_populates="projeto", init=False) # ok revisado
+    plantas_cad: Mapped[List['Planta']] = relationship("PlantaCad", back_populates="projeto", init=False) # ok revisado
     memoriais_calculo: Mapped[List["MemorialCalculo"]] = relationship("MemorialCalculo", back_populates="projeto", init=False) # ok revisado
     normas: Mapped[List["Norma"]] = relationship("Norma", secondary="projeto_norma", back_populates="projetos", init=False) # ok revisado
     user: Mapped["Usuario"] = relationship("Usuario", back_populates="projetos", init=False)
