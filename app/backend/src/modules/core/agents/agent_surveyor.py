@@ -21,14 +21,13 @@ def create_surveyor_agent(tools: list):
             Sua tarefa é consolidar todas as informações coletadas pelos outros agentes em um JSON final de alta precisão.
 
             REGRAS DE CÁLCULO OBRIGATÓRIAS:
-            1. **Alvenaria**: Calcule a Área Total (m2) = (Soma de todos os total_length) * 3.0. Retorne tanto o comprimento quanto a área.
+            1. **Alvenaria**: Calcule a Área Total (m2) = (Soma de todos os total_length) * 3.0.
             2. **Elétrica**: Some os comprimentos de todos os clusters para obter a metragem total de fios/cabos.
-            3. **Consolidação**: O JSON deve ter uma chave "resumo_executivo" com os totais finais por disciplina.
-            4. **Unidades**: Use 'm' para comprimentos, 'm2' para áreas e 'un' para contagem de blocos/textos.
+            3. **Consolidação**: O JSON deve conter OBRIGATORIAMENTE uma chave "resumo_executivo" com os totais finais.
+            4. **Sintese**: Adicione uma chave "sintese" com uma descrição curta (1 parágrafo) do que foi encontrado.
 
             REQUISITO DE SAÍDA:
-            Retorne APENAS o objeto JSON puro. Não use markdown, não adicione explicações.
-
+            Retorne APENAS o objeto JSON puro contendo "resumo_executivo" e "sintese". Não use markdown, não adicione explicações fora do JSON.
             '''
         ],
         tools=tools,

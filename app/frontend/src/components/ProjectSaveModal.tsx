@@ -11,6 +11,7 @@ type ProjectSaveModalProps = {
   initialProjectName?: string;
   subtitle?: string;
   cancelLabel?: string;
+  loading?: boolean;
   onClose: () => void;
   onSave: (projectInfo: ProjectSaveInput) => void;
 };
@@ -40,6 +41,7 @@ export function ProjectSaveModal({
   initialProjectName = "",
   subtitle = "Defina como este processamento deve aparecer no histórico.",
   cancelLabel = "Depois",
+  loading = false,
   onClose,
   onSave,
 }: ProjectSaveModalProps) {
@@ -179,11 +181,11 @@ export function ProjectSaveModal({
           </div>
 
           <div className="modal-card__actions">
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose} disabled={loading}>
               {cancelLabel}
             </Button>
-            <Button variant="success" type="submit" disabled={!canSave}>
-              Salvar projeto
+            <Button variant="success" type="submit" disabled={!canSave || loading}>
+              {loading ? "Salvando..." : "Salvar projeto"}
             </Button>
           </div>
         </form>

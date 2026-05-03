@@ -19,7 +19,7 @@ import {
 } from "./Icons";
 import { ProjectSaveModal } from "./ProjectSaveModal";
 import { PlantaCADModal, PlantaCADInfo } from "./PlantaCADModal";
-import { createProjeto, createMultiplePlantasCAD } from "../services/api";
+import { createProjeto, createMultiplePlantasCAD, uploadFile } from "../services/api";
 
 // Monta a mensagem de status após selecionar arquivos.
 function buildUploadStatusMessage(
@@ -87,8 +87,10 @@ export function UploadPanel() {
     uploadedFiles,
     addUploadedFiles,
     removeUploadedFile,
+    clearUploadedFiles,
     simulatePreviewAction,
     showToast,
+    isAIProcessing,
   } = usePrototype();
 
   // Processa os arquivos escolhidos e atualiza o status.
@@ -192,48 +194,55 @@ export function UploadPanel() {
       return;
     }
 
+    if (isSavingProject) return; // Evita cliques duplos
+
     setIsSavingProject(true);
     setShowProjectSaveModal(false);
 
     try {
-      // Criar projeto
-      // Nota: Usando id_usuario = 1 como padrão. Em um app real, obtenha do sistema de autenticação
+      // 1. Criar projeto
       const createdProject = await createProjeto({
         name: projectInfo.name,
-        description: projectInfo.descricao,
+        description: `${projectInfo.descricao || ""}${projectInfo.descricao ? "\n" : ""}Arquivos: ${uploadedFiles.map(f => f.name).join(", ")}`,
         client: projectInfo.cliente,
-        id_user: 1, // TODO: Obter ID real do usuário do sistema de autenticação
+        id_user: 1, 
       });
 
-      showToast("Projeto criado com sucesso!", "success");
+      // 2. Fazer upload de cada arquivo e criar as entradas de planta CAD
+      const plantasData = [];
+      for (const uploadDoc of uploadedFiles) {
+        if (uploadDoc.file) {
+          showToast(`Fazendo upload de ${uploadDoc.name}...`, "info");
+          const uploadResult = await uploadFile(createdProject.id, uploadDoc.file);
+          
+          plantasData.push({
+            tipo: currentPlantaInfo.tipo,
+            arquivo: uploadResult.path, // Usar o caminho relativo retornado pelo backend (project_id/filename)
+          });
+        }
+      }
 
-      // Criar entradas de planta CAD para cada arquivo enviado
-      const plantasData = uploadedFiles.map((file) => ({
-        tipo: currentPlantaInfo.tipo,
-        arquivo: currentPlantaInfo.arquivo || file.name,
-      }));
+      if (plantasData.length > 0) {
+        await createMultiplePlantasCAD(plantasData, createdProject.id);
+      }
 
-      await createMultiplePlantasCAD(plantasData, createdProject.id);
+      showToast("Projeto e arquivos salvos com sucesso!", "success");
 
-      showToast("Plantas CAD criadas com sucesso!", "success");
+      // 3. Limpar uploads e navegar para a página de resultado
+      clearUploadedFiles();
 
-      // Navegar para página de processamento com informações do projeto
-      navigate("/processando", {
-        state: {
-          files: uploadedFiles,
-          projectInfo,
-          projectId: createdProject.id,
-        },
-      });
+      navigate("/resultado", { state: { refresh: true, projectId: createdProject.id } });
+      
     } catch (error) {
       console.error("Erro ao salvar projeto:", error);
       showToast(
         error instanceof Error ? error.message : "Erro ao salvar projeto",
         "error"
       );
-      setIsSavingProject(false);
-      // Reabrir modal para que o usuário tente novamente
+      // Reabrir modal para que o usuário tente novamente se falhou
       setShowProjectSaveModal(true);
+    } finally {
+      setIsSavingProject(false);
     }
   };
 
@@ -378,6 +387,7 @@ export function UploadPanel() {
         initialProjectName={getSuggestedProjectName(uploadedFiles)}
         subtitle="Preencha os dados do projeto que será salvo no sistema."
         cancelLabel="Cancelar"
+        loading={isSavingProject}
         onClose={() => setShowProjectSaveModal(false)}
         onSave={handleProjectSave}
       />

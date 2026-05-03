@@ -15,6 +15,11 @@ export interface ProjectSaveInput {
   name: string;
   cliente?: string;
   descricao?: string;
+  projectDate?: string;
+  responsible?: string;
+  modelType?: string;
+  notes?: string;
+  additionalInstructions?: string;
 }
 
 export interface ProjectInfo extends ProjectSaveInput {

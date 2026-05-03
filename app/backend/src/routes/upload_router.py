@@ -19,12 +19,13 @@ router = APIRouter(
 )
 
 # definindo local de salvamento dos arquivos
-DEFAULT_PATH = Path('uploads')
+BACKEND_ROOT = Path(__file__).parent.parent.parent
+DEFAULT_PATH = BACKEND_ROOT / 'uploads'
 DEFAULT_PATH.mkdir(parents=True, exist_ok=True)
 
 
-@router.post('/', status_code=status.HTTP_201_CREATED, response_model=UploadResponse)
-async def upload(file: UploadFile = File(...)):  # db: Session = Depends(get_session)
+@router.post('/{project_id}', status_code=status.HTTP_201_CREATED, response_model=UploadResponse)
+async def upload(project_id: int, file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -39,16 +40,22 @@ async def upload(file: UploadFile = File(...)):  # db: Session = Depends(get_ses
         )
 
     try:
-        file_path = DEFAULT_PATH.joinpath(file.filename)
+        project_path = DEFAULT_PATH / str(project_id)
+        project_path.mkdir(parents=True, exist_ok=True)
+        
+        file_path = project_path.joinpath(file.filename)
 
         # Salvar arquivo no disco
         with open(file_path, 'wb') as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        # Retornamos o caminho relativo para ser salvo no banco
+        relative_path = f"{project_id}/{file.filename}"
+
         return {
             "message": "Upload realizado com sucesso",
             "filename": file.filename,
-            "path": str(file_path)
+            "path": relative_path
         }
 
     except Exception as e:

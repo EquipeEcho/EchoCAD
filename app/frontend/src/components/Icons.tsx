@@ -185,10 +185,42 @@ export function CloseIcon() {
   );
 }
 
-// Renderiza o icone de carregamento.
-export function SpinnerIcon() {
+// Renderiza o icone de expandir.
+export function ChevronDownIcon() {
   return (
     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path
+        d="m6 9 6 6 6-6"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+// Renderiza o icone de recolher.
+export function ChevronUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path
+        d="m18 15-6-6-6 6"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+// Renderiza o icone de carregamento.
+export function SpinnerIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" focusable="false" aria-hidden="true">
       <path
         d="M12 3.25a8.75 8.75 0 1 1-6.19 2.56"
         fill="none"

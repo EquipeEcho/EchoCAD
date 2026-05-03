@@ -1,14 +1,16 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useTheme } from "../providers/ThemeProvider";
+import { usePrototype } from "../providers/PrototypeProvider";
 import { Button } from "./Button";
-import { MoonIcon, SunIcon } from "./Icons";
+import { MoonIcon, SpinnerIcon, SunIcon } from "./Icons";
 import { Logo } from "./Logo";
 
 // Renderiza o cabeçalho principal e a navegação.
 export function AppHeader() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const homeIsActive = !["/historico", "/normas"].includes(location.pathname);
+  const { isAIProcessing } = usePrototype();
+  const homeIsActive = !["/historico", "/normas", "/processando", "/resultado"].includes(location.pathname);
   const isDarkMode = theme === "dark";
 
   return (
@@ -36,6 +38,16 @@ export function AppHeader() {
             >
               Normas
             </NavLink>
+
+            {isAIProcessing && (
+              <NavLink
+                className={`nav-link nav-link--active-processing${location.pathname === "/processando" ? " is-active" : ""}`}
+                to="/processando"
+              >
+                <SpinnerIcon />
+                <span>Processando...</span>
+              </NavLink>
+            )}
           </nav>
 
           <Button
