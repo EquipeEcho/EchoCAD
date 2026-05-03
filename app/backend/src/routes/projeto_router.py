@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from ..controller.projeto_crud import create_projeto, read_all_projetos
+from ..controller.projeto_crud import create_projeto, read_all_projetos, read_projeto
 from ..database import get_session
 from ..schemas.user_schema import ProjetoSchema, ProjectPublic
 from ..schemas.system_schema import Success
@@ -36,4 +36,22 @@ async def list_projects(db: Session = Depends(get_session)):
 
     except Exception as e:
         msg = 'Erro ao buscar os projetos existentes'
+        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
+
+
+@router.get('/{projeto_id}', summary='Buscar projeto por ID', status_code=status.HTTP_200_OK, response_model=ProjectPublic)
+async def get_project(projeto_id: int, db: Session = Depends(get_session)):
+    """
+    Rota para buscar um projeto específico pelo seu ID.
+    """
+    try:
+        result = read_projeto(db, projeto_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Projeto não encontrado")
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        msg = 'Erro ao buscar o projeto'
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")

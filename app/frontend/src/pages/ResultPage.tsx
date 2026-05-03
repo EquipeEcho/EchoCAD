@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
@@ -29,28 +29,36 @@ export function ResultPage() {
   } = usePrototype();
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshedIds = useRef<Set<number>>(new Set());
 
   const routeState = location.state as { refresh?: boolean; projectId?: number } | null;
 
   useEffect(() => {
     const handleInitialLoad = async () => {
-      if (routeState?.refresh && routeState.projectId) {
+      // Prioridade 1: Refresh solicitado via navegação (ex: após criar projeto)
+      if (routeState?.refresh && routeState.projectId && !refreshedIds.current.has(routeState.projectId)) {
+        const pid = routeState.projectId;
+        refreshedIds.current.add(pid);
         setIsRefreshing(true);
-        await refreshCurrentDocument(routeState.projectId);
+        await refreshCurrentDocument(pid);
         setIsRefreshing(false);
-        // Limpar o state para não re-atualizar no re-render
-        window.history.replaceState({}, document.title);
-      } else if (currentDocument && currentDocument.file_urls.length === 0) {
-         // Tentar buscar se existe resultado no backend mesmo que não tenha vindo da rota
+        // Limpamos o state da localização para evitar refresh em re-renders futuros
+        navigate(location.pathname, { replace: true, state: {} });
+        return;
+      } 
+      
+      // Prioridade 2: Documento atual sem resultados (carregado via histórico ou refresh de página)
+      if (currentDocument && currentDocument.file_urls.length === 0 && currentDocument.tableRows.length === 0) {
          const projectId = parseInt(currentDocument.id);
-         if (!isNaN(projectId)) {
+         if (!isNaN(projectId) && !refreshedIds.current.has(projectId)) {
+            refreshedIds.current.add(projectId);
             refreshCurrentDocument(projectId);
          }
       }
     };
 
     handleInitialLoad();
-  }, [routeState, currentDocument?.id, refreshCurrentDocument]);
+  }, [routeState, currentDocument, refreshCurrentDocument, navigate, location.pathname]);
 
   useEffect(() => {
     if (
