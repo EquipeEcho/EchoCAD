@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.controller.planta_crud import create_planta_cad, read_all_plantas_cad
 from src.database import get_session
+from src.schemas.system_schema import Success
 from src.schemas.user_schema import PlantaSchema
 
 
 router = APIRouter(prefix='/planta_cad', tags=["planta_cad"])
 
 
-@router.post("/", summary="Criar planta CAD")
+@router.post("/", summary="Criar planta CAD", status_code=status.HTTP_201_CREATED, response_model=Success)
 async def create_planta_route(planta: PlantaSchema, db: Session = Depends(get_session)):
     """
     Rota para adicionar uma planta de CAD no banco de dados.
@@ -23,7 +24,7 @@ async def create_planta_route(planta: PlantaSchema, db: Session = Depends(get_se
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
-@router.get("/", summary="Listar plantas CAD")
+@router.get("/", summary="Listar plantas CAD", status_code=status.HTTP_200_OK)
 async def list_plantas(db: Session = Depends(get_session)):
     """
     Rota para listar todas as plantas CAD do projeto.
