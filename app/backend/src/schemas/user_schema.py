@@ -27,9 +27,10 @@ class ProjetoSchema(BaseModel):
         max_length=150,
         description='Nome do projeto'
     )
-    description: str | None = Field(
-        None, description='Descrição opcional do projeto')
-    model_config = ConfigDict(from_attributes=True)
+    description: str | None = Field(None, description='Descrição opcional do projeto')
+    client: str | None = Field(None)
+    id_user: int | None = Field(None)
+    model_config = ConfigDict(from_attributes=True, extra='ignore')
 
 
 class ProjectPublic(ProjetoSchema):
@@ -58,6 +59,12 @@ class PlantaSchema(BaseModel):
     arquivo: str | None = Field(None, max_length=255)
     id_projeto: int = Field(...)
 
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PlantaPublic(PlantaSchema):
+    """Schema para visualização de planta CAD com ID"""
+    id: int = Field(..., description='ID gerado automaticamente')
     model_config = ConfigDict(from_attributes=True)
 
 

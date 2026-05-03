@@ -2,32 +2,32 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 interface ProjetoCreatePayload {
-  nome: string;
-  descricao?: string;
-  cliente?: string;
-  id_usuario: number;
+  name: string;
+  description?: string;
+  client?: string;
+  id_user: number;
 }
 
 interface PlantaCADCreatePayload {
   tipo?: string;
   arquivo?: string;
-  ids_projeto: number[];
+  id_projeto: number;
 }
   
 interface ProjectResponse {
   id: number;
-  nome: string;
-  descricao?: string;
-  cliente?: string;
-  data_criacao: string;
-  id_usuario: number;
+  name: string;
+  description?: string;
+  client?: string;
+  created_at: string;
+  id_user: number;
 }
 
 interface PlantaCADResponse {
   id: number;
   tipo?: string;
   arquivo?: string;
-  ids_projeto: number[];
+  id_projeto: number;
 }
 
 /**
@@ -85,7 +85,7 @@ export async function createPlantaCAD(
  * @returns Array of created plantas CAD
  */
 export async function createMultiplePlantasCAD(
-  plantasData: Omit<PlantaCADCreatePayload, "ids_projeto">[],
+  plantasData: Omit<PlantaCADCreatePayload, "id_projeto">[],
   projectId: number
 ): Promise<PlantaCADResponse[]> {
   const results: PlantaCADResponse[] = [];
@@ -93,7 +93,7 @@ export async function createMultiplePlantasCAD(
   for (const plantaData of plantasData) {
     const result = await createPlantaCAD({
       ...plantaData,
-      ids_projeto: [projectId],
+      id_projeto: projectId,
     });
     results.push(result);
   }

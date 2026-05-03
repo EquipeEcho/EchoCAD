@@ -199,10 +199,10 @@ export function UploadPanel() {
       // Criar projeto
       // Nota: Usando id_usuario = 1 como padrão. Em um app real, obtenha do sistema de autenticação
       const createdProject = await createProjeto({
-        nome: projectInfo.name,
-        descricao: projectInfo.descricao,
-        cliente: projectInfo.cliente,
-        id_usuario: 1, // TODO: Obter ID real do usuário do sistema de autenticação
+        name: projectInfo.name,
+        description: projectInfo.descricao,
+        client: projectInfo.cliente,
+        id_user: 1, // TODO: Obter ID real do usuário do sistema de autenticação
       });
 
       showToast("Projeto criado com sucesso!", "success");

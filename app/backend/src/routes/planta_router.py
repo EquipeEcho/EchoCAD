@@ -4,20 +4,20 @@ from sqlalchemy.orm import Session
 from src.controller.planta_crud import create_planta_cad, read_all_plantas_cad
 from src.database import get_session
 from src.schemas.system_schema import Success
-from src.schemas.user_schema import PlantaSchema
+from src.schemas.user_schema import PlantaSchema, PlantaPublic
 
 
 router = APIRouter(prefix='/planta_cad', tags=["planta_cad"])
 
 
-@router.post("/", summary="Criar planta CAD", status_code=status.HTTP_201_CREATED, response_model=Success)
+@router.post("/", summary="Criar planta CAD", status_code=status.HTTP_201_CREATED, response_model=PlantaPublic)
 async def create_planta_route(planta: PlantaSchema, db: Session = Depends(get_session)):
     """
     Rota para adicionar uma planta de CAD no banco de dados.
     """
     try:
         result = create_planta_cad(db, planta)
-        return ({'object': result.arquivo, 'message': "Planta registrada com sucesso."})
+        return result
 
     except Exception as e:
         msg = 'Erro ao adicionar planta cad'

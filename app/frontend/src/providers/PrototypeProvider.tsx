@@ -63,10 +63,10 @@ const LIST_PROJETOS_URL = "http://127.0.0.1:8000/projeto/";
 
 type ProjetoApiItem = {
   id?: number | string;
-  nome?: string;
-  descricao?: string | null;
-  cliente?: string | null;
-  data_criacao?: string | null;
+  name?: string;
+  description?: string | null;
+  client?: string | null;
+  created_at?: string | null;
 };
 
 // Converte um arquivo válido para o formato usado no upload.
@@ -172,31 +172,31 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
         const projetos = (await response.json()) as ProjetoApiItem[];
         const normalizedHistory = projetos.map((projeto) => {
           const projectId = String(projeto.id ?? `projeto-${Math.random()}`);
-          const createdAt = projeto.data_criacao
-            ? new Date(projeto.data_criacao)
+          const createdAt = projeto.created_at
+            ? new Date(projeto.created_at)
             : new Date();
           const previewLines = [
-            projeto.descricao?.trim() || "Sem descrição informada.",
-            `Cliente: ${projeto.cliente?.trim() || "Não informado"}`,
+            projeto.description?.trim() || "Sem descrição informada.",
+            `Cliente: ${projeto.client?.trim() || "Não informado"}`,
           ];
 
           return {
             id: projectId,
-            name: projeto.nome?.trim() || `Projeto ${projectId}`,
+            name: projeto.name?.trim() || `Projeto ${projectId}`,
             kind: "pdf" as const,
             date: createdAt.toLocaleDateString("pt-BR"),
             size: "N/A",
             document: {
               id: projectId,
-              title: projeto.nome?.trim() || `Projeto ${projectId}`,
+              title: projeto.name?.trim() || `Projeto ${projectId}`,
               subtitle: "Projeto cadastrado no banco de dados",
               createdAt: createdAt.toLocaleString("pt-BR"),
               reference: `PROJ-${projectId}`,
               versionLabel: "v1",
-              summary: projeto.descricao?.trim() || "Projeto sem descrição.",
+              summary: projeto.description?.trim() || "Projeto sem descrição.",
               previewLines,
               tableRows: [
-                { label: "Cliente", value: projeto.cliente?.trim() || "Não informado" },
+                { label: "Cliente", value: projeto.client?.trim() || "Não informado" },
                 { label: "ID do projeto", value: projectId },
               ],
               sourceFiles: [],
