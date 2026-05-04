@@ -1,5 +1,5 @@
 # spec_generator.py
-# Gera especificações técnicas usando Ollama local (qwen2.5:7b).
+# Gera especificações técnicas usando a configuração centralizada de IA (Groq ou Ollama).
 # Recebe o contexto extraído do DXF e produz um documento Word estruturado
 # seguindo o padrão do caderno de encargos do Exército Brasileiro.
 
@@ -8,22 +8,13 @@ import logging
 import textwrap
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-import os
 
-import time
-
-import requests
+from agno.agent import Agent
+from src.aiconf import high_model
 
 from .dxf_context_extractor import ContextoDXF
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Configuração da API Ollama
-# ---------------------------------------------------------------------------
-OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434")
-OLLAMA_MODEL   = "qwen2.5:7b"
-MAX_TOKENS     = 2048  # Ollama com token limit mais conservador
 
 
 # ---------------------------------------------------------------------------
@@ -76,54 +67,38 @@ class EspecificacoesTecnicas:
 class SpecGenerator:
 
     def __init__(self):
-        """Inicializa o gerador. Ollama não requer API key."""
-        logger.info(f"Inicializando SpecGenerator com Ollama ({OLLAMA_MODEL})")
+        """Inicializa o gerador com a configuração centralizada de IA."""
+        logger.info(f"Inicializando SpecGenerator com modelo: {high_model}")
+        self.agent = Agent(
+            name="spec-generator",
+            model=high_model,
+            instructions=[SYSTEM_PROMPT],
+        )
 
     # ------------------------------------------------------------------
-    # Chamada à API Ollama
+    # Chamada à API de IA (Groq ou Ollama via aiconf)
     # ------------------------------------------------------------------
-    def _chamar_api(self, prompt_usuario: str, max_tokens: int = MAX_TOKENS) -> Optional[str]:
-        """Chama Ollama local com retry automático."""
-        url = f"{OLLAMA_API_URL}/api/generate"
-        
-        payload = {
-            "model": OLLAMA_MODEL,
-            "prompt": f"{SYSTEM_PROMPT}\n\nUsuário: {prompt_usuario}",
-            "stream": False,
-            "temperature": 0.2,
-            "top_p": 0.9,
-            "top_k": 40,
-        }
-
-        for tentativa in range(4):
-            try:
-                logger.debug(f"Chamando Ollama (tentativa {tentativa+1}/4)...")
-                resp = requests.post(url, json=payload, timeout=300)  # 5 min timeout para Ollama
-
-                if resp.status_code == 200:
-                    resposta_json = resp.json()
-                    return resposta_json.get("response", "")
+    def _chamar_api(self, prompt_usuario: str) -> Optional[str]:
+        """Chama a IA configurada (Groq ou Ollama) via agno."""
+        try:
+            logger.debug(f"Chamando IA para gerar especificações...")
+            resposta = self.agent.run(prompt_usuario, stream=False)
+            
+            if resposta:
+                # Extrai o conteúdo da resposta
+                if hasattr(resposta, 'content'):
+                    return resposta.content
+                elif isinstance(resposta, str):
+                    return resposta
                 else:
-                    logger.error(f"Ollama retornou {resp.status_code}: {resp.text[:200]}")
-                    if tentativa < 3:
-                        espera = min(5 * (2 ** tentativa), 30)
-                        logger.warning(f"Aguardando {espera}s antes de tentar novamente...")
-                        time.sleep(espera)
-                    continue
+                    return str(resposta)
+            else:
+                logger.error("IA retornou resposta vazia")
+                return None
 
-            except requests.Timeout:
-                logger.error(f"Timeout Ollama na tentativa {tentativa+1}/4")
-                if tentativa < 3:
-                    time.sleep(min(10 * (2 ** tentativa), 60))
-                continue
-            except Exception as e:
-                logger.error(f"Erro ao chamar Ollama: {e}")
-                if tentativa < 3:
-                    time.sleep(5)
-                continue
-
-        logger.error("Todas as tentativas de Ollama falharam.")
-        return None
+        except Exception as e:
+            logger.error(f"Erro ao chamar IA: {e}")
+            return None
 
     # ------------------------------------------------------------------
     # Extrair JSON da resposta (tolerante a markdown e texto extra)
@@ -147,17 +122,17 @@ class SpecGenerator:
         logger.warning("Nao foi possivel extrair JSON da resposta.")
         return None
 
-    def _chamar_com_retry(self, prompt: str, max_tokens: int = MAX_TOKENS, tentativas: int = 3) -> Optional[dict]:
-        """O backoff de rate limit ja esta em _chamar_api. Aqui so retentar se JSON vier invalido."""
+    def _chamar_com_retry(self, prompt: str, tentativas: int = 3) -> Optional[dict]:
+        """Chama a IA com retry se JSON vier inválido."""
         for i in range(tentativas):
-            resposta = self._chamar_api(prompt, max_tokens=max_tokens)
+            resposta = self._chamar_api(prompt)
             if resposta is None:
                 break  # erro de rede/auth — nao adianta repetir
             dados = self._extrair_json(resposta)
             if dados:
                 return dados
             logger.warning(f"Tentativa {i+1}/{tentativas}: JSON invalido. Repetindo...")
-        logger.error("Nao foi possivel obter JSON valido da API.")
+        logger.error("Nao foi possivel obter JSON valido da IA.")
         return None
 
 
@@ -191,7 +166,7 @@ Retorne APENAS um JSON com esta estrutura:
   "concepcao": "texto descrevendo a concepção do projeto (3-5 frases)"
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=1000)
+        dados = self._chamar_com_retry(prompt)
         if not dados:
             return {
                 "numero_protocolo": "A DEFINIR",
@@ -266,7 +241,7 @@ Retorne APENAS JSON:
   ]
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=MAX_TOKENS)
+        dados = self._chamar_com_retry(prompt)
         if not dados:
             logger.warning(f"Falha ao gerar seção {numero} - {titulo}")
             return None
@@ -324,7 +299,7 @@ Retorne APENAS JSON:
   ]
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=2000)
+        dados = self._chamar_com_retry(prompt)
         if not dados:
             return {
                 "referencias_normativas": [

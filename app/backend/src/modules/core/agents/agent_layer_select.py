@@ -1,5 +1,5 @@
 from agno.agent import Agent
-from agno.models.ollama import Ollama
+from src.aiconf import medium_model
 
 
 def create_classificator_agent(tools: list):
@@ -8,14 +8,7 @@ def create_classificator_agent(tools: list):
         name='Agent Layer Select',
         role='Selecione os layer relevantes associados a uma disciplina de engenharia fornecida.',
         description='Filtra a lista real de layers de um arquivo DXF usando a disciplina como keyword.',
-        model=Ollama(
-            id='qwen2.5:3b',
-            options={
-                "temperature": 0.1,
-                "num_ctx": 2048,
-                "num_predict": 256,
-            },
-        ),
+        model=medium_model,
         instructions=[
             '''
             Você é um especialista em estruturação de layers CAD (AIA CAD Standards).

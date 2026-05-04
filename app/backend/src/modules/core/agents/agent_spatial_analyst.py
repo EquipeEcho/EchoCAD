@@ -1,5 +1,5 @@
 from agno.agent import Agent
-from agno.models.ollama import Ollama
+from src.aiconf import medium_model
 
 
 def create_spatial_analyst_agent(tools: list):
@@ -8,13 +8,7 @@ def create_spatial_analyst_agent(tools: list):
         name='Spatial Analyst',
         role='Analisa a conectividade espacial entre entidades DXF para identificar sistemas contínuos',
         description='Identifica grupos de entidades conectadas (como redes elétricas ou paredes) e calcula comprimentos totais.',
-        model=Ollama(
-            id='qwen2.5:3b',
-            options={
-                "temperature": 0.0,
-                "num_ctx": 2048,
-            }
-        ),
+        model=medium_model,
         instructions=[
             '''
             Você é um especialista em topologia de projetos de engenharia.

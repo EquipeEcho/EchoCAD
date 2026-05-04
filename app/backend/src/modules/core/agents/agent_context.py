@@ -1,18 +1,11 @@
 from agno.agent import Agent
-from agno.models.ollama import Ollama
+from src.aiconf import quick_model
 
 def create_context_agent():
     return Agent(
         id='context-agent',
         name='ContextAgent',
-        model=Ollama(
-            id='qwen2.5:1.5b',
-            options={
-                "temperature": 0.0,
-                "num_ctx": 1024,
-                "num_predict": 32,
-            }
-        ),
+        model=quick_model,
         role='Analisa e retorne as disciplinas de engenharia relevantes',
         description='Identifica as disciplinas de engenharia relacionadas a um contexto recebido',
         instructions=[

@@ -1,5 +1,5 @@
 from agno.agent import Agent
-from agno.models.ollama import Ollama
+from src.aiconf import high_model
 
 
 def create_surveyor_agent(tools: list):
@@ -8,13 +8,7 @@ def create_surveyor_agent(tools: list):
         name='Quantity Surveyor',
         role='Realiza a contagem de quantitativos e síntese final do projeto de engenharia',
         description='Consolida dados de contagem e gera um JSON estruturado final.',
-        model=Ollama(
-            id='qwen2.5:3b',
-            options={
-                "temperature": 0.0,
-                "num_ctx": 2048,
-            }
-        ),
+        model=high_model,
         instructions=[
             '''
             Você é um Engenheiro Orçamentista sênior especialista em extração de dados CAD.

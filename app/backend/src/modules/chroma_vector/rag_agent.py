@@ -1,13 +1,12 @@
-"""Agente RAG usando agno Agent com Knowledge e Ollama.
+"""Agente RAG usando agno Agent com Knowledge e configuração centralizada de IA.
 
-Evita tool-calling no modelo de inferencia local para compatibilidade com
-modelos Ollama que nao suportam ferramentas.
+Evita tool-calling no modelo de inferencia para compatibilidade com
+modelos que nao suportam ferramentas nativas.
 """
 
 from agno.agent import Agent
 from agno.knowledge.knowledge import Knowledge
-from agno.models.ollama import Ollama
-
+from src.aiconf import medium_model
 from src.modules.chroma_vector.db import get_vector_db
 
 # System prompt restringindo respostas ao contexto dos documentos.
@@ -18,14 +17,11 @@ SYSTEM_PROMPT = (
     "Seja objetivo e cite a fonte quando possivel."
 )
 
-# Modelo local usado para inferencia.
-INFERENCE_MODEL = "llama3"
-
 
 def _build_agent() -> Agent:
     """Constroi o agente de resposta sem tool-calling."""
     return Agent(
-        model=Ollama(id=INFERENCE_MODEL),
+        model=medium_model,
         instructions=SYSTEM_PROMPT,
         markdown=False,
         search_knowledge=False,
