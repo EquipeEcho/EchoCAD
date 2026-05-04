@@ -1,5 +1,5 @@
 # spec_generator.py
-# Gera especificações técnicas usando a API do Groq (llama-3.3-70b-versatile).
+# Gera especificações técnicas usando Ollama local (qwen2.5:7b).
 # Recebe o contexto extraído do DXF e produz um documento Word estruturado
 # seguindo o padrão do caderno de encargos do Exército Brasileiro.
 
@@ -8,6 +8,7 @@ import logging
 import textwrap
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+import os
 
 import time
 
@@ -18,11 +19,11 @@ from .dxf_context_extractor import ContextoDXF
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Configuração da API Groq
+# Configuração da API Ollama
 # ---------------------------------------------------------------------------
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL   = "llama-3.3-70b-versatile"
-MAX_TOKENS   = 4096   # limite do modelo por chamada
+OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434")
+OLLAMA_MODEL   = "qwen2.5:7b"
+MAX_TOKENS     = 2048  # Ollama com token limit mais conservador
 
 
 # ---------------------------------------------------------------------------
@@ -74,59 +75,54 @@ class EspecificacoesTecnicas:
 # ---------------------------------------------------------------------------
 class SpecGenerator:
 
-    def __init__(self, api_key: Optional[str] = None):
-        self._api_key = api_key
+    def __init__(self):
+        """Inicializa o gerador. Ollama não requer API key."""
+        logger.info(f"Inicializando SpecGenerator com Ollama ({OLLAMA_MODEL})")
 
     # ------------------------------------------------------------------
-    # Chamada à API Groq com backoff automático para rate limit (429)
+    # Chamada à API Ollama
     # ------------------------------------------------------------------
     def _chamar_api(self, prompt_usuario: str, max_tokens: int = MAX_TOKENS) -> Optional[str]:
-        if not self._api_key:
-            logger.error("GROQ_API_KEY nao definida.")
-            return None
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self._api_key}",
-        }
+        """Chama Ollama local com retry automático."""
+        url = f"{OLLAMA_API_URL}/api/generate"
+        
         payload = {
-            "model": GROQ_MODEL,
-            "max_tokens": max_tokens,
+            "model": OLLAMA_MODEL,
+            "prompt": f"{SYSTEM_PROMPT}\n\nUsuário: {prompt_usuario}",
+            "stream": False,
             "temperature": 0.2,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": prompt_usuario},
-            ],
+            "top_p": 0.9,
+            "top_k": 40,
         }
 
-        for tentativa in range(6):
+        for tentativa in range(4):
             try:
-                resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=120)
+                logger.debug(f"Chamando Ollama (tentativa {tentativa+1}/4)...")
+                resp = requests.post(url, json=payload, timeout=300)  # 5 min timeout para Ollama
 
-                # Rate limit: ler o tempo indicado na resposta e aguardar
-                if resp.status_code == 429:
-                    import re as _re
-                    msg = resp.json().get("error", {}).get("message", "")
-                    m = _re.search(r"try again in ([\d.]+)s", msg)
-                    espera = float(m.group(1)) + 2.0 if m else min(5 * (2 ** tentativa), 60)
-                    logger.warning(
-                        f"Rate limit atingido (tentativa {tentativa+1}/6). "
-                        f"Aguardando {espera:.1f}s..."
-                    )
-                    time.sleep(espera)
+                if resp.status_code == 200:
+                    resposta_json = resp.json()
+                    return resposta_json.get("response", "")
+                else:
+                    logger.error(f"Ollama retornou {resp.status_code}: {resp.text[:200]}")
+                    if tentativa < 3:
+                        espera = min(5 * (2 ** tentativa), 30)
+                        logger.warning(f"Aguardando {espera}s antes de tentar novamente...")
+                        time.sleep(espera)
                     continue
 
-                resp.raise_for_status()
-                return resp.json()["choices"][0]["message"]["content"]
-
-            except requests.HTTPError:
-                logger.error(f"Erro HTTP Groq {resp.status_code}: {resp.text[:200]}")
-                return None
+            except requests.Timeout:
+                logger.error(f"Timeout Ollama na tentativa {tentativa+1}/4")
+                if tentativa < 3:
+                    time.sleep(min(10 * (2 ** tentativa), 60))
+                continue
             except Exception as e:
-                logger.error(f"Erro na API Groq: {e}")
-                return None
+                logger.error(f"Erro ao chamar Ollama: {e}")
+                if tentativa < 3:
+                    time.sleep(5)
+                continue
 
-        logger.error("Rate limit nao resolvido apos 6 tentativas.")
+        logger.error("Todas as tentativas de Ollama falharam.")
         return None
 
     # ------------------------------------------------------------------

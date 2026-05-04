@@ -50,3 +50,27 @@ def read_all_normas(db: Session):
     """
     query = select(Norma)
     return list(db.execute(query).scalars().all())
+
+
+def toggle_norma_status(db: Session, norma_id: int) -> Norma:
+    """
+    Alterna o status ativo/inativo de uma norma técnica.
+
+    Args:
+        db (Session): Sessão ativa do SQLAlchemy.
+        norma_id (int): O ID da norma a ser alterada.
+
+    Returns:
+        Norma: A norma atualizada.
+        
+    Raises:
+        ValueError: Se a norma não for encontrada.
+    """
+    norma = read_norma(db, norma_id)
+    if not norma:
+        raise ValueError(f"Norma com ID {norma_id} não encontrada")
+    
+    norma.ativo = not norma.ativo
+    db.commit()
+    db.refresh(norma)
+    return norma

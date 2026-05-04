@@ -10,7 +10,6 @@ import {
   buildGeneratedDocumentFromUploads,
   buildHistoryDocumentFromGenerated,
   getFileKindFromName,
-  mockTechnicalStandards,
 } from "../data/mockData";
 import {
   AddFilesResult,
@@ -55,7 +54,7 @@ type PrototypeContextValue = {
   removeHistoryDocument: (documentId: string) => void;
   downloadHistoryBundle: () => void;
   addTechnicalStandards: (fileList: FileList | File[]) => AddFilesResult;
-  toggleStandard: (standardId: string) => void;
+  toggleStandard: (standardId: string) => Promise<void>;
   downloadStandard: (standardId: string) => void;
   simulatePreviewAction: (fileName: string) => void;
   downloadDocumentAsset: (url: string | undefined, label: string) => void;
@@ -144,7 +143,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [technicalStandards, setTechnicalStandards] = useState<TechnicalStandard[]>(
-    mockTechnicalStandards,
+    [],
   );
   const [currentDocument, setCurrentDocument] = useState<GeneratedDocument | null>(
     null
@@ -635,7 +634,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     return { addedCount, duplicateCount, invalidCount };
   };
 
-  const toggleStandard = (standardId: string) => {
+  const toggleStandard = async (standardId: string) => {
     const selectedStandard = technicalStandards.find(
       (standard) => standard.id === standardId,
     );
@@ -645,19 +644,66 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    setTechnicalStandards((currentStandards) =>
-      currentStandards.map((standard) =>
-        standard.id === standardId
-          ? { ...standard, enabled: !standard.enabled }
-          : standard,
-      ),
-    );
-    showToast(
-      `${selectedStandard.code} ${
-        selectedStandard.enabled ? "desabilitada" : "habilitada"
-      } para consulta da IA.`,
-      "info",
-    );
+    // Extrair ID numérico se for um ID de banco (string de números)
+    const normaId = /^\d+$/.test(standardId) ? standardId : null;
+
+    // Se é uma norma do banco, chamar backend
+    if (normaId) {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/norma/${normaId}/toggle`,
+          { method: "PATCH" }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          showToast(
+            `Erro ao atualizar norma: ${errorData.detail || "Erro desconhecido"}`,
+            "error"
+          );
+          return;
+        }
+
+        const updatedNorma = await response.json();
+        
+        // Atualizar estado local com o resultado do backend
+        setTechnicalStandards((currentStandards) =>
+          currentStandards.map((standard) =>
+            standard.id === standardId
+              ? { ...standard, enabled: updatedNorma.ativo }
+              : standard,
+          ),
+        );
+        
+        showToast(
+          `${selectedStandard.code} ${
+            updatedNorma.ativo ? "ativada" : "desativada"
+          } para consulta da IA.`,
+          "success",
+        );
+      } catch (error) {
+        console.error("Erro ao atualizar norma:", error);
+        showToast(
+          "Erro ao atualizar norma. Verifique se o backend está online.",
+          "error"
+        );
+      }
+    } else {
+      // Para normas locais (em memória), apenas atualizar estado
+      setTechnicalStandards((currentStandards) =>
+        currentStandards.map((standard) =>
+          standard.id === standardId
+            ? { ...standard, enabled: !standard.enabled }
+            : standard,
+        ),
+      );
+      showToast(
+        `${selectedStandard.code} ${
+          selectedStandard.enabled ? "desabilitada" : "habilitada"
+        } para consulta da IA.`,
+        "info",
+      );
+    }
   };
 
   const downloadStandard = (standardId: string) => {

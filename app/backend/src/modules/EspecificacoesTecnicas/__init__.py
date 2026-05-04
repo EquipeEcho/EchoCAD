@@ -18,7 +18,6 @@ def gerar_especificacoes(
     dxf_file: str,
     output_path: str,
     nome_projeto: Optional[str] = None,
-    api_key: Optional[str] = None,
 ) -> Path:
     """
     Pipeline completo de geração de especificações técnicas.
@@ -27,7 +26,6 @@ def gerar_especificacoes(
         dxf_file:     Caminho para o arquivo .dxf da planta.
         output_path:  Caminho de saída do .docx gerado.
         nome_projeto: Nome do projeto (opcional; inferido do arquivo se omitido).
-        api_key:      Chave da API Claude (opcional; usa variável de ambiente se omitida).
 
     Returns:
         Path do arquivo .docx gerado.
@@ -45,9 +43,8 @@ def gerar_especificacoes(
         f"área total: {ctx.area_total}m²"
     )
 
-    # 2. Gerar especificações via IA
-    key = os.getenv("GROQ_API_KEY")
-    generator = SpecGenerator(api_key=key)
+    # 2. Gerar especificações via Ollama
+    generator = SpecGenerator()
     specs = generator.gerar(ctx)
 
     logger.info(f"  Especificações: {len(specs.secoes)} seções geradas")

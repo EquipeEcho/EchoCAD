@@ -5,7 +5,7 @@ from src.database import get_session
 from src.schemas.system_schema import Success
 from src.schemas.user_schema import NormaSchema
 
-from src.controller.norma_crud import create_norma, read_all_normas
+from src.controller.norma_crud import create_norma, read_all_normas, toggle_norma_status
 
 router = APIRouter(prefix='/norma', tags=["norma"])
 
@@ -32,6 +32,26 @@ async def list_normas(db: Session = Depends(get_session)):
 
     except Exception as e:
         msg = 'Erro ao buscar os projetos existentes'
+        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
+
+
+@router.patch("/{norma_id}/toggle", summary="Ativar/Desativar norma", status_code=status.HTTP_200_OK)
+async def toggle_norma(norma_id: int, db: Session = Depends(get_session)):
+    """
+    Alterna o status de ativa/inativa de uma norma técnica.
+    """
+    try:
+        updated_norma = toggle_norma_status(db, norma_id)
+        return {
+            'id': updated_norma.id,
+            'nome': updated_norma.nome,
+            'ativo': updated_norma.ativo,
+            'message': f"Norma {'ativada' if updated_norma.ativo else 'desativada'} com sucesso."
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        msg = 'Erro ao atualizar norma'
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
