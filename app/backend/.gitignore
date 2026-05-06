@@ -1,8 +1,10 @@
 uploads/
 **/chroma_db/
 **/tmp
+**/results
 *.dxf
 *.env
 *.db
+**/knowledge/
 
 test.py

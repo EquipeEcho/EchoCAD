@@ -11,7 +11,7 @@ class EntityDxf:
     """
 
     def __init__(self, dxf_file_path: str | Path):
-        self.doc = readfile(dxf_file_path)
+        self.doc = readfile(dxf_file_path) # gargalo de leitura do arquivo
         self.msp = self.doc.modelspace()
         self.layers = [layer.dxf.name for layer in self.doc.layers]
 
@@ -108,7 +108,7 @@ class EntityDxf:
                     data["pos"] = (e.dxf.insert.x, e.dxf.insert.y)
 
                 elif e.dxftype() in ('TEXT', 'MTEXT'):
-                    data["text"] = e.dxf.plain_text(
+                    data["text"] = e.plain_text(
                     ) if e.dxftype() == 'MTEXT' else e.dxf.text
 
                 detailed.append(data)
@@ -211,7 +211,7 @@ class EntityDxf:
         all_texts = []
         for e in self.msp.query('TEXT MTEXT'):
             all_texts.append({
-                "text": e.dxf.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text,
+                "text": e.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text,
                 "pos": (e.dxf.insert.x, e.dxf.insert.y)
             })
 

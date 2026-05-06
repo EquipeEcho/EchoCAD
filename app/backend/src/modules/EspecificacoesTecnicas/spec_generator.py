@@ -1,5 +1,5 @@
 # spec_generator.py
-# Gera especificações técnicas usando a API do Groq (llama-3.3-70b-versatile).
+# Gera especificações técnicas usando a configuração centralizada de IA (Groq ou Ollama).
 # Recebe o contexto extraído do DXF e produz um documento Word estruturado
 # seguindo o padrão do caderno de encargos do Exército Brasileiro.
 
@@ -9,20 +9,12 @@ import textwrap
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-import time
-
-import requests
+from agno.agent import Agent
+from src.aiconf import high_model
 
 from .dxf_context_extractor import ContextoDXF
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Configuração da API Groq
-# ---------------------------------------------------------------------------
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL   = "llama-3.3-70b-versatile"
-MAX_TOKENS   = 4096   # limite do modelo por chamada
 
 
 # ---------------------------------------------------------------------------
@@ -74,60 +66,39 @@ class EspecificacoesTecnicas:
 # ---------------------------------------------------------------------------
 class SpecGenerator:
 
-    def __init__(self, api_key: Optional[str] = None):
-        self._api_key = api_key
+    def __init__(self):
+        """Inicializa o gerador com a configuração centralizada de IA."""
+        logger.info(f"Inicializando SpecGenerator com modelo: {high_model}")
+        self.agent = Agent(
+            name="spec-generator",
+            model=high_model,
+            instructions=[SYSTEM_PROMPT],
+        )
 
     # ------------------------------------------------------------------
-    # Chamada à API Groq com backoff automático para rate limit (429)
+    # Chamada à API de IA (Groq ou Ollama via aiconf)
     # ------------------------------------------------------------------
-    def _chamar_api(self, prompt_usuario: str, max_tokens: int = MAX_TOKENS) -> Optional[str]:
-        if not self._api_key:
-            logger.error("GROQ_API_KEY nao definida.")
+    def _chamar_api(self, prompt_usuario: str) -> Optional[str]:
+        """Chama a IA configurada (Groq ou Ollama) via agno."""
+        try:
+            logger.debug(f"Chamando IA para gerar especificações...")
+            resposta = self.agent.run(prompt_usuario, stream=False)
+            
+            if resposta:
+                # Extrai o conteúdo da resposta
+                if hasattr(resposta, 'content'):
+                    return resposta.content
+                elif isinstance(resposta, str):
+                    return resposta
+                else:
+                    return str(resposta)
+            else:
+                logger.error("IA retornou resposta vazia")
+                return None
+
+        except Exception as e:
+            logger.error(f"Erro ao chamar IA: {e}")
             return None
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self._api_key}",
-        }
-        payload = {
-            "model": GROQ_MODEL,
-            "max_tokens": max_tokens,
-            "temperature": 0.2,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": prompt_usuario},
-            ],
-        }
-
-        for tentativa in range(6):
-            try:
-                resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=120)
-
-                # Rate limit: ler o tempo indicado na resposta e aguardar
-                if resp.status_code == 429:
-                    import re as _re
-                    msg = resp.json().get("error", {}).get("message", "")
-                    m = _re.search(r"try again in ([\d.]+)s", msg)
-                    espera = float(m.group(1)) + 2.0 if m else min(5 * (2 ** tentativa), 60)
-                    logger.warning(
-                        f"Rate limit atingido (tentativa {tentativa+1}/6). "
-                        f"Aguardando {espera:.1f}s..."
-                    )
-                    time.sleep(espera)
-                    continue
-
-                resp.raise_for_status()
-                return resp.json()["choices"][0]["message"]["content"]
-
-            except requests.HTTPError:
-                logger.error(f"Erro HTTP Groq {resp.status_code}: {resp.text[:200]}")
-                return None
-            except Exception as e:
-                logger.error(f"Erro na API Groq: {e}")
-                return None
-
-        logger.error("Rate limit nao resolvido apos 6 tentativas.")
-        return None
 
     # ------------------------------------------------------------------
     # Extrair JSON da resposta (tolerante a markdown e texto extra)
@@ -151,17 +122,17 @@ class SpecGenerator:
         logger.warning("Nao foi possivel extrair JSON da resposta.")
         return None
 
-    def _chamar_com_retry(self, prompt: str, max_tokens: int = MAX_TOKENS, tentativas: int = 3) -> Optional[dict]:
-        """O backoff de rate limit ja esta em _chamar_api. Aqui so retentar se JSON vier invalido."""
+    def _chamar_com_retry(self, prompt: str, tentativas: int = 3) -> Optional[dict]:
+        """Chama a IA com retry se JSON vier inválido."""
         for i in range(tentativas):
-            resposta = self._chamar_api(prompt, max_tokens=max_tokens)
+            resposta = self._chamar_api(prompt)
             if resposta is None:
                 break  # erro de rede/auth — nao adianta repetir
             dados = self._extrair_json(resposta)
             if dados:
                 return dados
             logger.warning(f"Tentativa {i+1}/{tentativas}: JSON invalido. Repetindo...")
-        logger.error("Nao foi possivel obter JSON valido da API.")
+        logger.error("Nao foi possivel obter JSON valido da IA.")
         return None
 
 
@@ -195,7 +166,7 @@ Retorne APENAS um JSON com esta estrutura:
   "concepcao": "texto descrevendo a concepção do projeto (3-5 frases)"
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=1000)
+        dados = self._chamar_com_retry(prompt)
         if not dados:
             return {
                 "numero_protocolo": "A DEFINIR",
@@ -270,7 +241,7 @@ Retorne APENAS JSON:
   ]
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=MAX_TOKENS)
+        dados = self._chamar_com_retry(prompt)
         if not dados:
             logger.warning(f"Falha ao gerar seção {numero} - {titulo}")
             return None
@@ -328,7 +299,7 @@ Retorne APENAS JSON:
   ]
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=2000)
+        dados = self._chamar_com_retry(prompt)
         if not dados:
             return {
                 "referencias_normativas": [

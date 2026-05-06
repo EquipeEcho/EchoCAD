@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from src.database import get_session
-from src.controller.file_controller import save_file_metadata
+#from src.controller.file_controller import save_file_metadata
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 
 logger = logging.getLogger(__name__)
@@ -71,11 +71,11 @@ async def gerar_especificacoes_route(
         file_size = file_path.stat().st_size
 
         # Persistir metadados (não-bloqueante em erro)
-        try:
-            saved = save_file_metadata(db, file.filename, file_size, file_hash)
-            logger.info(f"Metadados salvos: {file.filename} (ID: {saved.id})")
-        except Exception as db_err:
-            logger.warning(f"Falha ao salvar metadados: {db_err}")
+        #try:
+        #    saved = save_file_metadata(db, file.filename, file_size, file_hash)
+        #    logger.info(f"Metadados salvos: {file.filename} (ID: {saved.id})")
+        #except Exception as db_err:
+#            logger.warning(f"Falha ao salvar metadados: {db_err}")
 
         # ---- Gerar especificações ----
         stem = Path(file.filename).stem

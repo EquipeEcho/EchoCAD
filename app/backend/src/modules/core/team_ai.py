@@ -1,10 +1,9 @@
 from agno.agent import Agent
-from agno.team import Team, TeamMode
+from agno.team import Team
 from agno.models.ollama import Ollama
-from agno.run import RunContext
 
-from entity_dxf import EntityDxf
-from tools.memorial_populator import run_population
+from .entity_dxf import EntityDxf
+from .tools.memorial_populator import run_population
 
 # def set_project_context(run_context: RunContext, discipline: str = None, layers: list = None) -> str:
 #     """Armazena a disciplina e os layers selecionados no estado global da sessão."""
@@ -15,7 +14,22 @@ from tools.memorial_populator import run_population
 #     return f"Contexto atualizado: Disciplina={run_context.session_state.get('discipline')}, Layers={run_context.session_state.get('selected_layers')}"
 
 def create_team(entity: EntityDxf, members: list[Agent | Team]):
-    
+    # Define as ferramentas disponíveis para os agentes a partir do EntityDxf
+    dxf_tools = [
+        entity.get_layers,
+        entity.check_exists,
+        entity.get_grouped_entities_summary,
+        entity.get_detailed_entities,
+        entity.get_connectivity_graph,
+        entity.find_text_near_entities,
+        run_population,  # Adiciona ferramenta de população de Excel
+    ]
+
+    # Atualiza as ferramentas de cada agente se elas não foram injetadas
+    for member in members:
+        if isinstance(member, Agent):
+            member.tools = dxf_tools
+
     team = Team(
         name="Echo Team",
         model=Ollama(
@@ -27,19 +41,19 @@ def create_team(entity: EntityDxf, members: list[Agent | Team]):
         ),
         members=members,
         instructions=[
-            "VOCÊ É O MAESTRO TÉCNICO. SEU TRABALHO É EXECUTAR UM PIPELINE RÍGIDO DE 4 ETAPAS.",
-            "PROIBIDO CONVERSAR COM O USUÁRIO ANTES DE TERMINAR O PIPELINE.",
+            "VOCÊ É O MAESTRO TÉCNICO. SEU TRABALHO É EXECUTAR UM PIPELINE RÍGIDO DE 4 ETAPAS SEM REPETIÇÕES.",
+            "PROIBIDO CONVERSAR COM O USUÁRIO OU EXPLICAR PASSOS.",
             
-            "ORDEM OBRIGATÓRIA DE EXECUÇÃO:",
-            "1. CONTEXTO: Chame o ContextAgent para definir a disciplina exata (Ex: alvenaria, elétrica).",
-            "2. FILTRAGEM: Chame o Agent Layer Select informando a disciplina obtida no passo 1. SALVE A LISTA DE LAYERS RETORNADA.",
-            "3. ANÁLISE: Chame o Spatial Analyst informando OS LAYERS REAIS obtidos no passo 2. EXIJA os comprimentos dos clusters.",
-            "4. SÍNTESE: Chame o Quantity Surveyor fornecendo: a disciplina, os layers E os resultados da análise espacial do passo 3.",
+            "ORDEM OBRIGATÓRIA E ÚNICA DE EXECUÇÃO:",
+            "1. CONTEXTO: Peça ao ContextAgent para definir a disciplina exata.",
+            "2. FILTRAGEM: Com a disciplina, peça ao Agent Layer Select a lista de layers reais (JSON).",
+            "3. ANÁLISE: Com os layers, peça ao Spatial Analyst o resumo técnico da conectividade.",
+            "4. SÍNTESE: Com o resumo da análise, peça ao Quantity Surveyor o JSON final consolidado.",
             
-            "REGRA DE OURO: O Quantity Surveyor DEVE receber os comprimentos dos clusters para calcular as áreas.",
-            "SAÍDA FINAL: Retorne APENAS o JSON gerado pelo Quantity Surveyor. Nada mais."
+            "REGRA CRÍTICA: Cada agente deve ser chamado exatamente uma vez na ordem acima.",
+            "RESPOSTA FINAL: Entregue EXCLUSIVAMENTE o JSON puro gerado pelo Quantity Surveyor. Nada mais."
         ],
-        markdown=True,
+        markdown=False,
         debug_mode=True,
     )
     return team

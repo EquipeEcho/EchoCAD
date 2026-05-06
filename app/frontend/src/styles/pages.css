@@ -22,6 +22,52 @@
   line-height: 1.75;
 }
 
+.processing-logs-container {
+  width: 100%;
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.processing-logs-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-blue);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+.processing-logs-toggle:hover {
+  text-decoration: underline;
+}
+
+.processing-logs {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #333;
+}
+
+.processing-logs__empty {
+  color: #666;
+  font-style: italic;
+  margin: 0;
+}
+
+.processing-logs__item {
+  margin-bottom: 0.25rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 .result-hero {
   padding-top: 0.5rem;
   display: grid;
@@ -47,6 +93,12 @@
 
 .result-hero__heading {
   justify-content: center;
+}
+
+.result-hero__icon--pending {
+  background: var(--color-blue-soft);
+  color: var(--color-blue);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .result-actions {

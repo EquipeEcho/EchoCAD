@@ -1,14 +1,46 @@
 services:
-  api-backend:
+  mysql:
+    image: mysql:8.0
+    container_name: echocad_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: echocad_admin
+      MYSQL_PASSWORD: echocad_admin_password
+      MYSQL_DATABASE: echocad_db
+      MYSQL_INITDB_SKIP_TZINFO: "yes"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "echocad_admin", "-pechocad_admin_password"]
+      timeout: 20s
+      retries: 10
+      interval: 5s
+    restart: unless-stopped
+
+  alembic-migrate:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: echocad_api
-    ports:
-      - "8000:8000"
+    container_name: echocad_alembic
     depends_on:
-      - ollama
-    restart: unless-stopped
+      mysql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql+pymysql://echocad_admin:echocad_admin_password@mysql:3306/echocad_db
+      PYTHONPATH: src
+    working_dir: /app
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: |
+      "echo 'Aguardando MySQL estar pronto...' &&
+       sleep 5 &&
+       echo 'Executando migrações Alembic...' &&
+       alembic upgrade head &&
+       echo '✓ Migrações completadas com sucesso!'"
+    restart: on-failure
+
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -29,8 +61,35 @@ services:
         echo 'Aguardando Ollama iniciar...'
         sleep 5
       done
-      echo 'Baixando modelo qwen2.5:8b...'
-      curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5:8b\"}'"
+      echo 'Baixando modelos qwen...'
+      curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5:7b\"}' && echo 'qwen2.5:7b OK' && \
+      curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5:3b\"}' && echo 'qwen2.5:3b OK' && \
+      curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5:1.5b\"}' && echo 'qwen2.5:1.5b OK' && \
+      echo 'Todos os modelos baixados com sucesso!'"
+    restart: on-failure
+
+  api-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: echocad_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      alembic-migrate:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_started
+      ollama-model-puller:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: mysql+pymysql://echocad_admin:echocad_admin_password@mysql:3306/echocad_db
+      PYTHONPATH: src
+      DEBUG: "False"
+    restart: unless-stopped
 
 volumes:
   ollama_data:
+  mysql_data:

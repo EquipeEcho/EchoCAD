@@ -34,12 +34,7 @@ function buildPreviewDocument(
       "Método: consolidação de geometrias CAD, verificação de cargas e síntese documental.",
       "Escopo: memorial descritivo, memorial de cálculo e referências de elementos principais.",
     ],
-    tableRows: [
-      { label: "Área estimada", value: "1.240 m²" },
-      { label: "Carga permanente média", value: "12,8 kN/m²" },
-      { label: "Carga acidental média", value: "4,5 kN/m²" },
-      { label: "Fator de combinação", value: "1,40" },
-    ],
+    tableRows: [],
   };
 }
 

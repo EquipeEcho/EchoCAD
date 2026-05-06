@@ -218,6 +218,96 @@ Após iniciar o container, acesse:
 
 ---
 
+## 🐳 Docker Compose (Recommended)
+
+### Quick Start
+
+Execute o script automatizado:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+Ou manualmente:
+```bash
+docker-compose up -d
+```
+
+### Serviços Iniciados
+
+| Serviço | Container | Porta |
+|---------|-----------|-------|
+| 🗄️ MySQL | echocad_mysql | 3306 |
+| 🤖 Ollama | ollama | 11434 |
+| 📥 Model Puller | ollama_puller | - |
+| 🚀 API | echocad_api | 8000 |
+
+### Credenciais MySQL
+
+- **Host**: localhost (ou `mysql` dentro do Docker)
+- **Port**: 3306
+- **Database**: echocad_db
+- **User**: echocad_admin
+- **Password**: echocad_admin_password
+
+### Modelos AI (Auto-Downloaded)
+
+- qwen2.5:7b (principal)
+- qwen2.5:3b (agentes)
+- qwen2.5:1.5b (rápido)
+
+### Gerenciar Serviços
+
+```bash
+# Status de todos os containers
+./docker-manage.sh status
+# ou
+docker-compose ps
+
+# Visualizar logs (todos)
+./docker-manage.sh logs
+
+# Visualizar logs específicos
+./docker-manage.sh logs-api      # API
+./docker-manage.sh logs-mysql    # MySQL
+./docker-manage.sh logs-ollama   # Modelos
+
+# Parar tudo
+./docker-manage.sh stop
+# ou
+docker-compose down
+
+# Limpar tudo (remover volumes)
+./docker-manage.sh clean
+# ou
+docker-compose down -v
+
+# Reiniciar
+./docker-manage.sh restart
+```
+
+### Acessar Serviços
+
+- **API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **MySQL**: localhost:3306 (use DBeaver, MySQL Workbench, etc)
+- **Ollama**: http://localhost:11434/api/tags
+
+### Arquivos Importantes
+
+- **docker-compose.yaml** - Configuração dos serviços
+- **init.sql** - Schema do banco de dados
+- **docker-manage.sh** - Script de gerenciamento
+- **.env** - Variáveis de ambiente
+
+### Documentação Completa
+
+Para mais detalhes, veja:
+- [QUICKSTART.md](./QUICKSTART.md) - Guia rápido
+- [DOCKER_SETUP.md](./DOCKER_SETUP.md) - Documentação detalhada
+
+---
+
 ## Estrutura do Projeto
 
 ```

@@ -30,6 +30,12 @@ interface PlantaCADResponse {
   id_projeto: number;
 }
 
+interface NormaCreatePayload {
+  nome: string;
+  //status?: string;
+  ids_projeto: number[]; // Verifique se no Python está "ids_projeto" ou "projeto_id"
+}
+
 /**
  * Creates a new project in the database
  * @param projectData Project information to create
@@ -49,6 +55,32 @@ export async function createProjeto(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Erro ao criar projeto");
+  }
+
+  return response.json();
+}
+
+/**
+ * Uploads a file for a specific project
+ * @param projectId The project ID
+ * @param file The file to upload
+ * @returns Upload response with the saved path
+ */
+export async function uploadFile(
+  projectId: number,
+  file: File
+): Promise<{ message: string; filename: string; path: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}/upload/${projectId}`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Erro ao fazer upload do arquivo");
   }
 
   return response.json();
@@ -130,13 +162,48 @@ export async function listProjetos(): Promise<ProjectResponse[]> {
   return response.json();
 }
 
+/**
+ * Starts AI processing for a project
+ * @param projectId The project ID
+ * @param stream Whether to stream the response
+ * @returns The processing results or a Response for streaming
+ */
+export async function processProject(projectId: number, stream: boolean = false) {
+  const url = `${API_BASE_URL}/processamento/${projectId}${stream ? "?stream=true" : ""}`;
+  
+  if (stream) {
+    return fetch(url, { method: "POST" });
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Erro ao processar projeto");
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches the saved AI analysis results for a project
+ * @param projectId The project ID
+ */
+export async function getProjectResult(projectId: number) {
+  const response = await fetch(`${API_BASE_URL}/processamento/${projectId}/resultado`);
+  
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw new Error("Erro ao buscar resultado do processamento");
+  }
+
+  return response.json();
+}
+
 // Criar norma (upsert já acontece no backend)
-export async function createNorma(data: {
-  nome: string;
-  conexao?: string;
-  status?: boolean;
-  ids_projeto: number[];
-}) {
+export async function createNorma(data: NormaCreatePayload) {
   const response = await fetch(`${API_BASE_URL}/norma/`, {
     method: "POST",
     headers: {
@@ -146,8 +213,10 @@ export async function createNorma(data: {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Erro ao criar norma");
+    // Melhoria: Capturar o erro detalhado do FastAPI (422)
+    const errorData = await response.json();
+    console.error("Erro detalhado do servidor:", errorData);
+    throw new Error(errorData.detail?.[0]?.msg || "Erro ao criar norma");
   }
 
   return response.json();

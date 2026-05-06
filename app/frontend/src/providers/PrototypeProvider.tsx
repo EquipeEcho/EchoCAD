@@ -10,7 +10,6 @@ import {
   buildGeneratedDocumentFromUploads,
   buildHistoryDocumentFromGenerated,
   getFileKindFromName,
-  mockTechnicalStandards,
 } from "../data/mockData";
 import {
   AddFilesResult,
@@ -24,11 +23,11 @@ import {
   UploadDocument,
 } from "../types/documents";
 import { formatInputDate } from "../utils/date";
+import { processProject, getProjectResult, getProjeto } from "../services/api";
 
 type ProcessingResult = {
   file_url: string;
 };
-
 type PrototypeContextValue = {
   uploadedFiles: UploadDocument[];
   historyDocuments: HistoryDocument[];
@@ -38,11 +37,15 @@ type PrototypeContextValue = {
   currentDocument: GeneratedDocument | null;
   shouldPromptProjectSave: boolean;
   toast: ToastState | null;
+  isAIProcessing: boolean;
+  processingLogs: string[];
+  activeProjectData: { projectId: number; projectInfo: ProjectSaveInput; files: UploadDocument[] } | null;
   addUploadedFiles: (fileList: FileList | File[]) => AddFilesResult;
   removeUploadedFile: (documentId: string) => void;
   clearUploadedFiles: () => void;
+  startAIProcessing: (projectId: number, projectInfo: ProjectSaveInput, files: UploadDocument[]) => Promise<void>;
   completeProcessing: (
-    apiResults?: ProcessingResult[],
+    apiResults?: any[],
     projectInfo?: ProjectSaveInput,
     sourceFiles?: UploadDocument[],
   ) => GeneratedDocument | null;
@@ -51,10 +54,11 @@ type PrototypeContextValue = {
   removeHistoryDocument: (documentId: string) => void;
   downloadHistoryBundle: () => void;
   addTechnicalStandards: (fileList: FileList | File[]) => AddFilesResult;
-  toggleStandard: (standardId: string) => void;
+  toggleStandard: (standardId: string) => Promise<void>;
   downloadStandard: (standardId: string) => void;
   simulatePreviewAction: (fileName: string) => void;
   downloadDocumentAsset: (url: string | undefined, label: string) => void;
+  refreshCurrentDocument: (projectId: number) => Promise<void>;
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
@@ -128,6 +132,9 @@ function buildTechnicalStandard(file: File): TechnicalStandard | null {
   };
 }
 
+// URL base da API
+const API_BASE_URL = "http://127.0.0.1:8000";
+
 // Centraliza o estado do protótipo e das simulações.
 export function PrototypeProvider({ children }: PropsWithChildren) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadDocument[]>([]);
@@ -136,13 +143,16 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [technicalStandards, setTechnicalStandards] = useState<TechnicalStandard[]>(
-    mockTechnicalStandards,
+    [],
   );
   const [currentDocument, setCurrentDocument] = useState<GeneratedDocument | null>(
     null
   );
   const [shouldPromptProjectSave, setShouldPromptProjectSave] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
+  const [processingLogs, setProcessingLogs] = useState<string[]>([]);
+  const [activeProjectData, setActiveProjectData] = useState<{ projectId: number; projectInfo: ProjectSaveInput; files: UploadDocument[] } | null>(null);
 
   useEffect(() => {
     if (!toast) {
@@ -195,10 +205,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
               versionLabel: "v1",
               summary: projeto.description?.trim() || "Projeto sem descrição.",
               previewLines,
-              tableRows: [
-                { label: "Cliente", value: projeto.client?.trim() || "Não informado" },
-                { label: "ID do projeto", value: projectId },
-              ],
+              tableRows: [],
               sourceFiles: [],
               file_urls: [],
             },
@@ -274,6 +281,51 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     );
   };
 
+  const startAIProcessing = async (projectId: number, projectInfo: ProjectSaveInput, files: UploadDocument[]) => {
+    if (isAIProcessing) return;
+    
+    setIsAIProcessing(true);
+    setProcessingLogs(["Iniciando pipeline de processamento..."]);
+    setActiveProjectData({ projectId, projectInfo, files });
+    
+    try {
+      const response = await processProject(projectId, true) as Response;
+      
+      if (!response.body) {
+        throw new Error("Resposta sem corpo");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value);
+        
+        const lines = chunkValue.split("\n\n");
+        lines.forEach(line => {
+          if (line.trim().startsWith("data: ")) {
+            const message = line.trim().replace("data: ", "").replace(/\\n/g, "\n");
+            if (message === "[DONE]") return;
+            setProcessingLogs(prev => [...prev, message]);
+          }
+        });
+      }
+
+      const finalResult = await getProjectResult(projectId);
+      completeProcessing(finalResult || [], projectInfo, files);
+    } catch (error) {
+      console.error("Erro no processamento real:", error);
+      setProcessingLogs(prev => [...prev, "ERRO: Falha na comunicação com o servidor."]);
+      showToast("Erro no processamento da IA", "error");
+    } finally {
+      setIsAIProcessing(false);
+      // Mantemos o activeProjectData até que o usuário veja o resultado ou inicie outro
+    }
+  };
+
   // Limpa todos os arquivos pendentes de upload.
   const clearUploadedFiles = () => {
     syncUploadedFiles([]);
@@ -281,22 +333,76 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
   // Gera o documento final e usa os dados do projeto quando vierem do upload.
   const completeProcessing = (
-    apiResults: ProcessingResult[] = [],
+    apiResults: any[] = [],
     projectInput?: ProjectSaveInput,
     sourceFiles?: UploadDocument[],
   ) => {
+    let baseDocument: GeneratedDocument;
+
     const filesToProcess = sourceFiles?.length
       ? sourceFiles
       : uploadedFilesRef.current;
 
-    if (filesToProcess.length === 0) {
+    if (filesToProcess.length > 0) {
+      baseDocument = {
+        ...buildGeneratedDocumentFromUploads(filesToProcess),
+        file_urls: apiResults.map((result) => result.file_url).filter(Boolean),
+      };
+    } else if (currentDocument) {
+      baseDocument = {
+        ...currentDocument,
+        file_urls: apiResults.map((result) => result.file_url).filter(Boolean),
+      };
+    } else {
       return null;
     }
 
-    const baseDocument: GeneratedDocument = {
-      ...buildGeneratedDocumentFromUploads(filesToProcess),
-      file_urls: apiResults.map((result) => result.file_url),
-    };
+    // Mapear resultados reais da IA para o documento
+    if (apiResults.length > 0) {
+      const tableRows: { label: string; value: string }[] = [];
+      const previewLines: string[] = [];
+
+      apiResults.forEach((res) => {
+        try {
+          // A IA retorna o JSON dentro de uma string (response.content)
+          // Precisamos tentar extrair o JSON puro se houver lixo em volta
+          const rawResult = res.resultado || "";
+          const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+          const aiJson = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+          if (aiJson) {
+            // Se tiver resumo_executivo, usamos ele
+            const resumo = aiJson.resumo_executivo || aiJson;
+            Object.entries(resumo).forEach(([key, value]) => {
+              tableRows.push({
+                label: key,
+                value: typeof value === "object" ? JSON.stringify(value) : String(value),
+              });
+            });
+            
+            if (aiJson.sintese) {
+               previewLines.push(aiJson.sintese);
+            }
+          }
+        } catch (e) {
+          console.warn("Falha ao parsear JSON da IA:", e);
+        }
+      });
+
+      if (tableRows.length > 0) {
+        baseDocument.tableRows = tableRows;
+        baseDocument.summary = "Memorial gerado automaticamente via análise de IA sobre as plantas fornecidas.";
+      } else {
+        baseDocument.summary = "Arquivo não processado corretamente ou formato de saída da IA incompatível.";
+      }
+      
+      if (previewLines.length > 0) {
+        baseDocument.previewLines = previewLines;
+      }
+    } else {
+      baseDocument.summary = "Arquivo não processado (nenhum resultado da IA disponível).";
+    }
+
     const projectInfo = projectInput ? buildProjectInfo(projectInput) : null;
     const generatedDocument: GeneratedDocument = projectInfo
       ? {
@@ -361,7 +467,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   };
 
   // Abre um documento do histórico na área de resultado.
-  const openHistoryPreview = (documentId: string) => {
+  const openHistoryPreview = async (documentId: string) => {
     const historyDocument = historyDocuments.find(
       (document) => document.id === documentId,
     );
@@ -371,16 +477,66 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       return;
     }
 
+    // Tentar buscar resultado real da IA se for um ID numérico
+    const numericId = parseInt(documentId);
+    if (!isNaN(numericId)) {
+      try {
+        const apiResults = await getProjectResult(numericId);
+        if (apiResults) {
+          // Re-processar para preencher tableRows
+          const projectInfo: ProjectSaveInput = {
+            name: historyDocument.document.projectInfo?.name || historyDocument.name,
+            cliente: historyDocument.document.projectInfo?.cliente,
+            descricao: historyDocument.document.projectInfo?.descricao,
+          };
+          
+          // Re-aproveitar completeProcessing mas sem navegar
+          const sourceFiles = uploadedFilesRef.current.length > 0 
+            ? uploadedFilesRef.current 
+            : historyDocument.document.sourceFiles.map(name => ({ name, kind: "dxf" } as any));
+
+          completeProcessing(apiResults, projectInfo, sourceFiles);
+          return;
+        }
+      } catch (e) {
+        console.warn("Sem resultado de IA para este item do histórico");
+      }
+    }
+
     setCurrentDocument(historyDocument.document);
     setShouldPromptProjectSave(false);
   };
 
-  // Remove um item do histórico salvo.
-  const removeHistoryDocument = (documentId: string) => {
-    setHistoryDocuments((currentHistory) =>
-      currentHistory.filter((document) => document.id !== documentId),
-    );
-    showToast("Documento removido do histórico.", "info");
+  // Remove um item do histórico salvo E do banco de dados.
+  const removeHistoryDocument = async (documentId: string) => {
+    try {
+      // Chamada DELETE para o backend remover projeto e arquivos
+      const response = await fetch(
+        `${API_BASE_URL}/projeto/${documentId}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        showToast(
+          `Erro ao remover projeto: ${errorData.detail || "Erro desconhecido"}`,
+          "error"
+        );
+        return;
+      }
+
+      // Remove do estado local após sucesso
+      setHistoryDocuments((currentHistory) =>
+        currentHistory.filter((document) => document.id !== documentId),
+      );
+      showToast("Projeto removido com sucesso (pasta renomeada para .deleted).", "success");
+    } catch (error) {
+      console.error("Erro ao remover projeto:", error);
+      showToast(
+        "Erro ao remover projeto. Verifique se o backend está online.",
+        "error"
+      );
+    }
   };
 
   // Simula o download de todos os itens do histórico.
@@ -478,7 +634,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     return { addedCount, duplicateCount, invalidCount };
   };
 
-  const toggleStandard = (standardId: string) => {
+  const toggleStandard = async (standardId: string) => {
     const selectedStandard = technicalStandards.find(
       (standard) => standard.id === standardId,
     );
@@ -488,19 +644,66 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    setTechnicalStandards((currentStandards) =>
-      currentStandards.map((standard) =>
-        standard.id === standardId
-          ? { ...standard, enabled: !standard.enabled }
-          : standard,
-      ),
-    );
-    showToast(
-      `${selectedStandard.code} ${
-        selectedStandard.enabled ? "desabilitada" : "habilitada"
-      } para consulta da IA.`,
-      "info",
-    );
+    // Extrair ID numérico se for um ID de banco (string de números)
+    const normaId = /^\d+$/.test(standardId) ? standardId : null;
+
+    // Se é uma norma do banco, chamar backend
+    if (normaId) {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/norma/${normaId}/toggle`,
+          { method: "PATCH" }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          showToast(
+            `Erro ao atualizar norma: ${errorData.detail || "Erro desconhecido"}`,
+            "error"
+          );
+          return;
+        }
+
+        const updatedNorma = await response.json();
+        
+        // Atualizar estado local com o resultado do backend
+        setTechnicalStandards((currentStandards) =>
+          currentStandards.map((standard) =>
+            standard.id === standardId
+              ? { ...standard, enabled: updatedNorma.ativo }
+              : standard,
+          ),
+        );
+        
+        showToast(
+          `${selectedStandard.code} ${
+            updatedNorma.ativo ? "ativada" : "desativada"
+          } para consulta da IA.`,
+          "success",
+        );
+      } catch (error) {
+        console.error("Erro ao atualizar norma:", error);
+        showToast(
+          "Erro ao atualizar norma. Verifique se o backend está online.",
+          "error"
+        );
+      }
+    } else {
+      // Para normas locais (em memória), apenas atualizar estado
+      setTechnicalStandards((currentStandards) =>
+        currentStandards.map((standard) =>
+          standard.id === standardId
+            ? { ...standard, enabled: !standard.enabled }
+            : standard,
+        ),
+      );
+      showToast(
+        `${selectedStandard.code} ${
+          selectedStandard.enabled ? "desabilitada" : "habilitada"
+        } para consulta da IA.`,
+        "info",
+      );
+    }
   };
 
   const downloadStandard = (standardId: string) => {
@@ -564,6 +767,34 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     }
   };
 
+  const refreshCurrentDocument = async (projectId: number) => {
+    try {
+      // 1. Buscar dados básicos do projeto
+      const projeto = await getProjeto(projectId);
+      
+      // 2. Tentar buscar resultados da IA
+      const apiResults = await getProjectResult(projectId);
+      
+      const projectInput: ProjectSaveInput = {
+        name: projeto.name,
+        cliente: projeto.client || undefined,
+        descricao: projeto.description || undefined,
+      };
+
+      // Simular sourceFiles para o buildGeneratedDocument
+      const sourceFiles = projeto.description?.includes("Arquivos:") 
+        ? projeto.description.split("Arquivos:")[1].split(",").map(s => s.trim())
+        : [];
+
+      // Usamos completeProcessing para atualizar o currentDocument
+      completeProcessing(apiResults || [], projectInput, sourceFiles.map(name => ({ name, kind: "dxf" } as any)));
+      
+    } catch (error) {
+      console.error("Erro ao atualizar documento:", error);
+      showToast("Não foi possível carregar os dados do projeto.", "error");
+    }
+  };
+
   return (
     <PrototypeContext.Provider
       value={{
@@ -575,9 +806,13 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
         currentDocument,
         shouldPromptProjectSave,
         toast,
+        isAIProcessing,
+        processingLogs,
+        activeProjectData,
         addUploadedFiles,
         removeUploadedFile,
         clearUploadedFiles,
+        startAIProcessing,
         completeProcessing,
         saveCurrentProject,
         openHistoryPreview,
@@ -588,6 +823,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
         downloadStandard,
         simulatePreviewAction,
         downloadDocumentAsset,
+        refreshCurrentDocument,
         showToast,
       }}
     >

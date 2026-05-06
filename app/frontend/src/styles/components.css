@@ -1101,6 +1101,15 @@ select.form-field__control {
   border-top: 1px solid #ededed;
 }
 
+.preview-table__empty {
+  padding: 2.2rem 1.5rem;
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.95rem;
+  background: #fafafa;
+}
+
 .preview-paper__footer-note {
   margin-top: 1.4rem;
   padding: 1rem 1.1rem 0;

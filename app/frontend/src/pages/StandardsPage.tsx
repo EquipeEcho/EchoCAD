@@ -6,22 +6,14 @@ import { FileList } from "../components/FileList";
 import { FileRow } from "../components/FileRow";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
+import { usePrototype } from "../providers/PrototypeProvider";
 import { UploadStatusTone } from "../types/documents";
-import { useEffect } from "react";
-import { createNorma, listNormas } from "../services/api";
-
-type Norma = {
-  id: number;
-  nome: string;
-  conexao?: string;
-  status: boolean;
-  projetos: number[];
-};
 
 type StandardSwitchProps = {
   enabled: boolean;
   label: string;
-  onToggle: () => void;
+  onToggle: () => Promise<void>;
+  isLoading?: boolean;
 };
 
 function buildStandardsUploadStatus(
@@ -59,7 +51,11 @@ function buildStandardsUploadStatus(
   };
 }
 
-function StandardSwitch({ enabled, label, onToggle }: StandardSwitchProps) {
+function StandardSwitch({ enabled, label, onToggle, isLoading = false }: StandardSwitchProps) {
+  const handleToggle = async () => {
+    await onToggle();
+  };
+
   return (
     <button
       className={`standard-switch${enabled ? " is-enabled" : ""}`}
@@ -67,7 +63,8 @@ function StandardSwitch({ enabled, label, onToggle }: StandardSwitchProps) {
       role="switch"
       aria-checked={enabled}
       aria-label={`${enabled ? "Desabilitar" : "Habilitar"} ${label}`}
-      onClick={onToggle}
+      onClick={handleToggle}
+      disabled={isLoading}
     >
       <span className="standard-switch__track" aria-hidden="true">
         <span className="standard-switch__thumb" />
@@ -85,8 +82,13 @@ export function StandardsPage() {
   const [uploadStatus, setUploadStatus] = useState(
     buildStandardsUploadStatus(0, 0, 0)
   );
-  const [technicalStandards, setTechnicalStandards] = useState<Norma[]>([]);
-  const enabledCount = technicalStandards.filter((standard) => standard.status)
+  const {
+    addTechnicalStandards,
+    downloadStandard,
+    technicalStandards,
+    toggleStandard,
+  } = usePrototype();
+  const enabledCount = technicalStandards.filter((standard) => standard.enabled)
     .length;
 
   const openFilePicker = () => {
@@ -98,33 +100,15 @@ export function StandardsPage() {
     inputRef.current.click();
   };
 
-  const applyStandardsSelection = async (files: FileList | File[]) => {
-    let added = 0;
-    let invalid = 0;
-
-    for (const file of Array.from(files)) {
-      if (!file.name.endsWith(".pdf")) {
-        invalid++;
-        continue;
-      }
-
-      try {
-        await createNorma({
-          nome: file.name,
-          conexao: file.name,
-          status: true,
-          ids_projeto: [1],
-        });
-
-        added++;
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    setUploadStatus(buildStandardsUploadStatus(added, 0, invalid));
-
-    await loadNormas();
+  const applyStandardsSelection = (files: FileList | File[]) => {
+    const result = addTechnicalStandards(files);
+    setUploadStatus(
+      buildStandardsUploadStatus(
+        result.addedCount,
+        result.duplicateCount,
+        result.invalidCount
+      )
+    );
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -139,19 +123,6 @@ export function StandardsPage() {
     event.preventDefault();
     setIsDragging(false);
     applyStandardsSelection(event.dataTransfer.files);
-  };
-
-  useEffect(() => {
-    loadNormas();
-  }, []);
-
-  const loadNormas = async () => {
-    try {
-      const data = await listNormas();
-      setTechnicalStandards(data);
-    } catch (err) {
-      console.error(err);
-    }
   };
 
   return (
@@ -240,28 +211,29 @@ export function StandardsPage() {
                   <FileRow
                     key={standard.id}
                     variant="standard"
-                    name={standard.nome}
-                    kind="pdf"
-                    hint={standard.status
-                      ? "Habilitada para consulta da IA"
-                      : "Desabilitada para consulta da IA"
+                    name={standard.name}
+                    kind={standard.kind}
+                    hint={
+                      standard.enabled
+                        ? "Habilitada para consulta da IA"
+                        : "Desabilitada para consulta da IA"
                     }
                     metaItems={[
-                      { label: "Área", value: "Norma Técnica" },
-                      { label: "Atualização", value: "-" },
+                      { label: "Área", value: standard.category },
+                      { label: "Atualização", value: standard.date },
                     ]}
                     statusControl={
                       <StandardSwitch
-                        enabled={standard.status}
-                        label={standard.nome}
-                        onToggle={() => {}}
+                        enabled={standard.enabled}
+                        label={standard.code}
+                        onToggle={() => toggleStandard(standard.id)}
                       />
                     }
                     actions={[
                       {
-                        label: `Baixar ${standard.nome}`,
+                        label: `Baixar ${standard.name}`,
                         icon: <DownloadIcon />,
-                        onClick: () => alert("Download não implementado"),
+                        onClick: () => downloadStandard(standard.id),
                       },
                     ]}
                   />
