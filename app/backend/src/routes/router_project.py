@@ -5,12 +5,11 @@ import shutil
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import delete
 from ..controller.projeto_crud import create_projeto, read_all_projetos, read_projeto
 from ..database import get_session
 from ..schemas.user_schema import ProjetoSchema, ProjectPublic
-from ..schemas.system_schema import Success
-from ..models.projeto_db import Projeto, Planta, MemorialCalculo, EspecificacaoTecnica, ProjetoNorma
+from ..models.projeto_db import Project, Blueprint, Report, Specification
+from deprecated import deprecated
 
 router = APIRouter(prefix='/projeto', tags=['projeto'])
 
@@ -61,6 +60,8 @@ async def get_project(projeto_id: int, db: Session = Depends(get_session)):
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
+# TODO: implementar validação.
+@deprecated(reason='Essa rota não tem segurança e será substituída por uma com validação')
 @router.delete('/{projeto_id}', summary='Deletar projeto', status_code=status.HTTP_200_OK)
 async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
     """
@@ -74,21 +75,18 @@ async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
     """
     try:
         # Verifica se projeto existe
-        projeto = db.query(Projeto).filter(Projeto.id == projeto_id).first()
+        projeto = db.query(Project).filter(Project.id == projeto_id).first()
         if not projeto:
             raise HTTPException(status_code=404, detail="Projeto não encontrado")
 
-        # Remove todas as associações com normas
-        db.query(ProjetoNorma).filter(ProjetoNorma.id_projeto == projeto_id).delete()
-
         # Remove todos os memoriais de cálculo
-        db.query(MemorialCalculo).filter(MemorialCalculo.id_projeto == projeto_id).delete()
+        db.query(Report).filter(Report.id_project == projeto_id).delete()
 
         # Remove todas as plantas CAD
-        db.query(Planta).filter(Planta.id_projeto == projeto_id).delete()
+        db.query(Blueprint).filter(Blueprint.id_project == projeto_id).delete()
 
         # Remove todas as especificações técnicas
-        db.query(EspecificacaoTecnica).filter(EspecificacaoTecnica.id_projeto == projeto_id).delete()
+        db.query(Specification).filter(Specification.id_project == projeto_id).delete()
 
         # Remove o projeto
         db.delete(projeto)

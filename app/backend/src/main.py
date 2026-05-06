@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes.upload_router import router as upload_router
-from src.routes.projeto_router import router as projeto_router
-from src.routes.planta_router import router as planta_router
+from app.backend.src.routes.router_upload import router as upload_router
+from app.backend.src.routes.router_project import router as projeto_router
+from app.backend.src.routes.router_blueprints import router as planta_router
 from src.routes.processamento import router as processamento_router
 from src.routes.especificacoes import router as especificacoes_router
-from src.routes.norma_router import router as norma_router
+from app.backend.src.routes.router_standards import router as norma_router
 from src.routes.download import router as download_router
 from src.routes.jajajjajaaja import router as agent_test_router
 

@@ -1,11 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ..database import get_session
-from ..models.projeto_db import Projeto
+from ..models.projeto_db import Project
 from ..schemas.user_schema import ProjetoSchema
 
 
-def create_projeto(db: Session, project_schema: ProjetoSchema) -> Projeto:
+def create_projeto(db: Session, project_schema: ProjetoSchema) -> Project:
     """
     Instancia e persiste um novo projeto no banco de dados.
 
@@ -19,14 +19,14 @@ def create_projeto(db: Session, project_schema: ProjetoSchema) -> Projeto:
     Raises:
         SQLAlchemyError: Caso ocorra uma falha na persistência dos dados.
     """
-    new_project = Projeto(**project_schema.model_dump())
+    new_project = Project(**project_schema.model_dump())
     db.add(new_project)
     db.commit()
     db.refresh(new_project)
     return new_project
 
 
-def read_projeto(db: Session, projeto_id: int) -> Projeto | None:
+def read_projeto(db: Session, projeto_id: int) -> Project | None:
     """
     Busca um projeto no banco de dados através do seu identificador único.
 
@@ -38,11 +38,11 @@ def read_projeto(db: Session, projeto_id: int) -> Projeto | None:
         Optional[Projeto]: A instância do Projeto se encontrada, 
                            ou None caso o ID não exista.
     """
-    query = select(Projeto).where(Projeto.id == projeto_id)
+    query = select(Project).where(Project.id == projeto_id)
     return db.execute(query).scalar_one_or_none()
 
 
-def read_all_projetos(db: Session) -> list[Projeto]:
+def read_all_projetos(db: Session) -> list[Project]:
     """
     Recupera todos os registros de projetos armazenados no banco de dados.
 
@@ -53,5 +53,5 @@ def read_all_projetos(db: Session) -> list[Projeto]:
         List[Projeto]: Uma lista contendo todos os projetos encontrados. 
                        Retorna uma lista vazia [] se não houver registros.
     """
-    query = select(Projeto)
+    query = select(Project)
     return list(db.execute(query).scalars().all())

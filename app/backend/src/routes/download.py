@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pathlib import Path
 import os
 from src.database import get_session
-from src.models.projeto_db import MemorialCalculo, Projeto
+from src.models.projeto_db import Reports, Project
 
 router = APIRouter()
 
@@ -34,21 +34,21 @@ async def download_memorial_by_project(
     """
     try:
         # Verifica se projeto existe
-        projeto = db.query(Projeto).filter(Projeto.id == project_id).first()
+        projeto = db.query(Project).filter(Project.id == project_id).first()
         if not projeto:
             raise HTTPException(status_code=404, detail="Projeto não encontrado")
         
         # Busca o memorial
         if memorial_id:
-            memorial = db.query(MemorialCalculo).filter(
-                MemorialCalculo.id == memorial_id,
-                MemorialCalculo.projeto_id == project_id
+            memorial = db.query(Reports).filter(
+                Reports.id == memorial_id,
+                Reports.projeto_id == project_id
             ).first()
         else:
             # Pega o memorial mais recente (maior ID ou data mais recente)
-            memorial = db.query(MemorialCalculo)\
-                .filter(MemorialCalculo.projeto_id == project_id)\
-                .order_by(MemorialCalculo.id.desc())\
+            memorial = db.query(Reports)\
+                .filter(Reports.projeto_id == project_id)\
+                .order_by(Reports.id.desc())\
                 .first()
         
         if not memorial or not memorial.arquivo:

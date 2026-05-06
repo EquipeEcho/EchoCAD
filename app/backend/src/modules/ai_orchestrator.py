@@ -3,7 +3,7 @@ import logging
 import asyncio
 from pathlib import Path
 from sqlalchemy.orm import Session
-from src.models.projeto_db import Projeto, Planta
+from src.models.projeto_db import Project, Planta
 from src.modules.core.team_ai import create_team
 from src.modules.core.entity_dxf import EntityDxf
 from src.modules.core.agents.agent_context import create_context_agent
@@ -36,7 +36,7 @@ class AIOrchestrator:
         if self._lock.locked():
             raise RuntimeError("Já existe um processamento de IA em andamento. Por favor, aguarde.")
 
-        project = self.db.query(Projeto).filter(Projeto.id == project_id).first()
+        project = self.db.query(Project).filter(Project.id == project_id).first()
         if not project:
             raise ValueError(f"Projeto {project_id} não encontrado")
 
@@ -47,9 +47,9 @@ class AIOrchestrator:
         async with self._lock:
             return await asyncio.to_thread(self._run_sync_analysis, project)
 
-    def _run_sync_analysis(self, project: Projeto):
+    def _run_sync_analysis(self, project: Project):
         results = []
-        for planta in project.plantas_cad:
+        for planta in project.blueprint:
             try:
                 result = self.analyze_planta(planta)
                 results.append({
@@ -68,13 +68,13 @@ class AIOrchestrator:
         self.save_results(project.id, results)
         return results
 
-    async def _stream_project_analysis(self, project: Projeto):
+    async def _stream_project_analysis(self, project: Project):
         """
         Gera um stream de eventos do processamento.
         """
         async with self._lock:
             project_results = []
-            for planta in project.plantas_cad:
+            for planta in project.blueprint:
                 yield f"data: Iniciando análise da planta {planta.arquivo} ({planta.tipo})\n\n"
                 
                 try:

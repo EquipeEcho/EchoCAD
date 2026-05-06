@@ -9,105 +9,104 @@ class Base(MappedAsDataclass, DeclarativeBase):
     pass
 
 
-class MemorialCalculo(Base):
+class Report(Base):
     """
     Memorial de calculo, Arquivo xlxx com as informações de calculo do projeto
     """
-    __tablename__ = "memorial_calculo"
+    __tablename__ = "reports"
 
-    id: Mapped[int] = mapped_column(primary_key=True) # ok der
-    arquivo: Mapped[str] = mapped_column(String(255), nullable=False) # ok der
-    
-    id_projeto: Mapped[int] = mapped_column(ForeignKey("projeto.id"), nullable=False) # ok deve existir
+    id: Mapped[int | None] = mapped_column(primary_key=True, init=False, autoincrement=True)
+    path: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    id_project: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
 
-    projeto: Mapped["Projeto"] = relationship("Projeto", back_populates="memoriais_calculo", init=False) # ok revisado
+    project: Mapped["Project"] = relationship("Project", back_populates="reports", init=False)
 
 
-class Planta(Base):
+class Blueprint(Base):
     """
     Representa o registro de uma planta cad no banco de dados.
     """
-    __tablename__ = "planta_cad"
+    __tablename__ = "blueprints"
 
-    id: Mapped[int] = mapped_column(primary_key=True, init=False) # ok der
-    tipo: Mapped[str | None] = mapped_column(String(100), nullable=False) # ok der
-    arquivo: Mapped[str | None] = mapped_column(String(255), nullable=False) # ok der
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
+    discipline: Mapped[str] = mapped_column(String(100), nullable=False)
+    path: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     
-    id_projeto: Mapped[int] = mapped_column(ForeignKey("projeto.id"), nullable=False) # ok deve existir
+    id_project: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
 
-    projeto: Mapped["Projeto"] = relationship("Projeto", back_populates="plantas_cad", init=False) # ok revisado
+    project: Mapped["Project"] = relationship("Project", back_populates="blueprints", init=False)
 
 
-class EspecificacaoTecnica(Base):
+class Specification(Base):
     """
     Arquivo de especificação técnica gerado pelo LLM.
     """
-    __tablename__ = "especificacao_tecnica"
-    id: Mapped[int] = mapped_column(primary_key=True, init=False) # ok def
-    arquivo: Mapped[str] = mapped_column(String(255), nullable=False) # ok def
+    __tablename__ = "specifications"
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
+    path: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    id_projeto: Mapped[int] = mapped_column(ForeignKey("projeto.id"), nullable=False) # ok deve existir
-    projeto: Mapped["Projeto"] = relationship("Projeto", back_populates="especificacoes_tecnicas", init=False)
+    id_project: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    project: Mapped["Project"] = relationship("Project", back_populates="specifications", init=False)
 
 
 
 # isso aqui teria que entrar como RAG / CHROMA, mas vou deixar por enquanto só até implantar o rag
-class Norma(Base):
+class Standard(Base):
     """
     Representação de uma registro de norma técnica no banco de dados.
     """
-    __tablename__ = "normas"
+    __tablename__ = "standards"
 
-    id: Mapped[int] = mapped_column(primary_key=True, init=False) # ok der
-    nome: Mapped[str] = mapped_column(String(150), nullable=False) # ok der
-    ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False) # Estado de ativação da norma
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    data_criacao: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), init=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), init=False)
     
-    projetos: Mapped[List["Projeto"]] = relationship("Projeto", secondary="projeto_norma", back_populates="normas", init=False)
+    projects: Mapped[List["Project"]] = relationship("Project", secondary="project_standard", back_populates="standards", init=False)
 
 
-class ProjetoNorma(Base):
+class ProjectStandard(Base):
     """
     Entidade associativa entre normas e projetos.
     """
-    __tablename__ = 'projeto_norma'
-    id_norma: Mapped[int] = mapped_column(ForeignKey("normas.id"), primary_key=True, nullable=False) # ok revisado
-    id_projeto: Mapped[int] = mapped_column(ForeignKey("projeto.id"), primary_key=True, nullable=False) # ok revisado
+    __tablename__ = 'project_standard'
+    id_standard: Mapped[int] = mapped_column(ForeignKey("standards.id"), primary_key=True, nullable=False)
+    id_project: Mapped[int] = mapped_column(ForeignKey("projects.id"), primary_key=True, nullable=False)
 
 
 # TODO: implementação do usuário para sprint 3
 # não será usada por enquanto porque não há sistema de login/cadastro
-class Usuario(Base):
+class User(Base):
     """
     Representa um usuário do sistema.
     """
-    __tablename__ = "usuario"
+    __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, init=False) # ok
-    nome: Mapped[str] = mapped_column(String(150), nullable=False) # ok
-    email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False) # ok
-    senha: Mapped[str] = mapped_column(String(255), nullable=False) # ok
-    cargo: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None) # ok
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None)
     
-    projetos: Mapped[List["Projeto"]] = relationship("Projeto", back_populates="user", init=False)
+    projects: Mapped[List["Project"]] = relationship("Project", back_populates="user", init=False)
 
 
-class Projeto(Base):
+class Project(Base):
     """
     Representa um registro de projeto na tabela do banco de dodos,
     contém os campos relacioandos à entidade Projeto.
     """
-    __tablename__ = "projeto"
+    __tablename__ = "projects"
 
-    id: Mapped[int] = mapped_column(primary_key=True, init=False) # der
-    name: Mapped[str] = mapped_column(String(150), nullable=False) # der
-    description: Mapped[str | None] = mapped_column(Text, nullable=True, default=None) # der
-    client: Mapped[str | None] = mapped_column(String(150), nullable=True, default=None) # der
-    created_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now(), init=False) # not der / util
+    id: Mapped[int] = mapped_column(primary_key=True, init=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    client: Mapped[str | None] = mapped_column(String(150), nullable=True, default=None)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, server_default=func.now(), init=False)
 
     # revisar essa regra na sprint 3
-    id_user: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), nullable=True, init=True, default=None)
+    id_user: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, init=True, default=None)
 
     # TODO: sprint 3
     # usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="projetos", init=False)
@@ -116,11 +115,11 @@ class Projeto(Base):
     # TODO: implementar com RAG
     # normas: Mapped[List["Norma"]] = relationship("Norma", secondary="Projeto_norma", back_populates="projetos", init=False) # como está isso
 
-    especificacoes_tecnicas: Mapped[List["EspecificacaoTecnica"]] = relationship(
-        "EspecificacaoTecnica", back_populates="projeto", init=False
+    specifications: Mapped[List["Specification"]] = relationship(
+        "Specification", back_populates="project", init=False
     )
 
-    plantas_cad: Mapped[List['Planta']] = relationship("Planta", back_populates="projeto", init=False) # ok revisado
-    memoriais_calculo: Mapped[List["MemorialCalculo"]] = relationship("MemorialCalculo", back_populates="projeto", init=False) # ok revisado
-    normas: Mapped[List["Norma"]] = relationship("Norma", secondary="projeto_norma", back_populates="projetos", init=False) # ok revisado
-    user: Mapped["Usuario"] = relationship("Usuario", back_populates="projetos", init=False)
+    blueprints: Mapped[List['Blueprint']] = relationship("Blueprint", back_populates="project", init=False)
+    reports: Mapped[List["Report"]] = relationship("Report", back_populates="project", init=False)
+    standards: Mapped[List["Standard"]] = relationship("Standard", secondary="project_standard", back_populates="projects", init=False)
+    user: Mapped["User"] = relationship("User", back_populates="projects", init=False)

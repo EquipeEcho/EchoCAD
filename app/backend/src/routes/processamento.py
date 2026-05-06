@@ -1,10 +1,12 @@
+# TODO: precisa de review
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pathlib import Path
 from src.database import get_session
 from src.modules.ai_orchestrator import AIOrchestrator
-from src.models.projeto_db import MemorialCalculo, Planta, Projeto
+from src.models.projeto_db import Report, Blueprint, Project
 
 router = APIRouter(prefix="/processamento", tags=["processamento"])
 
@@ -65,27 +67,27 @@ async def gerar_memorial(
     
     try:
         # Verifica se projeto existe
-        projeto = db.query(Projeto).filter(Projeto.id == project_id).first()
-        if not projeto:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
             raise HTTPException(status_code=404, detail="Projeto não encontrado")
         
         # Determina qual planta usar
         if planta_id:
-            planta = db.query(Planta).filter(
-                Planta.id == planta_id,
-                Planta.projeto_id == project_id
+            blueprint = db.query(Blueprint).filter(
+                Blueprint.id == planta_id,
+                Blueprint.id_project == project_id
             ).first()
-            if not planta:
-                raise HTTPException(status_code=404, detail="Planta não encontrada neste projeto")
+            if not blueprint:
+                raise HTTPException(status_code=404, detail="Blueprint não encontrada neste projeto")
         else:
             # Usa primeira planta do projeto
-            planta = db.query(Planta).filter(Planta.projeto_id == project_id).first()
-            if not planta:
+            blueprint = db.query(Blueprint).filter(Blueprint.id_project == project_id).first()
+            if not blueprint:
                 raise HTTPException(status_code=404, detail="Nenhuma planta encontrada no projeto")
         
         # Constrói caminho do arquivo DXF
         backend_root = Path(__file__).parent.parent.parent
-        dxf_path = backend_root / "uploads" / str(project_id) / planta.arquivo
+        dxf_path = backend_root / "uploads" / str(project_id) / blueprint.path
         
         if not dxf_path.exists():
             raise HTTPException(status_code=404, detail=f"Arquivo DXF não encontrado: {dxf_path}")
@@ -104,10 +106,9 @@ async def gerar_memorial(
         # Salva referência do memorial no banco de dados
         arquivo_excel = resultado.get("arquivo_excel")
         if arquivo_excel:
-            memorial = MemorialCalculo(
-                projeto_id=project_id,
-                arquivo=arquivo_excel,
-                descricao=prompt
+            memorial = Report(
+                id_project=project_id,
+                path=arquivo_excel,
             )
             db.add(memorial)
             db.commit()

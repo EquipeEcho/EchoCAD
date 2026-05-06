@@ -2,10 +2,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.models.projeto_db import Planta
-from src.schemas.user_schema import PlantaSchema
+from src.schemas.user_schema import BlueprintSchema
 
 
-def create_planta_cad(db: Session, planta: PlantaSchema) -> Planta:
+def create_blueprint(db: Session, planta: BlueprintSchema) -> Planta:
     """
     Insere um novo registro de planta CAD no banco de dados.
 
@@ -38,7 +38,7 @@ def read_planta_cad(db: Session, planta_id: int) -> Planta | None:
     return db.execute(query).scalar_one_or_none()
 
 
-def read_all_plantas_cad(db: Session) -> list[Planta]:
+def read_all_blueprints(db: Session) -> list[Planta]:
     """
     Recupera todas as plantas CAD cadastradas no sistema.
 

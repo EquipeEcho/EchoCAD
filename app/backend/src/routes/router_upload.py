@@ -23,9 +23,12 @@ BACKEND_ROOT = Path(__file__).parent.parent.parent
 DEFAULT_PATH = BACKEND_ROOT / 'uploads'
 DEFAULT_PATH.mkdir(parents=True, exist_ok=True)
 
-
+# TODO: implementar inteligência de separação do tipo de arquivo.
 @router.post('/{project_id}', status_code=status.HTTP_201_CREATED, response_model=UploadResponse)
 async def upload(project_id: int, file: UploadFile = File(...)):
+    """
+    Rota para upload de arquivos.
+    """
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

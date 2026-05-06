@@ -52,7 +52,7 @@ class NormaSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PlantaSchema(BaseModel):
+class BlueprintSchema(BaseModel):
     """Schema para criação de planta CAD"""
 
     tipo: str | None = Field(None, max_length=100)
@@ -62,7 +62,7 @@ class PlantaSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PlantaPublic(PlantaSchema):
+class BlueprintPublic(BlueprintSchema):
     """Schema para visualização de planta CAD com ID"""
     id: int = Field(..., description='ID gerado automaticamente')
     model_config = ConfigDict(from_attributes=True)
