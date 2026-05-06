@@ -11,7 +11,7 @@ class EntityDxf:
     """
 
     def __init__(self, dxf_file_path: str | Path):
-        self.doc = readfile(dxf_file_path)
+        self.doc = readfile(dxf_file_path) # gargalo de leitura do arquivo
         self.msp = self.doc.modelspace()
         self.layers = [layer.dxf.name for layer in self.doc.layers]
 
