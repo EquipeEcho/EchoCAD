@@ -1,14 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.backend.src.routes.router_upload import router as upload_router
 from app.backend.src.routes.router_project import router as projeto_router
 from app.backend.src.routes.router_blueprints import router as planta_router
-from src.routes.processamento import router as processamento_router
-from src.routes.especificacoes import router as especificacoes_router
 from app.backend.src.routes.router_standards import router as norma_router
-from src.routes.download import router as download_router
-from src.routes.jajajjajaaja import router as agent_test_router
+from src.routes.deprecated.download import router as download_router
 
 app = FastAPI(
     title="EchoCAD API",
@@ -31,16 +28,16 @@ app.include_router(projeto_router)
 app.include_router(planta_router)
 app.include_router(norma_router)
 
-
+# TODO: reconstruir depois de implantado logica de IA
 # rotas de processamento e download
 # obs. precisa de teste
-app.include_router(especificacoes_router)
-app.include_router(processamento_router)
-app.include_router(download_router)
-app.include_router(agent_test_router)
+# app.include_router(especificacoes_router)
+# app.include_router(processamento_router)
+# app.include_router(download_router)
+# app.include_router(agent_test_router)
 
-# Rota de boas vindas, indicando que está online.
-@app.get('/')
+
+@app.get('/', status_code=status.HTTP_200_OK)
 async def root():
     """Rota de boas vindas, retorna uma mensagem
     indiciando que a api está online."""
