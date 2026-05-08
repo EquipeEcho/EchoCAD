@@ -40,10 +40,14 @@ Antes de iniciar a instalação, certifique-se de ter os seguintes softwares ins
 - **MySQL Workbench**
   - Download: https://dev.mysql.com/downloads/workbench/
 
+
 ### Opcionais (mas recomendados)
 
 - **VS Code** (Editor de código)
   - Download: https://code.visualstudio.com/
+ 
+- **Docker** (Alternativa para o MySQL Workbench)
+  - Download: https://docs.docker.com/desktop/setup/install/windows-install/
 
 ---
 
@@ -71,7 +75,7 @@ cd app
 
 # 🗄️ <span id="config-banco-dados">Configuração do Banco de Dados</span>
 
-## Configurações de Connections no MySQL
+## Configurações utilizando o MySQL Workbench
 
 Caso ainda não tenha nenhuma connection criada (indicada por uma caixa abaixo do texto `MySQL Connections`) siga as seguintes instruções para criar uma.
 
@@ -84,46 +88,30 @@ Caso ainda não tenha nenhuma connection criada (indicada por uma caixa abaixo d
 
 ## Criando o banco de dados no MySQL
 
-Utilize o conteúdo no arquivo databaseSQL.sql presente na pasta `EchoCAD/app/database` para criar o modelo do banco de dados.<br>
+No query exibido basta executar o seguinte comando para criar um banco de dados
+```bash
+create database echocad_db;
+```
 
-Para isso, abra o MySQL digitando `mysql` na barra de pesquisas e clique em `MySQL Workbench`. Selecione uma conexão qualquer e cole o texto do `databaseSQL.sql` dentro do campo de texto que apareceu. <br>
+Lembre-se de atualizar as informações dos arquivos presentes no backend com os dados do usuário do seu MySQL
 
-Garanta que você já não possui um banco de dados com o nome de `EchoCAD_SQL` para que não ocorra conflitos.<br>
+## Atualizando o banco de dados
 
-Execute clicando no botão com um ícone de raio acima da primeira linha do texto ao lado direito no ícone para salvar.<br>
+Dentro da pasta backend/src instale o alembic com os seguintes comandos:
+
+```bash
+# Instala o alembic
+pip install alembic
+
+# Atualiza as tabelas do banco de dados
+alembic upgrade head
+```
 
 ---
 
 # <span id="instalacao-dependencias">Instalação das Dependências</span>
 
-Existem duas maneiras de fazer a instalação das dependências, utilize a que achar melhor, mas certifique-se de executar o projeto como está descrito no manual correspondente, não faça a instalação pelo venv e tente rodar pelo pipx, por exemplo.
-
-## venv
-
-É recomendável criar um ambiente virtual, pois isso garante que bibliotecas e suas versões não entrem em conflito com outros projetos que você tenha.<br>
-Por exemplo, imagine que você possui um projeto que apenas roda com uma versão mais antiga de Python, mas o EchoCAD utiliza a última versão disponível atualmente (04-2026), sem o ambiente virtual você não conseguirá rodar este outro projeto ao atualizar globalmente a versão do seu Python.
-
-Para criar o ambiente virtual utilize o seguinte comando:
-
-```bash
-python -m venv venv
-```
-
-Inicie seu ambiente virtual com:
-```bash
-venv\Scripts\activate
-```
-
-E para sair do ambiente virtual escreva:
-```bash
-deactivate
-```
->Lembre-se sempre de iniciar o ambiente virtual antes de executar o projeto
-
-Na pasta `app`, execute:<br>
-> Obs: Você terá que instalar as dependências tanto do frontend quanto do backend, mas ambos partem dessa mesma pasta `app`.
-
-### Frontend
+## Frontend
 
 Navegue até a pasta do frontend com o seguinte comando:
 
@@ -138,7 +126,7 @@ npm install
 
 > Não feche o terminal ainda, você terá que abrir dois deles para rodar completamente o projeto
 
-### Backend
+## Backend
 
 Abra outro terminal para executar as seguintes funções, caso esteja usando o CMD você terá que abrir outro, mas com o VS Code basta clicar no sinal de `+` na direita no botão `TERMINAL` e `PORTS`.
 
@@ -150,81 +138,22 @@ cd backend
 
 Instale as dependências com o comando:
 ```bash
-pip install -r requirements.txt
+pip install uv
+
+# Verifica a instalação do uv
+uv --version
+
+# Instala as dependências do projeto
+uv sync
 ```
 
----
-
-## pipx
-
-### 1. Instalar pipx
-
-`pipx` é um instalador de ferramentas Python que isola dependências. É a forma recomendada para instalar `Poetry`.
-
-**No Linux/macOS:**
-```bash
-pip install --upgrade pip
-pip install pipx
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-**No Windows:**
-```bash
-pip install --upgrade pip
-pip install pipx
-```
-
-Verifique a instalação:
-```bash
-pipx --version
-```
-
-### 2. Instalar Poetry
-
-`Poetry` é um gerenciador de dependências e empacotador para Python.
-
-```bash
-pipx install poetry
-poetry --version
-```
-
-Caso o comando poetry não seja encontrado após a instalação, adicione o caminho ao PATH:
-
-**Linux/macOS:**
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Adicione a linha acima ao seu arquivo `~/.bashrc` ou `~/.zshrc` para persistir entre sessões.
-
-### 3. Instalar Dependências
-
-Clone ou navegue até a pasta do projeto e instale as dependências especificadas no `pyproject.toml`:
-
-```bash
-cd /caminho/para/EchoCAD/app/backend
-poetry install
-```
-
-Este comando:
-- Cria um ambiente virtual automático
-- Instala todas as dependências do projeto
-- Sincroniza com o arquivo `poetry.lock`
-
-Para atualizar as dependências:
-```bash
-poetry self add poetry-plugin-export
-```
+Antes de rodar o "uv sync", garanta que está na mesma pasta do arquivo **pyproject.toml**
 
 ---
 
 # <span id="execucao-projeto">Execução do projeto</span>
 
-Como dito anteriormente, utilize o mesmo método da instalação das dependências.
-
-## venv
-
-### Frontend
+## Frontend
 
 Primeiramente navegue até a pasta destinada para o frontend, caso esteja na pasta `app` digite o seguinte código:
 
@@ -240,72 +169,12 @@ npm run dev
 
 O retorno será principalmente uma lista com três links, apenas segure o `Ctrl` e clique no primeiro, ou seja, o Local.
 
-### Backend
+## Backend
+
+Navegue até a pasta backend/src e execute este código
 
 ```bash
-uvicorn src.main:app --reload
-```
-
----
-
-### 3. Verifique os logs do servidor (frontend)
-
-No terminal onde você executou `pnpm dev`, você deve ver:
-
-```
-✓ Ready in 2.5s
-○ Compiling / ...
-✓ Compiled / in 1.2s
-```
-
----
-
-## ▶️ Execução do Projeto com o pipx
-
-### Modo Desenvolvimento
-
-Execute a aplicação FastAPI com auto-recarregamento:
-
-```bash
-poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-A API estará disponível em: `http://localhost:8000`
-
-Documentação interativa: `http://localhost:8000/docs`
-
-### Modo Produção
-
-```bash
-poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000
-```
-
-### Dentro do Ambiente Virtual
-
-Se preferir entrar no ambiente virtual do Poetry:
-
-```bash
-poetry shell
-uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Para sair do ambiente virtual:
-```bash
-exit
-```
-
-### Testar a API
-
-Fazer upload de arquivo:
-```bash
-curl -X POST "http://localhost:8000/upload" \
-  -F "file=@caminho/do/arquivo.dwg"
-```
-
-Acessar documentação Swagger:
-```bash
-# Abra no navegador:
-http://localhost:8000/docs
+uv run main.py
 ```
 
 ---
