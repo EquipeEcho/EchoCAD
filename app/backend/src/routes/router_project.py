@@ -1,14 +1,13 @@
-from typing import List
 from pathlib import Path
 import shutil
 
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from ..controller.projeto_crud import create_projeto, read_all_projetos, read_projeto
-from ..database import get_session
-from ..schemas.user_schema import ProjetcSchema, ProjectPublic
-from ..models.projeto_db import Project, Blueprint, Report, Specification
+from controller.crud_projects import create_projeto, read_all_projetos, read_projeto
+from src.database import get_session
+from src.schemas.user_schema import ProjetcSchema, ProjectPublic
+from src.models.projeto_db import Project, Blueprint, Report, Specification
 from deprecated import deprecated
 
 router = APIRouter(prefix='/projeto', tags=['projeto'])
@@ -28,7 +27,7 @@ async def create_project(project_schema: ProjetcSchema, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
-@router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK, response_model=List[ProjectPublic])
+@router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK, response_model=list[ProjectPublic])
 async def list_projects(db: Session = Depends(get_session)):
     """
     Rota para listar todos os projetos existentes.

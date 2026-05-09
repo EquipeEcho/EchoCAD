@@ -3,33 +3,33 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class CreateUser(BaseModel):
-    """Validar a criação do usuário via POST"""
+    """Schema para criação de usuário"""
     name: str = Field(..., max_length=100)
     email: EmailStr = Field(..., max_length=150)
-    senha: str = Field(..., max_length=255)
-    cargo: str | None = Field(None, max_length=100)
+    password: str = Field(..., min_length=6, max_length=255)
     model_config = ConfigDict(from_attributes=True)
 
 
 class LoginUser(BaseModel):
     """Schema para autenticação de usuário"""
     email: EmailStr = Field(..., max_length=150)
-    senha: str = Field(..., min_length=1, max_length=255)
+    password: str = Field(..., min_length=6, max_length=255)
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProjetcSchema(BaseModel):
-    """Classe de validação da criação do modelo via POST"""
-    # id_usuario: int = Field(..., description='ID do usuário')
+    """Schema para criação do projeto"""
+    # TODO: implementar a associação com usuário
+    id_user: int | None = Field(None)
     name: str = Field(
         ...,
         min_length=1,
         max_length=150,
         description='Nome do projeto'
     )
-    description: str | None = Field(None, description='Descrição opcional do projeto')
+    description: str | None = Field(
+        None, description='Descrição opcional do projeto')
     client: str | None = Field(None)
-    id_user: int | None = Field(None)
     model_config = ConfigDict(from_attributes=True, extra='ignore')
 
 
@@ -46,8 +46,8 @@ class StandardSchema(BaseModel):
     """Schema Pydantic para criação de norma técnica."""
 
     nome: str = Field(..., min_length=1, max_length=150)
-    #conexao: str | None = Field(None, max_length=100)
-    #status: str | None = Field(None, max_length=50)
+    # conexao: str | None = Field(None, max_length=100)
+    # status: str | None = Field(None, max_length=50)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,8 +55,8 @@ class StandardSchema(BaseModel):
 class BlueprintSchema(BaseModel):
     """Schema para criação de planta CAD"""
 
-    discipline: str = Field(None, max_length=100)
-    path: str = Field(None, max_length=255)
+    discipline: str | None = Field(None, max_length=100)
+    path: str | None = Field(None, max_length=255)
     id_project: int = Field(...)
 
     model_config = ConfigDict(from_attributes=True)

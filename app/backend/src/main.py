@@ -5,7 +5,6 @@ from src.routes.router_upload import router as upload_router
 from src.routes.router_project import router as projeto_router
 from src.routes.router_blueprints import router as planta_router
 from src.routes.router_standards import router as norma_router
-from src.routes.deprecated.download import router as download_router
 
 app = FastAPI(
     title="EchoCAD API",
@@ -22,23 +21,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# rotas de criação de objetos
+# rotas de manipulação dos objetos
 app.include_router(upload_router)
 app.include_router(projeto_router)
 app.include_router(planta_router)
 app.include_router(norma_router)
 
-# TODO: reconstruir depois de implantado logica de IA
-# rotas de processamento e download
-# obs. precisa de teste
-# app.include_router(especificacoes_router)
-# app.include_router(processamento_router)
-# app.include_router(download_router)
-# app.include_router(agent_test_router)
 
-
-@app.get('/', status_code=status.HTTP_200_OK)
+@app.get('/', status_code=status.HTTP_200_OK, tags=['root'], summary='Rota de boas vindas')
 async def root():
-    """Rota de boas vindas, retorna uma mensagem
-    indiciando que a api está online."""
+    """Rota de boas vindas, retorna uma mensagem indicando que a api está online."""
     return {"message": "Welcome to EchoCad Api."}
