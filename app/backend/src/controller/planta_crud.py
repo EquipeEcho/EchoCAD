@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.models.projeto_db import Planta
+from src.models.projeto_db import Blueprint as Planta
 from src.schemas.user_schema import BlueprintSchema
 
 

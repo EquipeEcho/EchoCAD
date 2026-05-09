@@ -5,7 +5,7 @@ from src.database import get_session
 from src.schemas.system_schema import Success
 from src.schemas.user_schema import NormaSchema
 
-from app.backend.src.controller.crud_standards import create_standard, read_all_standards, toggle_standard_status
+from src.controller.crud_standards import create_standard, read_all_standards, toggle_standard_status
 
 router = APIRouter(prefix='/norma', tags=["norma"])
 
