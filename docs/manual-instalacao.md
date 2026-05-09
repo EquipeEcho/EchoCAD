@@ -4,8 +4,8 @@
 
 - [Pré-requisitos](#requisitos)
 - [Instalação do Ambiente](#instalacao-ambiente)
-- [Configuração do Banco de Dados](#config-banco-dados)
 - [Instalação das Dependências](#instalacao-dependencias)
+- [Configuração do Banco de Dados](#config-banco-dados)
 - [Execução do Projeto](#execucao-projeto)
 - [Solução de Problemas](#solucao-problemas)
 
@@ -51,6 +51,7 @@ Antes de iniciar a instalação, certifique-se de ter os seguintes softwares ins
 
 ---
 
+
 # 🚀 <span id="instalacao-ambiente">Instalação do Ambiente</span>
 
 ## 1. Clone o Repositório
@@ -65,10 +66,51 @@ cd nome_pasta
 git clone https://github.com/EquipeEcho/EchoCAD
 ```
 
-## 2. Acesse a pasta principal da aplicação
+---
+
+# <span id="instalacao-dependencias">Instalação das Dependências</span>
+
+## Frontend
+
+Navegue até a pasta do frontend com o seguinte comando:
 
 ```bash
-cd app
+cd app/frontend
+```
+
+Para instalar as dependências utilize o comando:
+```bash
+npm install
+```
+
+> Não feche o terminal ainda, você terá que abrir dois deles para rodar completamente o projeto
+
+## Backend
+
+Abra outro terminal para executar as seguintes funções, caso esteja usando o CMD você terá que abrir outro, mas com o VS Code basta clicar no sinal de `+` na direita no botão `TERMINAL` e `PORTS`.
+
+A partir da pasta `EchoCAD` navegue até a pasta do backend
+
+```bash
+cd app/backend
+```
+
+Faça a instalação do pipx para isolar os aplicativos Python
+
+```bash
+pip install pipx
+```
+
+Instale as dependências com o comando:
+```bash
+# Instala o uv
+pipx install uv
+
+# Verifica a instalação do uv
+uv --version
+
+# Instala as dependências do projeto
+uv sync
 ```
 
 ---
@@ -93,61 +135,21 @@ No query exibido basta executar o seguinte comando para criar um banco de dados
 create database echocad_db;
 ```
 
-Lembre-se de atualizar as informações dos arquivos presentes no backend com os dados do usuário do seu MySQL
+Lembre-se de atualizar as informações dos arquivos presentes no backend com os dados do usuário do seu MySQL.
+Os arquivos que deve modificar são esses:
+- EchoCAD/app/backend/src/config.py - Linha 5
+- EchoCAD/app/backend/alembic.ini - Linha 89
+
+Na parte onde está **echocad_admin:echocad_admin_password** mude para o nome:sua_senha
 
 ## Atualizando o banco de dados
 
-Dentro da pasta backend/src instale o alembic com os seguintes comandos:
+Considerando que, no terminal, está dentro da pasta EchoCAD:
 
 ```bash
-# Instala o alembic
-pip install alembic
-
 # Atualiza as tabelas do banco de dados
 alembic upgrade head
 ```
-
----
-
-# <span id="instalacao-dependencias">Instalação das Dependências</span>
-
-## Frontend
-
-Navegue até a pasta do frontend com o seguinte comando:
-
-```bash
-cd frontend
-```
-
-Para instalar as dependências utilize o comando:
-```bash
-npm install
-```
-
-> Não feche o terminal ainda, você terá que abrir dois deles para rodar completamente o projeto
-
-## Backend
-
-Abra outro terminal para executar as seguintes funções, caso esteja usando o CMD você terá que abrir outro, mas com o VS Code basta clicar no sinal de `+` na direita no botão `TERMINAL` e `PORTS`.
-
-A partir da pasta `app` navegue até a pasta do backend
-
-```bash
-cd backend
-```
-
-Instale as dependências com o comando:
-```bash
-pip install uv
-
-# Verifica a instalação do uv
-uv --version
-
-# Instala as dependências do projeto
-uv sync
-```
-
-Antes de rodar o "uv sync", garanta que está na mesma pasta do arquivo **pyproject.toml**
 
 ---
 
@@ -174,7 +176,7 @@ O retorno será principalmente uma lista com três links, apenas segure o `Ctrl`
 Navegue até a pasta backend/src e execute este código
 
 ```bash
-uv run main.py
+uv run uvicorn src.main:app --reload
 ```
 
 ---
