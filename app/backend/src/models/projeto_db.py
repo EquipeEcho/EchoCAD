@@ -15,7 +15,7 @@ class Report(Base):
     """
     __tablename__ = "reports"
 
-    id: Mapped[int | None] = mapped_column(primary_key=True, init=False, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, init=False, autoincrement=True)
     path: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     id_project: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
 
