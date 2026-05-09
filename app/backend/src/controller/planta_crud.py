@@ -1,29 +1,29 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.models.projeto_db import Planta
+from src.models.projeto_db import Blueprint
 from src.schemas.user_schema import BlueprintSchema
 
 
-def create_blueprint(db: Session, planta: BlueprintSchema) -> Planta:
+def create_blueprint(db: Session, planta: BlueprintSchema) -> Blueprint:
     """
     Insere um novo registro de planta CAD no banco de dados.
 
     Args:
         db (Session): Sessão ativa do SQLAlchemy.
-        planta (PlantaSchema): Objeto de esquema Pydantic contendo os dados da planta (tipo, arquivo, etc).
+        planta (BlueprintSchema): Objeto de esquema Pydantic contendo os dados da planta (tipo, arquivo, etc).
 
     Returns:
-        Planta: A instância da planta persistida com os dados gerados pelo banco de dados.
+        Blueprint: A instância da planta persistida com os dados gerados pelo banco de dados.
     """
-    new_planta = Planta(**planta.model_dump())
+    new_planta = Blueprint(**planta.model_dump())
     db.add(new_planta)
     db.commit()
     db.refresh(new_planta)
     return new_planta
 
 
-def read_planta_cad(db: Session, planta_id: int) -> Planta | None:
+def read_planta_cad(db: Session, planta_id: int) -> Blueprint | None:
     """
     Busca uma planta CAD específica no banco de dados pelo seu ID.
 
@@ -32,13 +32,13 @@ def read_planta_cad(db: Session, planta_id: int) -> Planta | None:
         planta_id (int): Identificador único da planta.
 
     Returns:
-        Planta | None: O objeto da planta se encontrado, ou None caso não exista no banco.
+        Blueprint | None: O objeto da planta se encontrado, ou None caso não exista no banco.
     """
-    query = select(Planta).where(Planta.id == planta_id)
+    query = select(Blueprint).where(Blueprint.id == planta_id)
     return db.execute(query).scalar_one_or_none()
 
 
-def read_all_blueprints(db: Session) -> list[Planta]:
+def read_all_blueprints(db: Session) -> list[Blueprint]:
     """
     Recupera todas as plantas CAD cadastradas no sistema.
 
@@ -46,8 +46,8 @@ def read_all_blueprints(db: Session) -> list[Planta]:
         db (Session): Sessão ativa do SQLAlchemy.
 
     Returns:
-        list[Planta]: Uma lista contendo todas as instâncias de plantas encontradas. 
+        list[Blueprint]: Uma lista contendo todas as instâncias de plantas encontradas. 
                       Retorna uma lista vazia [] se não houver registros.
     """
-    query = select(Planta)
+    query = select(Blueprint)
     return list(db.execute(query).scalars().all())

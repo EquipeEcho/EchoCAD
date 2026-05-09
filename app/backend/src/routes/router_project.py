@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from ..controller.projeto_crud import create_projeto, read_all_projetos, read_projeto
 from ..database import get_session
-from ..schemas.user_schema import ProjetoSchema, ProjectPublic
+from ..schemas.user_schema import ProjetcSchema, ProjectPublic
 from ..models.projeto_db import Project, Blueprint, Report, Specification
 from deprecated import deprecated
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix='/projeto', tags=['projeto'])
 
 
 @router.post('/', summary='Criar projeto', status_code=status.HTTP_201_CREATED, response_model=ProjectPublic)
-async def create_project(project_schema: ProjetoSchema, db: Session = Depends(get_session)):
+async def create_project(project_schema: ProjetcSchema, db: Session = Depends(get_session)):
     """
     Rota para criação de um novo projeto.
     """

@@ -18,7 +18,7 @@ class LoginUser(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjetoSchema(BaseModel):
+class ProjetcSchema(BaseModel):
     """Classe de validação da criação do modelo via POST"""
     # id_usuario: int = Field(..., description='ID do usuário')
     name: str = Field(
@@ -33,7 +33,7 @@ class ProjetoSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra='ignore')
 
 
-class ProjectPublic(ProjetoSchema):
+class ProjectPublic(ProjetcSchema):
     """Classe para consulta do usuário via GET"""
     model_config = ConfigDict(from_attributes=True)
 
@@ -42,7 +42,7 @@ class ProjectPublic(ProjetoSchema):
                                  description='Data de criação do registro')
 
 
-class NormaSchema(BaseModel):
+class StandardSchema(BaseModel):
     """Schema Pydantic para criação de norma técnica."""
 
     nome: str = Field(..., min_length=1, max_length=150)
@@ -90,7 +90,7 @@ class EspecificacaoTecnicaCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjetoNormaCreate(BaseModel):
+class AssocProjectStandardSchema(BaseModel):
     """Schema para associação projeto-norma"""
 
     id_projeto: int = Field(...)
@@ -99,7 +99,7 @@ class ProjetoNormaCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjetoPlantaCreate(BaseModel):
+class CreateProjectBlueprintSchema(BaseModel):
     """Schema para associação projeto-planta"""
 
     id_projeto: int = Field(...)

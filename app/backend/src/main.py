@@ -1,10 +1,10 @@
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.backend.src.routes.router_upload import router as upload_router
-from app.backend.src.routes.router_project import router as projeto_router
-from app.backend.src.routes.router_blueprints import router as planta_router
-from app.backend.src.routes.router_standards import router as norma_router
+from src.routes.router_upload import router as upload_router
+from src.routes.router_project import router as projeto_router
+from src.routes.router_blueprints import router as planta_router
+from src.routes.router_standards import router as norma_router
 from src.routes.deprecated.download import router as download_router
 
 app = FastAPI(

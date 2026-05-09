@@ -2,10 +2,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ..database import get_session
 from ..models.projeto_db import Project
-from ..schemas.user_schema import ProjetoSchema
+from ..schemas.user_schema import ProjetcSchema
 
 
-def create_projeto(db: Session, project_schema: ProjetoSchema) -> Project:
+def create_projeto(db: Session, project_schema: ProjetcSchema) -> Project:
     """
     Instancia e persiste um novo projeto no banco de dados.
 
