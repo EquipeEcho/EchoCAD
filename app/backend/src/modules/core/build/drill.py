@@ -1,3 +1,5 @@
+import math
+from ezdxf.entities.lwpolyline import LWPolyline
 from ezdxf.filemanagement import readfile
 from ezdxf.math import Vec2
 from pathlib import Path
@@ -11,6 +13,10 @@ msp = file.modelspace()
 psp = file.paperspace()
 
 layers = [layer.dxf.name for layer in file.layers]
+
+entities = list(msp)
+for entity in entities:
+    print(entity.dxftype())
 
 
 def build_conn_gaph(msp):
@@ -79,6 +85,20 @@ def calcular_perimetro_ciclo(G, ciclo):
     return perimetro
 
 print(calcular_perimetro_ciclo(graph, nx.cycle_basis(graph)[0]))
+
+for circle in msp.query('CIRCLE'):
+    center = Vec2(circle.dxf.center)
+    radius = circle.dxf.radius
+    area = math.pi * radius ** 2
+    print(f"Círculo encontrado: Centro={center}, Raio={radius}, Área={area}")
+
+for pline in msp.query('LWPOLYLINE'):
+    x = type(pline)
+    pontos = pline.get_points() # type: ignore
+        
+    for idx, p in enumerate(pontos):
+        x, y = p[0], p[1] # Pegamos apenas os dois primeiros valores
+        print(f"Vértice {idx}: X={x:.4f}, Y={y:.4f}")
 
 
 # for entity in msp.query('*[layer==\'0\']'):
