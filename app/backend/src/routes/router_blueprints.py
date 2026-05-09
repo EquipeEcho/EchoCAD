@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from controller.crud_blueprints import create_blueprint, read_all_blueprints
+from src.controller.crud_blueprints import create_blueprint, read_all_blueprints
 from src.database import get_session
 from src.schemas.system_schema import Success
 from src.schemas.user_schema import BlueprintSchema, BlueprintPublic

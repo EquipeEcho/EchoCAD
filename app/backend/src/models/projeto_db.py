@@ -88,6 +88,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), init=False)
     
     projects: Mapped[List["Project"]] = relationship("Project", back_populates="user", init=False)
 

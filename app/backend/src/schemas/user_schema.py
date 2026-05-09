@@ -3,7 +3,13 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class CreateUser(BaseModel):
-    """Schema para criação de usuário"""
+    """
+    ## Schema Pydantic para criação de usuário.
+    ### Campos obrigatórios:
+    - name (str): Nome do usuário, obrigatório, com no máximo 100 caracteres.
+    - email (EmailStr): E-mail do usuário, obrigatório, com no máximo 150 caracteres.
+    - password (str): Senha do usuário, obrigatória, com no mínimo 6 e no máximo 255 caracteres.
+    """
     name: str = Field(..., max_length=100)
     email: EmailStr = Field(..., max_length=150)
     password: str = Field(..., min_length=6, max_length=255)
@@ -11,9 +17,24 @@ class CreateUser(BaseModel):
 
 
 class LoginUser(BaseModel):
-    """Schema para autenticação de usuário"""
+    """
+    Schema para autenticação de usuário.
+    - email (EmailStr): E-mail do usuário, obrigatório, com no máximo 150 caracteres.
+    - password (str): Senha do usuário, obrigatória, com no mínimo 6 e no máximo 255 caracteres.
+    """
     email: EmailStr = Field(..., max_length=150)
     password: str = Field(..., min_length=6, max_length=255)
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserPublic(BaseModel):
+    """Schema para visualização de usuário criados"""
+    name: str = Field(..., max_length=100)
+    email: EmailStr = Field(..., max_length=150)
+    created_at: datetime = Field(...,
+                                 description='Data de criação do registro')
+    message: str = Field(..., description='Mensagem de resposta da API')
+
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -4,7 +4,7 @@ import shutil
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from controller.crud_projects import create_projeto, read_all_projetos, read_projeto
+from src.controller.crud_projects import create_projeto, read_all_projetos, read_projeto
 from src.database import get_session
 from src.schemas.user_schema import ProjetcSchema, ProjectPublic
 from src.models.projeto_db import Project, Blueprint, Report, Specification

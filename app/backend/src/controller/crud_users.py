@@ -31,7 +31,7 @@ def create_user(db: Session, user_schema: CreateUser) -> User:
 
 def get_user_by_email(db: Session, email: str, password: str) -> User | None:
     '''
-    Recupera um usuário do banco de dados com base no email.
+    Recupera um usuário do banco de dados com base no email e senha.
     Args:
         db (Session): Sessão do banco de dados.
         email (str): O email do usuário a ser recuperado.
