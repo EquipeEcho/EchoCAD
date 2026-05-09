@@ -55,9 +55,9 @@ class StandardSchema(BaseModel):
 class BlueprintSchema(BaseModel):
     """Schema para criação de planta CAD"""
 
-    tipo: str | None = Field(None, max_length=100)
-    arquivo: str | None = Field(None, max_length=255)
-    id_projeto: int = Field(...)
+    discipline: str = Field(None, max_length=100)
+    path: str = Field(None, max_length=255)
+    id_project: int = Field(...)
 
     model_config = ConfigDict(from_attributes=True)
 

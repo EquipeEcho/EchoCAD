@@ -9,9 +9,9 @@ interface ProjetoCreatePayload {
 }
 
 interface PlantaCADCreatePayload {
-  tipo?: string;
-  arquivo?: string;
-  id_projeto: number;
+  discipline?: string;
+  path?: string;
+  id_project: number;
 }
   
 interface ProjectResponse {
@@ -25,9 +25,9 @@ interface ProjectResponse {
 
 interface PlantaCADResponse {
   id: number;
-  tipo?: string;
-  arquivo?: string;
-  id_projeto: number;
+  discipline?: string;
+  path?: string;
+  id_project: number;
 }
 
 interface NormaCreatePayload {
@@ -125,7 +125,7 @@ export async function createMultiplePlantasCAD(
   for (const plantaData of plantasData) {
     const result = await createPlantaCAD({
       ...plantaData,
-      id_projeto: projectId,
+      id_project: projectId,
     });
     results.push(result);
   }

@@ -1,10 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ..schemas.user_schema import StandardSchema
-from ..models.projeto_db import Standard
+# from src.schemas.user_schema import StandardSchema
+from src.models.projeto_db import Standard
 
 
-def create_standard(db: Session, norma_schema: StandardSchema) -> Standard:
+# Substitua 'any' pelo nome correto do schema, como 'StandardSchema'
+def create_standard(db: Session, norma_schema: any) -> Standard: 
     """
     Instancia e persiste uma nova norma técnica no banco de dados.
 

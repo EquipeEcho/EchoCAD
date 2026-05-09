@@ -216,8 +216,9 @@ export function UploadPanel() {
           const uploadResult = await uploadFile(createdProject.id, uploadDoc.file);
           
           plantasData.push({
-            tipo: currentPlantaInfo.tipo,
-            arquivo: uploadResult.path, // Usar o caminho relativo retornado pelo backend (project_id/filename)
+            discipline: currentPlantaInfo.tipo,
+            path: uploadResult.path, // Usar o caminho relativo retornado pelo backend (project_id/filename)
+            id_project: createdProject.id,
           });
         }
       }
