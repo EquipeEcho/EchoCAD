@@ -6,15 +6,15 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from src.controller.crud_projects import create_projeto, read_all_projetos, read_projeto
 from src.database import get_session
-from src.schemas.user_schema import ProjetcSchema, ProjectPublic
+from src.schemas.user_schema import CreateProjectSchema, ProjectPublicSchema
 from src.models.projeto_db import Project, Blueprint, Report, Specification
 from deprecated import deprecated
 
 router = APIRouter(prefix='/projeto', tags=['projeto'])
 
 
-@router.post('/', summary='Criar projeto', status_code=status.HTTP_201_CREATED, response_model=ProjectPublic)
-async def create_project(project_schema: ProjetcSchema, db: Session = Depends(get_session)):
+@router.post('/', summary='Criar projeto', status_code=status.HTTP_201_CREATED, response_model=ProjectPublicSchema)
+async def create_project(project_schema: CreateProjectSchema, db: Session = Depends(get_session)):
     """
     Rota para criação de um novo projeto.
     """
@@ -27,7 +27,7 @@ async def create_project(project_schema: ProjetcSchema, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
-@router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK, response_model=list[ProjectPublic])
+@router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK, response_model=list[ProjectPublicSchema])
 async def list_projects(db: Session = Depends(get_session)):
     """
     Rota para listar todos os projetos existentes.
@@ -41,7 +41,7 @@ async def list_projects(db: Session = Depends(get_session)):
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
-@router.get('/{projeto_id}', summary='Buscar projeto por ID', status_code=status.HTTP_200_OK, response_model=ProjectPublic)
+@router.get('/{projeto_id}', summary='Buscar projeto por ID', status_code=status.HTTP_200_OK, response_model=ProjectPublicSchema)
 async def get_project(projeto_id: int, db: Session = Depends(get_session)):
     """
     Rota para buscar um projeto específico pelo seu ID.

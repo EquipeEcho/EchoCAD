@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.database import get_session
-from src.schemas.user_schema import CreateUser, LoginUser, UserPublic
+from src.schemas.user_schema import CreateUserSchema, LoginUserSchema, UserPublicSchema
 from src.controller.crud_users import get_user_by_email, create_user
 
 router = APIRouter(prefix='/users', tags=["Users"])
 
 
 @router.post('login', status_code=status.HTTP_200_OK)
-async def route_login(data: LoginUser, session: Session = Depends(get_session)):
+async def route_login(data: LoginUserSchema, session: Session = Depends(get_session)):
     '''
     Endpoint para autenticação de usuários.
     Args:
@@ -26,11 +26,11 @@ async def route_login(data: LoginUser, session: Session = Depends(get_session)):
     return {"message": "Login successful"} # TODO: implementar token JWT para autenticação
 
 
-@router.post('/', status_code=status.HTTP_201_CREATED, response_model=UserPublic)
-async def route_create_user(user: CreateUser, session: Session = Depends(get_session)):
+@router.post('/', status_code=status.HTTP_201_CREATED, response_model=UserPublicSchema)
+async def route_create_user(user: CreateUserSchema, session: Session = Depends(get_session)):
     try:
         new_user = create_user(session, user)
-        return UserPublic(
+        return UserPublicSchema(
             name=new_user.name,
             email=new_user.email,
             created_at=new_user.created_at,

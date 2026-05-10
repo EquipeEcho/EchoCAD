@@ -1,3 +1,4 @@
+from loguru import logger
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,6 +7,11 @@ from src.routes.router_project import router as projeto_router
 from src.routes.router_blueprints import router as planta_router
 from src.routes.router_standards import router as norma_router
 from src.routes.router_users import router as users_router
+
+from src.config import settings
+
+logger.add('logs/app.log', rotation='10 MB', retention='7 days', level=settings.log_level)
+logger.debug("Configurações carregadas: {}", settings.model_dump_json(indent=4))
 
 app = FastAPI(
     title="EchoCAD API",
@@ -33,4 +39,5 @@ app.include_router(users_router)
 @app.get('/', status_code=status.HTTP_200_OK, tags=['root'], summary='Rota de boas vindas')
 async def root():
     """Rota de boas vindas, retorna uma mensagem indicando que a api está online."""
+    logger.debug("Rota de boas vindas acessada.")
     return {"message": "Welcome to EchoCad Api."}

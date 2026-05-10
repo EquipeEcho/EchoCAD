@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from src.config import settings
 
 # Usando MySQL conforme configurado no alembic.ini
-engine = create_engine(settings.database_url, echo=True, pool_pre_ping=True)
+engine = create_engine(settings.database_url, echo=settings.echo_database, pool_pre_ping=True)
 
 
 SessionLocal = sessionmaker(
