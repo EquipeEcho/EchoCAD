@@ -72,11 +72,16 @@ class CreateUserSchema(BaseModel):
 class UpdateUserSchema(BaseModel):
     """
     ## Schema Pydantic para atualização de usuário.
+    ### Campos obrigatórios:
+    - id (int): ID do usuário a ser atualizado, obrigatório para identificação do registro.
+    - password (str): Senha atual do usuário, obrigatória para autenticação da atualização.
     ### Campos opcionais:
     - name (str): Nome do usuário (máximo 100 caracteres), opcional.
     - email (EmailStr): E-mail do usuário (máximo 150 caracteres), opcional.
-    - password (str): Senha do usuário (mínimo 6 e máximo 255 caracteres), opcional.
+    - new_password (str): Nova senha do usuário (mínimo 6 e máximo 255 caracteres), opcional.
     """
+
+    id: int = Field(..., description='ID do usuário a ser atualizado.')
 
     name: UserName | None = Field(
         None,
@@ -86,7 +91,11 @@ class UpdateUserSchema(BaseModel):
         None,
         description='Novo e-mail do usuário (Opcional, máximo 150 caracteres).')
 
-    password: Password | None = Field(
+    password: Password = Field(
+        ...,
+        description='Senha atual do usuário.')
+
+    new_password: Password | None = Field(
         None,
         description='Nova senha do usuário (Opcional, mínimo 6 e máximo 255 caracteres).')
 
@@ -142,7 +151,7 @@ class UserPublicSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Schemas para criação, visualização e atuzalização de projetos.
+# Schemas para criação, visualização e atualização de projetos.
 
 class CreateProjectSchema(BaseModel):
     """
@@ -209,6 +218,19 @@ class UpdateProjectSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra='ignore')
 
 
+class DeleteProjectSchema(BaseModel):
+    """
+    ## Schema para exclusão do projeto
+    ### Campos obrigatórios:
+    - id (int): ID do projeto a ser excluído.
+    """
+
+    # TODO: implementar autenticação para a exclusão de projetos.
+    id: int = Field(..., description='ID do projeto a ser excluído.')
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # Schema para criação, visualização e atualização de normas técnicas.
 
 class StandardSchema(BaseModel):
@@ -220,7 +242,7 @@ class StandardSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# Schemas para criação, visualização e atualizão de plantas CAD.
+# Schemas para criação, visualização e atualização de plantas CAD.
 
 
 class BlueprintSchema(BaseModel):

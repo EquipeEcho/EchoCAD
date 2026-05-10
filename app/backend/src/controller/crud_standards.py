@@ -1,11 +1,13 @@
+from loguru import logger
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-# from src.schemas.user_schema import StandardSchema
+from src.schemas.user_schema import StandardSchema
 from src.models.projeto_db import Standard
 
 
 # Substitua 'any' pelo nome correto do schema, como 'StandardSchema'
-def create_standard(db: Session, norma_schema: any) -> Standard: 
+def create_standard(db: Session, norma_schema: StandardSchema) -> Standard: 
     """
     Instancia e persiste uma nova norma técnica no banco de dados.
 
