@@ -1,8 +1,8 @@
-"""inicialização das tabelas no banco de dados
+"""database inicialization schema
 
-Revision ID: 1c8d85d28381
+Revision ID: 7cdb3e73acf8
 Revises: 
-Create Date: 2026-05-06 09:19:09.988994
+Create Date: 2026-05-10 09:44:14.530532
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1c8d85d28381'
+revision: str = '7cdb3e73acf8'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -34,6 +34,7 @@ def upgrade() -> None:
     sa.Column('email', sa.String(length=150), nullable=False),
     sa.Column('password', sa.String(length=255), nullable=False),
     sa.Column('role', sa.String(length=100), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
@@ -64,7 +65,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id_standard', 'id_project')
     )
     op.create_table('reports',
-    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('path', sa.String(length=255), nullable=False),
     sa.Column('id_project', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['id_project'], ['projects.id'], ),
