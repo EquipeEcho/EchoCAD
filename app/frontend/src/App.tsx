@@ -18,7 +18,7 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
     return (
       <main className="page">
         <div className="page__content page__content--narrow">
-          <p className="status-note" role="status">Carregando sessao...</p>
+          <p className="status-note" role="status">Carregando sessão...</p>
         </div>
       </main>
     );

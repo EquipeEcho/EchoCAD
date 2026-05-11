@@ -27,7 +27,7 @@ export function RegisterPage() {
     setErrorMessage("");
 
     if (password !== confirmPassword) {
-      setErrorMessage("As senhas nao conferem.");
+      setErrorMessage("As senhas não conferem.");
       return;
     }
 
@@ -42,7 +42,7 @@ export function RegisterPage() {
       });
       navigate("/", { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel cadastrar.");
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível cadastrar.");
     } finally {
       setIsSubmitting(false);
     }
@@ -56,7 +56,7 @@ export function RegisterPage() {
             <Logo subtle />
           </div>
 
-          <nav className="auth-tabs" aria-label="Autenticacao">
+          <nav className="auth-tabs" aria-label="Autenticação">
             <Link className="auth-tabs__item" to="/login">Entrar</Link>
             <Link className="auth-tabs__item is-active" to="/cadastro" aria-current="page">Cadastro</Link>
           </nav>
@@ -67,7 +67,7 @@ export function RegisterPage() {
             </span>
             <div>
               <h1 className="auth-card__title">Cadastro</h1>
-              <p className="auth-card__description">Crie uma conta para salvar projetos com seu usuario.</p>
+              <p className="auth-card__description">Crie uma conta para salvar projetos com seu usuário.</p>
             </div>
           </div>
 

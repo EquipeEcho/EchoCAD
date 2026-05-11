@@ -184,9 +184,15 @@ export function StandardsPage() {
           </p>
         </SurfaceCard>
 
-        <SurfaceCard as="section" className="history-surface standards-surface">
+        <SurfaceCard
+          as="section"
+          className={`history-surface standards-surface${
+            technicalStandards.length === 0 ? " history-surface--empty" : ""
+          }`}
+        >
           {technicalStandards.length === 0 ? (
             <EmptyState
+              framed={false}
               icon={<InfoCircleIcon />}
               title="Nenhuma norma cadastrada"
               description="Envie arquivos PDF para montar a biblioteca técnica usada pelo protótipo."

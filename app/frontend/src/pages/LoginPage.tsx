@@ -36,7 +36,7 @@ export function LoginPage() {
       await login({ email, password });
       navigate(fromPath, { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel entrar.");
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível entrar.");
     } finally {
       setIsSubmitting(false);
     }
@@ -50,7 +50,7 @@ export function LoginPage() {
             <Logo subtle />
           </div>
 
-          <nav className="auth-tabs" aria-label="Autenticacao">
+          <nav className="auth-tabs" aria-label="Autenticação">
             <Link className="auth-tabs__item is-active" to="/login" aria-current="page">Entrar</Link>
             <Link className="auth-tabs__item" to="/cadastro">Cadastro</Link>
           </nav>

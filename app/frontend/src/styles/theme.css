@@ -36,7 +36,14 @@
   background: var(--color-surface-soft);
 }
 
-[data-theme="dark"] .user-menu {
+[data-theme="dark"] .main-nav {
+  background: var(--color-surface-muted);
+}
+
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .nav-link:focus-visible,
+[data-theme="dark"] .nav-link.is-active,
+[data-theme="dark"] .user-popover {
   background: var(--color-surface);
 }
 

@@ -84,7 +84,7 @@ export async function registerUser(userData: RegisterPayload): Promise<AuthRespo
   });
 
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Erro ao cadastrar usuario"));
+    throw new Error(await parseErrorMessage(response, "Erro ao cadastrar usuário"));
   }
 
   return { user: await response.json() };

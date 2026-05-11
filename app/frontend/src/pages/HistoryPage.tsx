@@ -107,15 +107,24 @@ export function HistoryPage() {
           description="Lista de todos os projetos cadastrados no banco de dados."
         />
 
-        <SurfaceCard as="section" className="history-surface">
+        <SurfaceCard
+          as="section"
+          className={`history-surface${
+            isLoadingHistory || historyError || historyDocuments.length === 0
+              ? " history-surface--empty"
+              : ""
+          }`}
+        >
           {isLoadingHistory ? (
             <EmptyState
+              framed={false}
               icon={<InfoCircleIcon />}
               title="Carregando projetos..."
               description="Estamos consultando os dados no endpoint de Projeto."
             />
           ) : historyError ? (
             <EmptyState
+              framed={false}
               icon={<InfoCircleIcon />}
               title="Não foi possível listar os projetos"
               description={historyError}
@@ -124,6 +133,7 @@ export function HistoryPage() {
             />
           ) : historyDocuments.length === 0 ? (
             <EmptyState
+              framed={false}
               icon={<InfoCircleIcon />}
               title="Nenhum projeto cadastrado até o momento"
               description="Crie um projeto no backend para que ele apareça nesta lista."
