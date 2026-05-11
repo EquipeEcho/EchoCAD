@@ -10,8 +10,14 @@ from src.routes.router_users import router as users_router
 
 from src.config import settings
 
-logger.add('logs/app.log', rotation='10 MB', retention='7 days', level=settings.log_level)
-logger.debug("Configurações carregadas: {}", settings.model_dump_json(indent=4))
+logger.add(
+    'logs/app_{time:YYYY-MM-DD}.log',
+    rotation='10 MB', retention='7 days',
+    level=settings.log_level, backtrace=True, diagnose=True)
+
+# TODO: debugging / desabilitar em prod
+logger.debug("Configurações carregadas: {}",
+             settings.model_dump_json(indent=4))
 
 app = FastAPI(
     title="EchoCAD API",

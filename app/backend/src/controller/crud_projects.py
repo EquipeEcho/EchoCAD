@@ -1,7 +1,10 @@
+from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from ..models.projeto_db import Project
-from ..schemas.user_schema import CreateProjectSchema
+from sqlalchemy.exc import IntegrityError
+
+from src.models.projeto_db import Project
+from src.schemas.user_schema import CreateProjectSchema
 
 
 def create_projeto(db: Session, project_schema: CreateProjectSchema) -> Project:
@@ -18,11 +21,17 @@ def create_projeto(db: Session, project_schema: CreateProjectSchema) -> Project:
     Raises:
         SQLAlchemyError: Caso ocorra uma falha na persistência dos dados.
     """
-    new_project = Project(**project_schema.model_dump())
-    db.add(new_project)
-    db.commit()
-    db.refresh(new_project)
-    return new_project
+    try:
+        new_project = Project(**project_schema.model_dump())
+        db.add(new_project)
+        db.commit()
+        db.refresh(new_project)
+        logger.debug(f'Created new project {project_schema.model_dump()}')
+        return new_project
+    except IntegrityError as e:
+        logger.error(e)
+        raise ValueError('Algum campo informado possui valor incorreto, ' \
+        'para mais detalhes consulte o log.') from e
 
 
 def read_projeto(db: Session, projeto_id: int) -> Project | None:

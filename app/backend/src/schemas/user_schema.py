@@ -182,9 +182,12 @@ class ProjectPublicSchema(CreateProjectSchema):
     """
     Schema para resposta de criação do projeto.
     ### Campos obrigatórios:
+    - id_project (int): Id único gerado para o projeto.
     - name (str): Nome do projeto (entre 1 e 150 caracteres).
     - created_at (datetime): Data de criação do registro.
     """
+
+    id: int = Field(..., description='Id do projeto criado.')
 
     name: ProjectName = Field(
         ...,

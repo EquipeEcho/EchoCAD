@@ -1,3 +1,4 @@
+from loguru import logger
 from pathlib import Path
 import shutil
 
@@ -10,21 +11,28 @@ from src.schemas.user_schema import CreateProjectSchema, ProjectPublicSchema
 from src.models.projeto_db import Project, Blueprint, Report, Specification
 from deprecated import deprecated
 
-router = APIRouter(prefix='/projeto', tags=['projeto'])
-
+router = APIRouter(prefix='/project', tags=['projeto'])
 
 @router.post('/', summary='Criar projeto', status_code=status.HTTP_201_CREATED, response_model=ProjectPublicSchema)
 async def create_project(project_schema: CreateProjectSchema, db: Session = Depends(get_session)):
     """
     Rota para criação de um novo projeto.
     """
+    
     try:
         result = create_projeto(db, project_schema)
+        logger.info(result)
         return result
-
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Incorrect value error: {e}'
+        ) from e
     except Exception as e:
-        msg = 'Erro ao criar o projeto'
-        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f'Erro interno: {e}'
+        ) from e
 
 
 @router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK, response_model=list[ProjectPublicSchema])
@@ -41,7 +49,7 @@ async def list_projects(db: Session = Depends(get_session)):
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
-@router.get('/{projeto_id}', summary='Buscar projeto por ID', status_code=status.HTTP_200_OK, response_model=ProjectPublicSchema)
+@router.get('/', summary='Buscar projeto por ID', status_code=status.HTTP_200_OK, response_model=ProjectPublicSchema)
 async def get_project(projeto_id: int, db: Session = Depends(get_session)):
     """
     Rota para buscar um projeto específico pelo seu ID.
@@ -61,7 +69,7 @@ async def get_project(projeto_id: int, db: Session = Depends(get_session)):
 
 # TODO: implementar validação.
 @deprecated(reason='Essa rota não tem segurança e será substituída por uma com validação')
-@router.delete('/{projeto_id}', summary='Deletar projeto', status_code=status.HTTP_200_OK)
+@router.delete('/', summary='Deletar projeto', status_code=status.HTTP_200_OK)
 async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
     """
     Rota para deletar um projeto e seus arquivos associados.
