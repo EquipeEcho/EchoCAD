@@ -36,6 +36,29 @@
   background: var(--color-surface-soft);
 }
 
+[data-theme="dark"] .user-menu {
+  background: var(--color-surface);
+}
+
+[data-theme="dark"] .auth-card__icon {
+  border-color: rgba(110, 168, 255, 0.22);
+  background: var(--color-blue-soft);
+}
+
+[data-theme="dark"] .auth-form__message--error {
+  background: var(--color-red-soft);
+}
+
+[data-theme="dark"] .auth-tabs {
+  background: var(--color-surface-muted);
+}
+
+[data-theme="dark"] .auth-tabs__item:hover,
+[data-theme="dark"] .auth-tabs__item:focus-visible,
+[data-theme="dark"] .auth-tabs__item.is-active {
+  background: var(--color-surface-raised);
+}
+
 [data-theme="dark"] .file-list-card__title {
   color: var(--color-title-soft);
 }
@@ -148,6 +171,11 @@
   border-color: var(--color-border);
   background: var(--color-surface-raised);
   color: var(--color-text);
+}
+
+[data-theme="dark"] .password-field__toggle:hover,
+[data-theme="dark"] .password-field__toggle:focus-visible {
+  background: var(--color-surface-soft);
 }
 
 [data-theme="dark"] .empty-state--error {

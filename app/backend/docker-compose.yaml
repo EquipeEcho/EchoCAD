@@ -9,7 +9,7 @@ services:
       MYSQL_DATABASE: echocad_db
       MYSQL_INITDB_SKIP_TZINFO: "yes"
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql

@@ -1,6 +1,31 @@
 // API base URL - configure this based on your environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role?: string | null;
+  created_at?: string;
+  message?: string;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
+}
+
 interface ProjetoCreatePayload {
   name: string;
   description?: string;
@@ -34,6 +59,51 @@ interface NormaCreatePayload {
   nome: string;
   //status?: string;
   ids_projeto: number[]; // Verifique se no Python está "ids_projeto" ou "projeto_id"
+}
+
+async function parseErrorMessage(response: Response, fallbackMessage: string) {
+  try {
+    const errorData = await response.json();
+    if (typeof errorData.detail === "string") {
+      return errorData.detail;
+    }
+
+    return errorData.detail?.[0]?.msg || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
+export async function registerUser(userData: RegisterPayload): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/users/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "Erro ao cadastrar usuario"));
+  }
+
+  return { user: await response.json() };
+}
+
+export async function loginUser(credentials: LoginPayload): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/users/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(credentials),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "Erro ao fazer login"));
+  }
+
+  return { user: await response.json() };
 }
 
 /**
@@ -117,7 +187,7 @@ export async function createPlantaCAD(
  * @returns Array of created plantas CAD
  */
 export async function createMultiplePlantasCAD(
-  plantasData: Omit<PlantaCADCreatePayload, "id_projeto">[],
+  plantasData: Omit<PlantaCADCreatePayload, "id_project">[],
   projectId: number
 ): Promise<PlantaCADResponse[]> {
   const results: PlantaCADResponse[] = [];

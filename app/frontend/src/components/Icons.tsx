@@ -79,6 +79,35 @@ export function EyeIcon() {
   );
 }
 
+export function EyeOffIcon() {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path
+        d="M3.5 4.5 20.5 19.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M9.2 6.9A9.9 9.9 0 0 1 12 6.5c6 0 9.5 5.5 9.5 5.5a15.2 15.2 0 0 1-2.8 3.2M6.1 8.7A15.1 15.1 0 0 0 2.5 12s3.5 5.5 9.5 5.5a9.7 9.7 0 0 0 4-.8"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M10.4 10.6a2.6 2.6 0 0 0 3 3"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
 // Renderiza o ícone de remoção.
 export function TrashIcon() {
   return (
@@ -226,6 +255,60 @@ export function SpinnerIcon({ className }: { className?: string }) {
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+export function UserIcon() {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.25" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M5.5 19.5a6.5 6.5 0 0 1 13 0"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+export function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path
+        d="M7 10V8a5 5 0 0 1 10 0v2"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+      <rect
+        x="5.5"
+        y="10"
+        width="13"
+        height="10"
+        rx="2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+export function LogOutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path
+        d="M9.5 5.5H7A2 2 0 0 0 5 7.5v9A2 2 0 0 0 7 18.5h2.5M14 8l4 4-4 4m3.5-4h-9"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         strokeWidth="1.8"
       />
     </svg>

@@ -2,13 +2,12 @@ from loguru import logger
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes.router_upload import router as upload_router
-from src.routes.router_project import router as projeto_router
-from src.routes.router_blueprints import router as planta_router
-from src.routes.router_standards import router as norma_router
-from src.routes.router_users import router as users_router
-
 from src.config import settings
+from src.routes.router_blueprints import router as planta_router
+from src.routes.router_project import router as projeto_router
+from src.routes.router_standards import router as norma_router
+from src.routes.router_upload import router as upload_router
+from src.routes.router_users import router as users_router
 
 logger.add(
     'logs/app_{time:YYYY-MM-DD}.log',
@@ -16,16 +15,15 @@ logger.add(
     level=settings.log_level, backtrace=True, diagnose=True)
 
 # TODO: debugging / desabilitar em prod
-logger.debug("Configurações carregadas: {}",
+logger.debug("Configuracoes carregadas: {}",
              settings.model_dump_json(indent=4))
 
 app = FastAPI(
     title="EchoCAD API",
-    description="API para extração de dados de plantas CAD e geração de documentação técnica.",
+    description="API para extracao de dados de plantas CAD e geracao de documentacao tecnica.",
     version="1.1.0",
 )
 
-# Adiciona permissões para o CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,7 +32,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# rotas de manipulação dos objetos
 app.include_router(upload_router)
 app.include_router(projeto_router)
 app.include_router(planta_router)
@@ -42,8 +39,7 @@ app.include_router(norma_router)
 app.include_router(users_router)
 
 
-@app.get('/', status_code=status.HTTP_200_OK, tags=['root'], summary='Rota de boas vindas')
+@app.get("/", status_code=status.HTTP_200_OK, tags=["root"], summary="Rota de boas vindas")
 async def root():
-    """Rota de boas vindas, retorna uma mensagem indicando que a api está online."""
     logger.debug("Rota de boas vindas acessada.")
     return {"message": "Welcome to EchoCad Api."}
