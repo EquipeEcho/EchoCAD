@@ -15,8 +15,9 @@ logger.add(
     level=settings.log_level, backtrace=True, diagnose=True)
 
 # TODO: debugging / desabilitar em prod
-logger.debug("Configuracoes carregadas: {}",
-             settings.model_dump_json(indent=4))
+logger.debug(
+    "Configuracoes carregadas: {}",
+    settings.model_dump_json(indent=4))
 
 app = FastAPI(
     title="EchoCAD API",

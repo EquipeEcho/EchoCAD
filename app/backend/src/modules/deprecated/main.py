@@ -2,13 +2,13 @@ import os
 import json
 from pathlib import Path
 from datetime import datetime
-from entity_dxf import EntityDxf
-from team_ai import create_team
-from agents.agent_context import create_context_agent
-from agents.agent_layer_select import create_classificator_agent
-from agents.agent_spatial_analyst import create_spatial_analyst_agent
-from agents.agent_surveyor import create_surveyor_agent
-from tools.memorial_populator import MemorialPopulator
+from app.backend.src.modules.deprecated.entity_dxf import EntityDxf
+from app.backend.src.modules.deprecated.team_ai import create_team
+from app.backend.src.modules.deprecated.agents.agent_context import create_context_agent
+from app.backend.src.modules.deprecated.agents.agent_layer_select import create_classificator_agent
+from app.backend.src.modules.deprecated.agents.agent_spatial_analyst import create_spatial_analyst_agent
+from app.backend.src.modules.deprecated.agents.agent_surveyor import create_surveyor_agent
+from app.backend.src.modules.deprecated.tools.memorial_populator import MemorialPopulator
 
 
 def run_extraction(prompt_usuario: str, dxf_path: str, project_id: int, gerar_excel: bool = True):

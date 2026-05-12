@@ -1,5 +1,7 @@
+from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from src.config import settings
 
 # Usando MySQL conforme configurado no alembic.ini
@@ -17,8 +19,9 @@ def get_session():
     session = SessionLocal()
     try:
         yield session
-    except Exception:
+    except Exception as e:
         session.rollback()
+        logger.error('Database error: {}', e)
         raise
     finally:
         session.close()

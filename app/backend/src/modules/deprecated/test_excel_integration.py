@@ -17,14 +17,14 @@ def test_imports():
     """Testa se todos os imports necessários funcionam."""
     print("🧪 Testando imports...")
     try:
-        from entity_dxf import EntityDxf
-        from team_ai import create_team
-        from main import run_extraction, _gerar_excel_a_partir_json
-        from tools.memorial_populator import MemorialPopulator, run_population
-        from agents.agent_context import create_context_agent
-        from agents.agent_layer_select import create_classificator_agent
-        from agents.agent_spatial_analyst import create_spatial_analyst_agent
-        from agents.agent_surveyor import create_surveyor_agent
+        from app.backend.src.modules.deprecated.entity_dxf import EntityDxf
+        from app.backend.src.modules.deprecated.team_ai import create_team
+        from app.backend.src.modules.deprecated.main import run_extraction, _gerar_excel_a_partir_json
+        from app.backend.src.modules.deprecated.tools.memorial_populator import MemorialPopulator, run_population
+        from app.backend.src.modules.deprecated.agents.agent_context import create_context_agent
+        from app.backend.src.modules.deprecated.agents.agent_layer_select import create_classificator_agent
+        from app.backend.src.modules.deprecated.agents.agent_spatial_analyst import create_spatial_analyst_agent
+        from app.backend.src.modules.deprecated.agents.agent_surveyor import create_surveyor_agent
         print("✓ Todos os imports funcionam!")
         return True
     except ImportError as e:
@@ -67,7 +67,7 @@ def test_memorial_populator():
     """Testa a classe MemorialPopulator com dados fictícios."""
     print("\n🧪 Testando MemorialPopulator...")
     try:
-        from tools.memorial_populator import MemorialPopulator
+        from app.backend.src.modules.deprecated.tools.memorial_populator import MemorialPopulator
         
         template_path = Path(__file__).parent.parent.parent / "templates" / "memorial_model.xlsx"
         output_path = Path(__file__).parent / "results" / "test_memorial.xlsx"

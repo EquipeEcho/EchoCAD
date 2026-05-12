@@ -4,12 +4,12 @@ import asyncio
 from pathlib import Path
 from sqlalchemy.orm import Session
 from src.models.projeto_db import Project, Planta
-from src.modules.core.team_ai import create_team
-from src.modules.core.entity_dxf import EntityDxf
-from src.modules.core.agents.agent_context import create_context_agent
-from src.modules.core.agents.agent_layer_select import create_classificator_agent
-from src.modules.core.agents.agent_spatial_analyst import create_spatial_analyst_agent
-from src.modules.core.agents.agent_surveyor import create_surveyor_agent
+from app.backend.src.modules.deprecated.team_ai import create_team
+from app.backend.src.modules.deprecated.entity_dxf import EntityDxf
+from app.backend.src.modules.deprecated.agents.agent_context import create_context_agent
+from app.backend.src.modules.deprecated.agents.agent_layer_select import create_classificator_agent
+from app.backend.src.modules.deprecated.agents.agent_spatial_analyst import create_spatial_analyst_agent
+from app.backend.src.modules.deprecated.agents.agent_surveyor import create_surveyor_agent
 
 logger = logging.getLogger(__name__)
 
