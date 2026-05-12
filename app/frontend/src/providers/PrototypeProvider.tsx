@@ -1,6 +1,7 @@
 import {
   PropsWithChildren,
   createContext,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -61,7 +62,7 @@ type PrototypeContextValue = {
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
-export const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+const PrototypeContext = createContext<PrototypeContextValue | null>(null);
 
 // URL base da API
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -828,4 +829,15 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       {children}
     </PrototypeContext.Provider>
   );
+}
+
+// Retorna o contexto principal do protótipo.
+export function usePrototype() {
+  const context = useContext(PrototypeContext);
+
+  if (!context) {
+    throw new Error("usePrototype must be used within PrototypeProvider.");
+  }
+
+  return context;
 }

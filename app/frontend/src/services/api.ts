@@ -209,7 +209,7 @@ export async function createMultiplePlantasCAD(
  * @returns The project data
  */
 export async function getProjeto(projectId: number): Promise<ProjectResponse> {
-  const response = await fetch(`${API_BASE_URL}/projeto/${projectId}`);
+  const response = await fetch(`${API_BASE_URL}/project/?projeto_id=${projectId}`);
 
   if (!response.ok) {
     throw new Error("Erro ao buscar projeto");
