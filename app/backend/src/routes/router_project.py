@@ -5,20 +5,21 @@ import shutil
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from src.controller.crud_projects import create_projeto, read_all_projetos, read_projeto
+from src.controller.crud_projects import create_projeto, read_all_projetos, read_projeto, update_project
 from src.database import get_session
-from src.schemas.user_schema import CreateProjectSchema, ProjectPublicSchema
+from src.schemas.user_schema import CreateProjectSchema, ProjectPublicSchema, UpdateProjectSchema
 from src.models.projeto_db import Project, Blueprint, Report, Specification
 from deprecated import deprecated
 
 router = APIRouter(prefix='/project', tags=['projeto'])
 
+
 @router.post('/', summary='Criar projeto', status_code=status.HTTP_201_CREATED, response_model=ProjectPublicSchema)
-async def create_project(project_schema: CreateProjectSchema, db: Session = Depends(get_session)):
+async def post_create_project(project_schema: CreateProjectSchema, db: Session = Depends(get_session)):
     """
     Rota para criação de um novo projeto.
     """
-    
+
     try:
         result = create_projeto(db, project_schema)
         logger.info(result)
@@ -36,7 +37,7 @@ async def create_project(project_schema: CreateProjectSchema, db: Session = Depe
 
 
 @router.get('/', summary='Listar todos os projetos', status_code=status.HTTP_200_OK, response_model=list[ProjectPublicSchema])
-async def list_projects(db: Session = Depends(get_session)):
+async def get_list_projects(db: Session = Depends(get_session)):
     """
     Rota para listar todos os projetos existentes.
     """
@@ -57,13 +58,32 @@ async def get_project(projeto_id: int, db: Session = Depends(get_session)):
     try:
         result = read_projeto(db, projeto_id)
         if not result:
-            raise HTTPException(status_code=404, detail="Projeto não encontrado")
+            raise HTTPException(
+                status_code=404, detail="Projeto não encontrado")
         return result
 
     except HTTPException:
         raise
     except Exception as e:
         msg = 'Erro ao buscar o projeto'
+        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
+
+
+@router.patch('/', summary='Atualizar projeto', status_code=status.HTTP_200_OK, response_model=ProjectPublicSchema)
+async def patch_update_project(projeto_id: int, project_schema: UpdateProjectSchema, db: Session = Depends(get_session)):
+    """
+    Rota para atualizar um projeto existente.
+    """
+
+    try:
+        return update_project(db, projeto_id, project_schema)
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        msg = 'Erro ao atualizar o projeto'
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
@@ -84,7 +104,8 @@ async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
         # Verifica se projeto existe
         projeto = db.query(Project).filter(Project.id == projeto_id).first()
         if not projeto:
-            raise HTTPException(status_code=404, detail="Projeto não encontrado")
+            raise HTTPException(
+                status_code=404, detail="Projeto não encontrado")
 
         # Remove todos os memoriais de cálculo
         db.query(Report).filter(Report.id_project == projeto_id).delete()
@@ -93,7 +114,8 @@ async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
         db.query(Blueprint).filter(Blueprint.id_project == projeto_id).delete()
 
         # Remove todas as especificações técnicas
-        db.query(Specification).filter(Specification.id_project == projeto_id).delete()
+        db.query(Specification).filter(
+            Specification.id_project == projeto_id).delete()
 
         # Remove o projeto
         db.delete(projeto)

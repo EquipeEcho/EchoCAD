@@ -67,12 +67,12 @@ class UserPublicSchema(BaseModel):
 
 
 class CreateProjectSchema(BaseModel):
-    id_user: int | None = Field(None)
+    id_user: int = Field(..., description="ID do usuario criador do projeto")
     name: ProjectName = Field(..., description="Nome do projeto")
     description: str | None = Field(None, description="Descricao opcional do projeto")
     client: str | None = Field(None)
 
-    model_config = ConfigDict(from_attributes=True, extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectPublicSchema(CreateProjectSchema):
@@ -98,6 +98,16 @@ class ProjectPublicSchema(CreateProjectSchema):
 
 
 class UpdateProjectSchema(BaseModel):
+    """
+    Schema para atualizar um projeto existente.
+    ### Campos obrigatorios:
+    - id (int): ID do projeto a ser atualizado.
+    ### Campos opcionais:
+    - name (str): Novo nome do projeto (entre 1 e 150 caracteres).
+    - description (str): Nova descricao do projeto.
+    - client (str): Novo cliente do projeto.
+    """
+    id: int = Field(..., description="ID do projeto a ser atualizado")
     name: ProjectName | None = Field(None, description="Novo nome do projeto")
     description: str | None = Field(None, description="Nova descricao do projeto")
     client: str | None = Field(None)

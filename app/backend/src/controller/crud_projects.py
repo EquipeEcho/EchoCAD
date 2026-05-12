@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from src.models.projeto_db import Project
-from src.schemas.user_schema import CreateProjectSchema
+from src.schemas.user_schema import CreateProjectSchema, UpdateProjectSchema
 
 
 def create_projeto(db: Session, project_schema: CreateProjectSchema) -> Project:
@@ -63,3 +63,33 @@ def read_all_projetos(db: Session) -> list[Project]:
     """
     query = select(Project)
     return list(db.execute(query).scalars().all())
+
+
+def update_project(db: Session, projeto_id: int, project_schema: UpdateProjectSchema) -> Project:
+    """
+    Atualiza os dados de um projeto existente no banco de dados.
+
+    Args:
+        db (Session): Sessão ativa do SQLAlchemy.
+        projeto_id (int): O ID do projeto a ser atualizado.
+        project_schema (CreateProjectSchema): Dados validados para atualização.
+
+    Returns:
+        Projeto: O objeto do projeto atualizado.
+
+    Raises:
+        ValueError: Se o projeto com o ID fornecido não existir.
+    """
+
+    stmt = select(Project).where(Project.id == projeto_id)
+    existing_project = db.execute(stmt).scalar_one_or_none()
+
+    if not existing_project:
+        raise ValueError(f'Projeto com ID {projeto_id} não encontrado.')
+
+    for key, value in project_schema.model_dump(exclude_unset=True, exclude={'id'}).items():
+        setattr(existing_project, key, value)
+
+    db.commit()
+    db.refresh(existing_project)
+    return existing_project
