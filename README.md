@@ -49,19 +49,19 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 
 | Rank | Prioridade | User Story | Estimativa | Sprint |
 |-----|------------|------------|------------|--------|
-| US01 | Alta | Como engenheiro, quero enviar um arquivo CAD para que o sistema processe a planta automaticamente. | 5 | 1 |
-| US02 | Alta | Como engenheiro, quero exportar o memorial de cálculo em planilha Excel e salvar os dados do memorial no sistema, para facilitar a análise, documentação e armazenamento das informações do projeto | 8 | 1 |
+| US01 | Altíssima | Como engenheiro, quero enviar um arquivo CAD para que o sistema processe a planta automaticamente. | 5 | 1 |
+| US02 | Altíssima | Como engenheiro, quero exportar o memorial de cálculo em planilha Excel e salvar os dados do memorial no sistema, para facilitar a análise, documentação e armazenamento das informações do projeto | 8 | 1 |
 | US03 | Alta | Como engenheiro, preciso que o sistema valide o formato dos arquivos CAD enviados para garantir que apenas arquivos CAD sejam processados. | 3 | 1 |
 | US04 | Alta | Como engenheiro, quero que o sistema aplique fórmulas  de engenharia para gerar dados do memorial de cálculo. | 8 | 1 |
 | US05 | Alta | Como engenheiro, quero gerar automaticamente um memorial de cálculo estruturado para documentar o projeto técnico. | 5 | 1 |
 | US06 | Alta | Como engenheiro, quero uma interface limpa e direta para que eu não fique perdido ao tentar navegar pelo site. | 5 | 1 |
 | US07 | Alta | Como engenheiro, quero uma IA dedicada para filtrar os dados extraídos da planta CAD corretamente de acordo com as layers. | 8 | 1 |
-| US08 | Alta | Como engenheiro, quero ter uma tela de login e cadastro para acessar minhas análises anteriores. | 5 | 2 |
-| US09 | Alta | Como engenheiro, quero classificar elementos CAD para identificar componentes da planta.  | 8 | 2 |
-| US10 | Alta | Como engenheiro, quero gerar automaticamente especificações técnicas do projeto. | 5 | 2 |
-| US11 | Média | Como engenheiro, quero utilizar um assistente para solicitar geração de documentações específicas sobre a planta CAD | 5 | 2 |
-| US12 | Média | Como engenheiro, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises. | 3 | 2 |
-| US13 | Média | Como engenheiro, quero exportar especificações técnicas em PDF ou DOCX. | 3 | 2 |
+| US08 | Alta | Como engenheiro, quero ter uma tela de login e cadastro para acessar minhas análises anteriores. | 5 | 3 |
+| US09 | Alta | Como engenheiro, quero preencher um formulário com as informações do projeto e do levantamento de campo para melhor precisão e efetividade na geração dos documentos.  | 8 | 3 |
+| US10 | Alta | Como engenheiro, quero gerar automaticamente especificações técnicas do projeto. | 5 | 3 |
+| US11 | Alta | Como engenheiro, quero que as especificações técnicas sejam geradas com base nas normas NBR. |5 | 3 |
+| US12 | Média | Como engenheiro, quero visualizar um dashboard com meus projetos e documentos gerados para acompanhar o progresso das análises. | 3 | 3 |
+| US13 | Média | Como engenheiro, quero exportar especificações técnicas em DOCX. | 3 | 3 |
 | US14 | Média |  Como engenheiro, quero acessar um histórico de documentos gerados para consultar análises anteriores. | 3 | 3 |
 | US15 | Baixa | Como engenheiro, quero acessar um manual de uso do sistema. | 2 | 3 |
 | US16 | Baixa | Como engenheiro, quero um manual de instalação da aplicação para facilitar a implantação. | 2 | 3 |
