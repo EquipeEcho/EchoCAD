@@ -173,7 +173,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       setHistoryError(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/project/`);
+        const response = await fetch(`${API_BASE_URL}/project/all`);
         if (!response.ok) {
           throw new Error(`Erro ao buscar projetos: ${response.status}`);
         }
