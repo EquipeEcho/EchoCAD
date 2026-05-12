@@ -5,7 +5,7 @@ import shutil
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from src.controller.crud_projects import create_projeto, read_all_projetos, read_projeto, update_project
+from src.controller.crud_projects import create_projeto, read_all_projetos, read_projeto, remove_project, update_project
 from src.database import get_session
 from src.schemas.user_schema import CreateProjectSchema, ProjectPublicSchema, UpdateProjectSchema
 from src.models.projeto_db import Project, Blueprint, Report, Specification
@@ -70,13 +70,13 @@ async def get_project(projeto_id: int, db: Session = Depends(get_session)):
 
 
 @router.patch('/', summary='Atualizar projeto', status_code=status.HTTP_200_OK, response_model=ProjectPublicSchema)
-async def patch_update_project(projeto_id: int, project_schema: UpdateProjectSchema, db: Session = Depends(get_session)):
+async def patch_update_project(project_schema: UpdateProjectSchema, db: Session = Depends(get_session)):
     """
     Rota para atualizar um projeto existente.
     """
 
     try:
-        return update_project(db, projeto_id, project_schema)
+        return update_project(db, project_schema)
 
     except HTTPException:
         db.rollback()
@@ -89,7 +89,7 @@ async def patch_update_project(projeto_id: int, project_schema: UpdateProjectSch
 
 # TODO: implementar validação.
 @deprecated(reason='Essa rota não tem segurança e será substituída por uma com validação')
-@router.delete('/', summary='Deletar projeto', status_code=status.HTTP_200_OK)
+@router.delete('/', summary='Deletar projeto', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
     """
     Rota para deletar um projeto e seus arquivos associados.
@@ -101,25 +101,7 @@ async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
     - Renomeia a pasta de uploads para {project_id}.deleted
     """
     try:
-        # Verifica se projeto existe
-        projeto = db.query(Project).filter(Project.id == projeto_id).first()
-        if not projeto:
-            raise HTTPException(
-                status_code=404, detail="Projeto não encontrado")
-
-        # Remove todos os memoriais de cálculo
-        db.query(Report).filter(Report.id_project == projeto_id).delete()
-
-        # Remove todas as plantas CAD
-        db.query(Blueprint).filter(Blueprint.id_project == projeto_id).delete()
-
-        # Remove todas as especificações técnicas
-        db.query(Specification).filter(
-            Specification.id_project == projeto_id).delete()
-
-        # Remove o projeto
-        db.delete(projeto)
-        db.commit()
+        remove_project(db, projeto_id)
 
         # Renomeia a pasta de uploads de {project_id} para {project_id}.deleted
         backend_root = Path(__file__).parent.parent.parent
@@ -133,12 +115,6 @@ async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
                 shutil.rmtree(deleted_folder)
             # Renomeia a pasta
             project_folder.rename(deleted_folder)
-
-        return {
-            "message": "Projeto deletado com sucesso",
-            "projeto_id": projeto_id,
-            "folder_status": "renomeada para .deleted" if project_folder.exists() or deleted_folder.exists() else "não encontrada"
-        }
 
     except HTTPException:
         db.rollback()
