@@ -510,7 +510,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     try {
       // Chamada DELETE para o backend remover projeto e arquivos
       const response = await fetch(
-        `${API_BASE_URL}/projeto/${documentId}`,
+        `${API_BASE_URL}/project/?projeto_id=${documentId}`,
         { method: "DELETE" }
       );
 
