@@ -6,7 +6,7 @@ import { FileList } from "../components/FileList";
 import { FileRow } from "../components/FileRow";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import { UploadStatusTone } from "../types/documents";
 
 type StandardSwitchProps = {

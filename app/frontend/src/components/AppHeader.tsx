@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import { useTheme } from "../providers/ThemeProvider";
 import { Button } from "./Button";
 import { LogOutIcon, MoonIcon, SpinnerIcon, SunIcon, UserIcon } from "./Icons";

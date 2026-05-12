@@ -1,6 +1,6 @@
 import { ChangeEvent, DragEvent, MouseEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import {
   ProjectSaveInput,
   UploadDocument,

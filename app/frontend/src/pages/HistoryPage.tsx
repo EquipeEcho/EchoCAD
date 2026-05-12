@@ -13,7 +13,7 @@ import { FileList } from "../components/FileList";
 import { FileRow } from "../components/FileRow";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import { HistoryDocument } from "../types/documents";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
@@ -61,7 +61,7 @@ export function HistoryPage() {
       return;
     }
 
-    await removeHistoryDocument(pendingRemoval.id);
+    removeHistoryDocument(pendingRemoval.id);
     setPendingRemoval(null);
   };
 

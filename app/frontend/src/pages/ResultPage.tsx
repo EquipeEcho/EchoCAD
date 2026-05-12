@@ -11,7 +11,7 @@ import {
 import { PreviewPanel } from "../components/PreviewPanel";
 import { ProjectSaveModal } from "../components/ProjectSaveModal";
 import { SectionTitle } from "../components/SectionTitle";
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import { ProjectSaveInput } from "../types/documents";
 
 // Exibe o documento gerado e as ações de download.

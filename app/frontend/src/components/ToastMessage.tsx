@@ -1,4 +1,4 @@
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import { InfoCircleIcon, ToastSuccessIcon } from "./Icons";
 
 // Exibe a notificação ativa do sistema.

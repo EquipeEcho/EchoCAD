@@ -114,7 +114,7 @@ export async function loginUser(credentials: LoginPayload): Promise<AuthResponse
 export async function createProjeto(
   projectData: ProjetoCreatePayload
 ): Promise<ProjectResponse> {
-  const response = await fetch(`${API_BASE_URL}/projeto/`, {
+  const response = await fetch(`${API_BASE_URL}/project/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -223,7 +223,8 @@ export async function getProjeto(projectId: number): Promise<ProjectResponse> {
  * @returns Array of all projects
  */
 export async function listProjetos(): Promise<ProjectResponse[]> {
-  const response = await fetch(`${API_BASE_URL}/projeto/`);
+  const response = await fetch(`${API_BASE_URL}/projects/`);
+  console.log("Response status:", response.status);
 
   if (!response.ok) {
     throw new Error("Erro ao listar projetos");

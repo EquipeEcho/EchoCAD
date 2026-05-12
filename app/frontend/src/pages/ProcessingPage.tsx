@@ -6,7 +6,7 @@ import { ChevronDownIcon, ChevronUpIcon, InfoCircleIcon } from "../components/Ic
 import { ProgressIndicator } from "../components/ProgressIndicator";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import { ProjectSaveInput, UploadDocument } from "../types/documents";
 
 type ProcessingRouteState = {

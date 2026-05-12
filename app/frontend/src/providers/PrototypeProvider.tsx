@@ -1,7 +1,6 @@
 import {
   PropsWithChildren,
   createContext,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -62,8 +61,10 @@ type PrototypeContextValue = {
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
-const PrototypeContext = createContext<PrototypeContextValue | null>(null);
-const LIST_PROJETOS_URL = "http://localhost:8000/projeto/";
+export const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+
+// URL base da API
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 type ProjetoApiItem = {
   id?: number | string;
@@ -132,9 +133,6 @@ function buildTechnicalStandard(file: File): TechnicalStandard | null {
   };
 }
 
-// URL base da API
-const API_BASE_URL = "http://127.0.0.1:8000";
-
 // Centraliza o estado do protótipo e das simulações.
 export function PrototypeProvider({ children }: PropsWithChildren) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadDocument[]>([]);
@@ -174,7 +172,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       setHistoryError(null);
 
       try {
-        const response = await fetch(LIST_PROJETOS_URL);
+        const response = await fetch(`${API_BASE_URL}/project/`);
         if (!response.ok) {
           throw new Error(`Erro ao buscar projetos: ${response.status}`);
         }
@@ -830,15 +828,4 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       {children}
     </PrototypeContext.Provider>
   );
-}
-
-// Retorna o contexto principal do protótipo.
-export function usePrototype() {
-  const context = useContext(PrototypeContext);
-
-  if (!context) {
-    throw new Error("usePrototype must be used within PrototypeProvider.");
-  }
-
-  return context;
 }
