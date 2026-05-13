@@ -415,9 +415,9 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     setCurrentDocument(generatedDocument);
     setShouldPromptProjectSave(!projectInfo);
 
-    if (projectInfo) {
+    /*if (projectInfo) {
       const historyDocument =
-        buildHistoryDocumentFromGenerated(generatedDocument);
+      buildHistoryDocumentFromGenerated(generatedDocument);
 
       setHistoryDocuments((currentHistory) => [
         historyDocument,
@@ -425,7 +425,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
           (document) => document.document.id !== generatedDocument.id,
         ),
       ]);
-    }
+    }*/
 
     syncUploadedFiles([]);
     showToast(
