@@ -1,23 +1,24 @@
 services:
   mysql:
-    image: mysql:8.0
+    image: mariadb:11.4
     container_name: echocad_mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_USER: echocad_admin
-      MYSQL_PASSWORD: echocad_admin_password
-      MYSQL_DATABASE: echocad_db
-      MYSQL_INITDB_SKIP_TZINFO: "yes"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-root_password}"
+      MYSQL_USER: "${MYSQL_USER:-echocad_admin}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-echocad_admin_password}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-echocad_db}"
+      MYSQL_INITDB_SKIP_TZINFO: "${MYSQL_INITDB_SKIP_TZINFO:-yes}"
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mariadb_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "echocad_admin", "-pechocad_admin_password"]
-      timeout: 20s
-      retries: 10
-      interval: 5s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-echocad_admin}", "-p${MYSQL_PASSWORD:-echocad_admin_password}"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   alembic-migrate:
@@ -29,8 +30,8 @@ services:
       mysql:
         condition: service_healthy
     environment:
-      DATABASE_URL: mysql+pymysql://echocad_admin:echocad_admin_password@mysql:3306/echocad_db
-      PYTHONPATH: src
+      DATABASE_URL: "${DATABASE_URL}"
+      PYTHONPATH: "${PYTHONPATH:-src}"
     working_dir: /app
     entrypoint: [ "/bin/sh", "-c" ]
     command: |
@@ -85,11 +86,11 @@ services:
       ollama-model-puller:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: mysql+pymysql://echocad_admin:echocad_admin_password@mysql:3306/echocad_db
-      PYTHONPATH: src
-      DEBUG: "False"
+      DATABASE_URL: "${DATABASE_URL}"
+      PYTHONPATH: "${PYTHONPATH:-src}"
+      DEBUG: "${DEBUG:-False}"
     restart: unless-stopped
 
 volumes:
   ollama_data:
-  mysql_data:
+  mariadb_data:
