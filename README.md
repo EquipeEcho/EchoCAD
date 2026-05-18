@@ -74,9 +74,9 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 
 
 
-### 🟡 Sprint 2 - Assitente IA e geração de especificações técnicas  - Em andamento - <a href="./docs/backlog_sprint2/backlog.md"> Detalhes </a>
+### 🟡 Sprint 2 - Assitente IA e geração de especificações técnicas  - Não Concluído - <a href="./docs/backlog_sprint2/backlog.md"> Detalhes </a>
 
-### 🔵 Sprint 3 - Documentação e exportação de documentos - Não iniciada
+### 🔵 Sprint 3 - Documentação e exportação de documentos - Em Andamento - <a href="./docs/backlog_sprint3/backlog.md"> Detalhes </a>
 
 
 ## 🏃‍ DoR - Definition of Ready
