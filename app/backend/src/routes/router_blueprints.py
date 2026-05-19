@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import json
+from pathlib import Path
 
 from src.controller.crud_blueprints import create_blueprint, read_all_blueprints
 from src.database import get_session
 from src.schemas.system_schema import Success
 from src.schemas.user_schema import BlueprintSchema, BlueprintPublic
-
+from src.modules.core.build.drill import processar_dxf
 
 router = APIRouter(prefix='/planta_cad', tags=["planta_cad"])
 
@@ -35,4 +37,20 @@ async def list_blueprints(db: Session = Depends(get_session)):
 
     except Exception as e:
         msg = 'Erro ao buscar as plantas existentes'
+        raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
+
+@router.get("/", summary="Extrai dados do .DXF", status_code=status.HTTP_200_OK)
+async def Extrator_DXF(Caminho: String):
+    try:    
+        # Define o caminho do DXF
+        pasta_do_script = Path(__file__).parent
+        caminho = Caminho    
+
+        if not Path(caminho).exists():
+            print("Coloque o caminho do .DXF")
+        # 2. Roda o motor passando as configurações dinâmicas
+        relatorio_json = processar_dxf(caminho)
+        return relatorio_json
+    except Exception as e:
+        msg = "Erro ao extrair dados do .DXF"
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
