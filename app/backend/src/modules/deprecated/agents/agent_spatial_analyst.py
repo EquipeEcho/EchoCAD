@@ -4,13 +4,13 @@ from src.aiconf import medium_model
 
 def create_spatial_analyst_agent(tools: list):
     return Agent(
-        id='spatial-analyst',
-        name='Spatial Analyst',
-        role='Analisa a conectividade espacial entre entidades DXF para identificar sistemas contínuos',
-        description='Identifica grupos de entidades conectadas (como redes elétricas ou paredes) e calcula comprimentos totais.',
+        id="spatial-analyst",
+        name="Spatial Analyst",
+        role="Analisa a conectividade espacial entre entidades DXF para identificar sistemas contínuos",
+        description="Identifica grupos de entidades conectadas (como redes elétricas ou paredes) e calcula comprimentos totais.",
         model=medium_model,
         instructions=[
-            '''
+            """
             Você é um especialista em topologia de projetos de engenharia.
             Sua tarefa é analisar como as entidades de um arquivo CAD estão conectadas.
 
@@ -22,7 +22,7 @@ def create_spatial_analyst_agent(tools: list):
             
             SAÍDA:
             - Um resumo técnico dos sistemas contínuos encontrados, seus comprimentos totais e as entidades que os compõem.
-            '''
+            """
         ],
         tools=tools,
         debug_mode=True,

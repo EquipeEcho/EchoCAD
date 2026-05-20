@@ -10,7 +10,7 @@ from src.schemas.user_schema import CreateUserSchema, UpdateUserSchema
 
 
 def create_user(db: Session, user_schema: CreateUserSchema) -> User:
-    '''
+    """
     Cria um novo usuário no banco de dados.
     Args:
         db (Session): Sessão do banco de dados.
@@ -20,12 +20,12 @@ def create_user(db: Session, user_schema: CreateUserSchema) -> User:
     Raises:
         ValueError: Se já existir um usuário com o mesmo email.
         SystemError: Se ocorrer um erro inesperado durante a criação do usuário.
-    '''
+    """
     try:
         new_user = User(**user_schema.model_dump())
         new_user.password = bcrypt.hashpw(
-            new_user.password.encode('utf-8'),
-            bcrypt.gensalt()).decode('utf-8')
+            new_user.password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
@@ -39,11 +39,12 @@ def create_user(db: Session, user_schema: CreateUserSchema) -> User:
         logger.error("Unexpected error occurred: {}", e)
         raise SystemError(
             "Ocorreu um erro inesperado ao criar o usuário, "
-            "para mais informações consulte o log") from e
+            "para mais informações consulte o log"
+        ) from e
 
 
 def get_user_by_email(db: Session, email: str, password: str) -> User | None:
-    '''
+    """
     Recupera um usuário do banco de dados com base no email e senha.
     Args:
         db (Session): Sessão do banco de dados.
@@ -54,23 +55,22 @@ def get_user_by_email(db: Session, email: str, password: str) -> User | None:
         encontrado ou se a senha não corresponder.
     Raises:
         SystemError: Se ocorrer um erro inesperado durante a recuperação do usuário.
-    '''
+    """
     try:
         stmt = select(User).where(User.email == email)
         result = db.execute(stmt).scalar_one_or_none()
         if result and bcrypt.checkpw(
-                password.encode('utf-8'),
-                result.password.encode('utf-8')):
+            password.encode("utf-8"), result.password.encode("utf-8")
+        ):
             return result
         return None
     except Exception as e:
         logger.error("Unexpected error occurred: {}", e)
-        raise SystemError(
-            "Ocorreu um erro inesperado ao recuperar o usuário") from e
+        raise SystemError("Ocorreu um erro inesperado ao recuperar o usuário") from e
 
 
 def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
-    '''
+    """
     Atualiza um usuário existente no banco de dados.
     Args:
         db (Session): Sessão do banco de dados.
@@ -80,7 +80,7 @@ def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
     Raises:
         ValueError: Se a senha atual fornecida estiver incorreta.
         SystemError: Se ocorrer um erro inesperado durante a atualização do usuário.
-    '''
+    """
     try:
         stmt = select(User).where(User.id == user_schema.id)
         user = db.execute(stmt).scalar_one_or_none()
@@ -89,18 +89,18 @@ def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
             return None
 
         if not bcrypt.checkpw(
-                user_schema.password.encode('utf-8'),
-                user.password.encode('utf-8')):
+            user_schema.password.encode("utf-8"), user.password.encode("utf-8")
+        ):
             raise ValueError("Senha atual incorreta")
 
         for key, value in user_schema.model_dump(exclude_unset=True).items():
-            if key == 'password':
-                continue            
-            if key == 'new_password':
+            if key == "password":
+                continue
+            if key == "new_password":
                 hash_password = bcrypt.hashpw(
-                    value.encode('utf-8'),
-                    bcrypt.gensalt()).decode('utf-8')
-                setattr(user, 'password', hash_password)
+                    value.encode("utf-8"), bcrypt.gensalt()
+                ).decode("utf-8")
+                setattr(user, "password", hash_password)
                 continue
             setattr(user, key, value)
 
@@ -108,7 +108,7 @@ def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
         db.refresh(user)
 
         return user
-    
+
     except ValueError as e:
         db.rollback()
         logger.error("Error updating user: {}", e)
@@ -118,4 +118,5 @@ def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
         logger.error("Unexpected error occurred: {}", e)
         raise SystemError(
             "Ocorreu um erro inesperado ao atualizar o usuário, "
-            "para mais informações consulte o log") from e
+            "para mais informações consulte o log"
+        ) from e

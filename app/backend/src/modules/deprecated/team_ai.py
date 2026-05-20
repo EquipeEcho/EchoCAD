@@ -13,6 +13,7 @@ from .tools.memorial_populator import run_population
 #         run_context.session_state["selected_layers"] = layers
 #     return f"Contexto atualizado: Disciplina={run_context.session_state.get('discipline')}, Layers={run_context.session_state.get('selected_layers')}"
 
+
 def create_team(entity: EntityDxf, members: list[Agent | Team]):
     # Define as ferramentas disponíveis para os agentes a partir do EntityDxf
     dxf_tools = [
@@ -33,30 +34,29 @@ def create_team(entity: EntityDxf, members: list[Agent | Team]):
     team = Team(
         name="Echo Team",
         model=Ollama(
-            id='qwen2.5:7b',
+            id="qwen2.5:7b",
             options={
                 "temperature": 0,
                 "num_ctx": 8192,
-            }
+            },
         ),
         members=members,
         instructions=[
             "VOCÊ É O MAESTRO TÉCNICO. SEU TRABALHO É EXECUTAR UM PIPELINE RÍGIDO DE 4 ETAPAS SEM REPETIÇÕES.",
             "PROIBIDO CONVERSAR COM O USUÁRIO OU EXPLICAR PASSOS.",
-            
             "ORDEM OBRIGATÓRIA E ÚNICA DE EXECUÇÃO:",
             "1. CONTEXTO: Peça ao ContextAgent para definir a disciplina exata.",
             "2. FILTRAGEM: Com a disciplina, peça ao Agent Layer Select a lista de layers reais (JSON).",
             "3. ANÁLISE: Com os layers, peça ao Spatial Analyst o resumo técnico da conectividade.",
             "4. SÍNTESE: Com o resumo da análise, peça ao Quantity Surveyor o JSON final consolidado.",
-            
             "REGRA CRÍTICA: Cada agente deve ser chamado exatamente uma vez na ordem acima.",
-            "RESPOSTA FINAL: Entregue EXCLUSIVAMENTE o JSON puro gerado pelo Quantity Surveyor. Nada mais."
+            "RESPOSTA FINAL: Entregue EXCLUSIVAMENTE o JSON puro gerado pelo Quantity Surveyor. Nada mais.",
         ],
         markdown=False,
         debug_mode=True,
     )
     return team
+
 
 # "Você é o Maestro do EchoCAD. Use o TeamMode.tasks para processar o pedido.",
 # "FLUXO OBRIGATÓRIO:",

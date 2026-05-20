@@ -7,16 +7,17 @@ class Formato(BaseModel):
     disciplina: str
     layers: list[str]
 
+
 def create_classificator_agent():
     return Agent(
-        id='agent-layer-select',
-        name='Agent Layer Select',
-        input_schema=Formato, # definir o formato de entrada usando Pydantic
-        role='Selecione os layer relevantes associados a uma disciplina de engenharia fornecida.',
-        description='Filtra a lista real de layers de um arquivo DXF usando a disciplina como keyword.',
+        id="agent-layer-select",
+        name="Agent Layer Select",
+        input_schema=Formato,  # definir o formato de entrada usando Pydantic
+        role="Selecione os layer relevantes associados a uma disciplina de engenharia fornecida.",
+        description="Filtra a lista real de layers de um arquivo DXF usando a disciplina como keyword.",
         model=medium_model,
         instructions=[
-            '''
+            """
             Você é um especialista em estruturação de layers CAD (AIA CAD Standards).
             Sua missão é selecionar APENAS os layers que pertencem EXCLUSIVAMENTE à disciplina solicitada.
 
@@ -33,7 +34,7 @@ def create_classificator_agent():
             SAÍDA:
             Retorne APENAS o JSON com a lista de nomes. Ex: ["layer1", "layer2"].
             Não adicione texto explicativo.
-            '''
+            """
         ],
         use_json_mode=True,
         markdown=False,

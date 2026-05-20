@@ -7,7 +7,7 @@ from src.models.projeto_db import Standard
 
 
 # Substitua 'any' pelo nome correto do schema, como 'StandardSchema'
-def create_standard(db: Session, norma_schema: StandardSchema) -> Standard: 
+def create_standard(db: Session, norma_schema: StandardSchema) -> Standard:
     """
     Instancia e persiste uma nova norma técnica no banco de dados.
 
@@ -48,7 +48,7 @@ def read_all_standards(db: Session):
         db (Session): Sessão ativa do SQLAlchemy.
 
     Returns:
-        List[Standard]: Uma lista contendo todas as normas encontradas. 
+        List[Standard]: Uma lista contendo todas as normas encontradas.
                        Retorna uma lista vazia [] se não houver registros.
     """
     query = select(Standard)
@@ -65,14 +65,14 @@ def toggle_standard_status(db: Session, norma_id: int) -> Standard:
 
     Returns:
         Standard: A norma atualizada.
-        
+
     Raises:
         ValueError: Se a norma não for encontrada.
     """
     norma = read_norma(db, norma_id)
     if not norma:
         raise ValueError(f"Standard com ID {norma_id} não encontrada")
-    
+
     norma.active = not norma.active
     db.commit()
     db.refresh(norma)

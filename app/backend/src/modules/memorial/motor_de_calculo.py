@@ -31,7 +31,6 @@ class MotorCalculo:
 
 
 class Calculadora:
-
     def calcular_area_parede(self, parede: Parede):
         return parede.comprimento * parede.altura
 

@@ -20,11 +20,7 @@ def run_command(command, shell=True, capture_output=True, check=True):
     """Executa um comando e retorna o resultado."""
     try:
         result = subprocess.run(
-            command,
-            shell=shell,
-            capture_output=capture_output,
-            text=True,
-            check=check
+            command, shell=shell, capture_output=capture_output, text=True, check=check
         )
         return result
     except subprocess.CalledProcessError as e:
@@ -53,7 +49,9 @@ def check_command_exists(command):
 def get_latest_version_pipx():
     """Obtém a versão mais recente do pipx do PyPI."""
     try:
-        with urllib.request.urlopen("https://pypi.org/pypi/pipx/json", timeout=10) as response:
+        with urllib.request.urlopen(
+            "https://pypi.org/pypi/pipx/json", timeout=10
+        ) as response:
             data = json.loads(response.read())
             return data["info"]["version"]
     except:
@@ -87,7 +85,7 @@ def install_or_update_pipx():
         if latest_version and current_version != latest_version:
             print(f"📦 Versão mais recente disponível: {latest_version}")
             update = input("Deseja atualizar pipx? (s/n): ").lower().strip()
-            if update == 's':
+            if update == "s":
                 print("🔄 Atualizando pipx...")
                 result = run_command("python -m pip install --upgrade pipx")
                 if result and result.returncode == 0:
@@ -108,7 +106,7 @@ def install_or_update_pipx():
     else:
         print("📦 pipx não encontrado")
         install = input("Deseja instalar pipx? (s/n): ").lower().strip()
-        if install == 's':
+        if install == "s":
             print("🔄 Instalando pipx...")
             result = run_command("python -m pip install pipx")
             if result and result.returncode == 0:
@@ -130,9 +128,11 @@ def install_or_update_pipx():
 def get_latest_version_uv():
     """Obtém a versão mais recente do uv do GitHub."""
     try:
-        with urllib.request.urlopen("https://api.github.com/repos/astral-sh/uv/releases/latest", timeout=10) as response:
+        with urllib.request.urlopen(
+            "https://api.github.com/repos/astral-sh/uv/releases/latest", timeout=10
+        ) as response:
             data = json.loads(response.read())
-            return data["tag_name"].lstrip('v')
+            return data["tag_name"].lstrip("v")
     except:
         return None
 
@@ -166,7 +166,7 @@ def install_or_update_uv():
         if latest_version and current_version != latest_version:
             print(f"📦 Versão mais recente disponível: {latest_version}")
             update = input("Deseja atualizar uv? (s/n): ").lower().strip()
-            if update == 's':
+            if update == "s":
                 print("🔄 Tentando atualizar uv...")
                 # Tenta upgrade primeiro
                 result = run_command("pipx upgrade uv", check=False)
@@ -187,8 +187,10 @@ def install_or_update_uv():
                 print("   pipx install --force uv")
                 print("   ou")
                 print("   pipx uninstall uv && pipx install uv")
-                continue_anyway = input("Continuar com a versão atual? (s/n): ").lower().strip()
-                if continue_anyway == 's':
+                continue_anyway = (
+                    input("Continuar com a versão atual? (s/n): ").lower().strip()
+                )
+                if continue_anyway == "s":
                     return True
                 else:
                     return False
@@ -201,7 +203,7 @@ def install_or_update_uv():
     else:
         print("📦 uv não encontrado")
         install = input("Deseja instalar uv? (s/n): ").lower().strip()
-        if install == 's':
+        if install == "s":
             print("🔄 Instalando uv...")
             result = run_command("pipx install uv")
             if result and result.returncode == 0:
@@ -222,7 +224,7 @@ def run_uv_sync():
     print("\n🔧 Executando uv sync...")
 
     # Muda para o diretório src
-    src_dir = os.path.join(os.path.dirname(__file__), '..', 'src')
+    src_dir = os.path.join(os.path.dirname(__file__), "..", "src")
     os.chdir(src_dir)
 
     print(f"📁 Executando em: {os.getcwd()}")
@@ -238,13 +240,13 @@ def run_uv_sync():
 
 def show_final_instructions():
     """Mostra instruções finais para o usuário."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🎉 AMBIENTE CONFIGURADO COM SUCESSO!")
-    print("="*60)
+    print("=" * 60)
 
     # Calcula o caminho do venv de forma relativa ao script
     script_dir = os.path.dirname(__file__)
-    venv_path = os.path.abspath(os.path.join(script_dir, '..', 'src', '.venv'))
+    venv_path = os.path.abspath(os.path.join(script_dir, "..", "src", ".venv"))
 
     print("\n📋 PRÓXIMOS PASSOS - CONFIGURAÇÃO DO VS CODE:")
     print(f"1. Abra o VS Code no diretório do projeto")

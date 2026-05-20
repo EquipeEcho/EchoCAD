@@ -5,29 +5,36 @@ from typing import List, Optional
 
 from .base import BaseDimensionItem
 
+
 @dataclass
 class Pisos(BaseDimensionItem):
     placa_ceramica: Optional[str] = None
+
 
 @dataclass
 class Soleiras(BaseDimensionItem):
     pass
 
+
 @dataclass
 class Rodapes(BaseDimensionItem):
     pass
+
 
 @dataclass
 class AzulejosRodabancas(BaseDimensionItem):
     pass
 
+
 @dataclass
 class Peitoris(BaseDimensionItem):
     pass
 
+
 @dataclass
 class Forros(BaseDimensionItem):
     pass
+
 
 @dataclass
 class Acabamentos:

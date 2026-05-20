@@ -26,12 +26,14 @@ def create_projeto(db: Session, project_schema: CreateProjectSchema) -> Project:
         db.add(new_project)
         db.commit()
         db.refresh(new_project)
-        logger.debug(f'Created new project {project_schema.model_dump()}')
+        logger.debug(f"Created new project {project_schema.model_dump()}")
         return new_project
     except IntegrityError as e:
         logger.error(e)
-        raise ValueError('Algum campo informado possui valor incorreto, '
-                         'para mais detalhes consulte o log.') from e
+        raise ValueError(
+            "Algum campo informado possui valor incorreto, "
+            "para mais detalhes consulte o log."
+        ) from e
 
 
 def read_projeto(db: Session, projeto_id: int) -> Project | None:
@@ -43,7 +45,7 @@ def read_projeto(db: Session, projeto_id: int) -> Project | None:
         projeto_id (int): O ID primário do projeto a ser recuperado.
 
     Returns:
-        Optional[Projeto]: A instância do Projeto se encontrada, 
+        Optional[Projeto]: A instância do Projeto se encontrada,
                            ou None caso o ID não exista.
     """
     query = select(Project).where(Project.id == projeto_id)
@@ -58,7 +60,7 @@ def read_all_projetos(db: Session) -> list[Project]:
         db (Session): Sessão ativa do SQLAlchemy.
 
     Returns:
-        List[Projeto]: Uma lista contendo todos os projetos encontrados. 
+        List[Projeto]: Uma lista contendo todos os projetos encontrados.
                        Retorna uma lista vazia [] se não houver registros.
     """
     query = select(Project)
@@ -84,9 +86,11 @@ def update_project(db: Session, project_schema: UpdateProjectSchema) -> Project:
     existing_project = db.execute(stmt).scalar_one_or_none()
 
     if not existing_project:
-        raise ValueError(f'Projeto com ID {project_schema.id} não encontrado.')
+        raise ValueError(f"Projeto com ID {project_schema.id} não encontrado.")
 
-    for key, value in project_schema.model_dump(exclude_unset=True, exclude={'id'}).items():
+    for key, value in project_schema.model_dump(
+        exclude_unset=True, exclude={"id"}
+    ).items():
         setattr(existing_project, key, value)
 
     db.commit()
@@ -109,8 +113,8 @@ def remove_project(db: Session, projeto_id: int) -> None:
     existing_project = db.execute(stmt).scalar_one_or_none()
 
     if not existing_project:
-        raise ValueError(f'Projeto com ID {projeto_id} não encontrado.')
-    
+        raise ValueError(f"Projeto com ID {projeto_id} não encontrado.")
+
     db.execute(delete(Report).where(Report.id_project == projeto_id))
     db.execute(delete(Blueprint).where(Blueprint.id_project == projeto_id))
     db.execute(delete(Specification).where(Specification.id_project == projeto_id))

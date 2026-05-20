@@ -14,7 +14,7 @@ import os
 import getpass
 
 # Adicionar o diretório src ao path para importar config
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from config import settings
 
@@ -23,15 +23,17 @@ def parse_database_url(url):
     """Parse database URL to extract components."""
     parsed = urlparse(url)
     return {
-        'host': parsed.hostname,
-        'port': parsed.port or 3306,
-        'user': parsed.username,
-        'password': parsed.password,
-        'database': parsed.path.lstrip('/')
+        "host": parsed.hostname,
+        "port": parsed.port or 3306,
+        "user": parsed.username,
+        "password": parsed.password,
+        "database": parsed.path.lstrip("/"),
     }
 
 
-def create_database_and_user(admin_host, admin_user, admin_password, target_db, target_user, target_password):
+def create_database_and_user(
+    admin_host, admin_user, admin_password, target_db, target_user, target_password
+):
     """Create database and user if they don't exist."""
     try:
         # Connect without specifying database
@@ -39,16 +41,20 @@ def create_database_and_user(admin_host, admin_user, admin_password, target_db, 
             host=admin_host,
             user=admin_user,
             password=admin_password,
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
         )
 
         with connection.cursor() as cursor:
             # Create database if not exists
-            cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{target_db}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+            cursor.execute(
+                f"CREATE DATABASE IF NOT EXISTS `{target_db}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            )
             print(f"✓ Banco de dados '{target_db}' criado/verificado")
 
             # Create user if not exists
-            cursor.execute(f"CREATE USER IF NOT EXISTS '{target_user}'@'%' IDENTIFIED BY '{target_password}'")
+            cursor.execute(
+                f"CREATE USER IF NOT EXISTS '{target_user}'@'%' IDENTIFIED BY '{target_password}'"
+            )
             print(f"✓ Usuário '{target_user}' criado/verificado")
 
             # Grant all privileges except DROP DATABASE
@@ -57,7 +63,9 @@ def create_database_and_user(admin_host, admin_user, admin_password, target_db, 
                        LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER
                 ON `{target_db}`.* TO '{target_user}'@'%'
             """)
-            print(f"✓ Privilégios concedidos ao usuário '{target_user}' no banco '{target_db}'")
+            print(
+                f"✓ Privilégios concedidos ao usuário '{target_user}' no banco '{target_db}'"
+            )
 
             # Flush privileges
             cursor.execute("FLUSH PRIVILEGES")
@@ -69,7 +77,7 @@ def create_database_and_user(admin_host, admin_user, admin_password, target_db, 
         print(f"✗ Erro ao criar banco/usuário: {e}")
         return False
     finally:
-        if 'connection' in locals():
+        if "connection" in locals():
             connection.close()
 
     return True
@@ -83,7 +91,7 @@ def drop_all_tables(admin_host, admin_user, admin_password, target_db):
             user=admin_user,
             password=admin_password,
             database=target_db,
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
         )
 
         with connection.cursor() as cursor:
@@ -108,7 +116,9 @@ def drop_all_tables(admin_host, admin_user, admin_password, target_db):
                     dropped_count += 1
                 except pymysql.Error as e:
                     if "Unknown table" in str(e):
-                        print(f"⚠ Tabela '{table_name}' já foi removida (possivelmente por CASCADE)")
+                        print(
+                            f"⚠ Tabela '{table_name}' já foi removida (possivelmente por CASCADE)"
+                        )
                     else:
                         print(f"✗ Erro ao remover tabela '{table_name}': {e}")
 
@@ -122,7 +132,7 @@ def drop_all_tables(admin_host, admin_user, admin_password, target_db):
         print(f"✗ Erro ao remover tabelas: {e}")
         return False
     finally:
-        if 'connection' in locals():
+        if "connection" in locals():
             connection.close()
 
     return True
@@ -134,10 +144,14 @@ def main():
 
     # Parse database URL from config
     db_config = parse_database_url(settings.database_url)
-    print(f"📍 Configuração do banco: {db_config['host']}:{db_config['port']}/{db_config['database']}")
+    print(
+        f"📍 Configuração do banco: {db_config['host']}:{db_config['port']}/{db_config['database']}"
+    )
 
     # Admin credentials
-    admin_user = input("Digite o usuário admin do MySQL (default: root): ").strip() or "root"
+    admin_user = (
+        input("Digite o usuário admin do MySQL (default: root): ").strip() or "root"
+    )
     admin_password = getpass.getpass("Digite a senha do admin do MySQL: ")
 
     if not admin_password:
@@ -147,19 +161,26 @@ def main():
     # Target credentials
     target_user = "echocad_admin"
     target_password = "echocad_admin_password"
-    target_db = db_config['database']
+    target_db = db_config["database"]
 
     print(f"👤 Usuário alvo: {target_user}")
     print(f"🗄️ Banco alvo: {target_db}")
 
     # Step 1: Create database and user
     print("\n1. Criando banco e usuário...")
-    if not create_database_and_user(db_config['host'], admin_user, admin_password, target_db, target_user, target_password):
+    if not create_database_and_user(
+        db_config["host"],
+        admin_user,
+        admin_password,
+        target_db,
+        target_user,
+        target_password,
+    ):
         return 1
 
     # Step 2: Drop all tables using admin credentials
     print("\n2. Removendo todas as tabelas...")
-    if not drop_all_tables(db_config['host'], admin_user, admin_password, target_db):
+    if not drop_all_tables(db_config["host"], admin_user, admin_password, target_db):
         return 1
 
     print("\n✅ Reset do banco de dados concluído com sucesso!")

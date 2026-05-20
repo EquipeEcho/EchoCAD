@@ -23,9 +23,7 @@ def main() -> None:
         max_results=3,
     )
 
-    reader = DocxReader(
-        chunking_strategy=DocumentChunking(chunk_size=768, overlap=80)
-    )
+    reader = DocxReader(chunking_strategy=DocumentChunking(chunk_size=768, overlap=80))
 
     knowledge.insert(
         path=root / "spda.docx",
@@ -44,7 +42,7 @@ def main() -> None:
         knowledge=knowledge,
         search_knowledge=True,
     )
-    
+
     agent.print_response(
         "Qual é o objetivo do projeto? consulte o conhecimento pra averiguar"
     )

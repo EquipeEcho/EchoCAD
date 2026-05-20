@@ -1,6 +1,8 @@
 .env
 .vscode/
+.mcp.json
 output_teste/
+**/.ruff_cache/
 **/.pytest_cache/
 **/__pycache__/
 **/node_modules/

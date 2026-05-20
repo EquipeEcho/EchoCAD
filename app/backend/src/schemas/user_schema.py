@@ -4,28 +4,23 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 UserName = Annotated[
-    str,
-    Field(min_length=2, max_length=100, description="Nome do usuario")
+    str, Field(min_length=2, max_length=100, description="Nome do usuario")
 ]
 
 ProjectName = Annotated[
-    str,
-    Field(min_length=1, max_length=150, description="Nome do projeto")
+    str, Field(min_length=1, max_length=150, description="Nome do projeto")
 ]
 
 EmailStd = Annotated[
-    EmailStr,
-    Field(min_length=5, max_length=100, description="Email padrao do sistema")
+    EmailStr, Field(min_length=5, max_length=100, description="Email padrao do sistema")
 ]
 
 Password = Annotated[
-    str,
-    Field(min_length=6, max_length=255, description="Senha do usuario")
+    str, Field(min_length=6, max_length=255, description="Senha do usuario")
 ]
 
 Role = Annotated[
-    str,
-    Field(min_length=2, max_length=100, description="Cargo do usuario")
+    str, Field(min_length=2, max_length=100, description="Cargo do usuario")
 ]
 
 
@@ -84,15 +79,13 @@ class ProjectPublicSchema(CreateProjectSchema):
     - created_at (datetime): Data de criacao do registro.
     """
 
-    id: int = Field(..., description='Id do projeto criado.')
+    id: int = Field(..., description="Id do projeto criado.")
 
-    name: ProjectName = Field(
-        ...,
-        description='Nome do projeto criado.')
+    name: ProjectName = Field(..., description="Nome do projeto criado.")
 
     created_at: datetime = Field(
-        ...,
-        description='Datetime (UTC) de criacao do projeto.')
+        ..., description="Datetime (UTC) de criacao do projeto."
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -107,6 +100,7 @@ class UpdateProjectSchema(BaseModel):
     - description (str): Nova descricao do projeto.
     - client (str): Novo cliente do projeto.
     """
+
     id: int = Field(..., description="ID do projeto a ser atualizado")
     name: ProjectName | None = Field(None, description="Novo nome do projeto")
     description: str | None = Field(None, description="Nova descricao do projeto")

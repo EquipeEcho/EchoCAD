@@ -4,13 +4,13 @@ from src.aiconf import high_model
 
 def create_surveyor_agent(tools: list):
     return Agent(
-        id='quantity-surveyor',
-        name='Quantity Surveyor',
-        role='Realiza a contagem de quantitativos e síntese final do projeto de engenharia',
-        description='Consolida dados de contagem e gera um JSON estruturado final.',
+        id="quantity-surveyor",
+        name="Quantity Surveyor",
+        role="Realiza a contagem de quantitativos e síntese final do projeto de engenharia",
+        description="Consolida dados de contagem e gera um JSON estruturado final.",
         model=high_model,
         instructions=[
-            '''
+            """
             Você é um Engenheiro Orçamentista sênior especialista em extração de dados CAD.
             Sua tarefa é consolidar todas as informações coletadas pelos outros agentes em um JSON final de alta precisão.
 
@@ -22,7 +22,7 @@ def create_surveyor_agent(tools: list):
 
             REQUISITO DE SAÍDA:
             Retorne APENAS o objeto JSON puro contendo "resumo_executivo" e "sintese". Não use markdown, não adicione explicações fora do JSON.
-            '''
+            """
         ],
         tools=tools,
         debug_mode=True,

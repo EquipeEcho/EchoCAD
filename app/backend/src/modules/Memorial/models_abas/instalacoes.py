@@ -5,6 +5,7 @@ from typing import Optional
 
 from .base import BaseDimensionItem
 
+
 @dataclass
 class InstEletricas:
     local: Optional[str] = None
@@ -15,6 +16,7 @@ class InstEletricas:
     cruzetas: Optional[int] = None
     suportes: Optional[int] = None
     isoladores: Optional[int] = None
+
 
 @dataclass
 class InstTelefoniaRede:
@@ -31,6 +33,7 @@ class InstTelefoniaRede:
     duto_c: Optional[float] = None
     e_tomadas: Optional[int] = None
 
+
 @dataclass
 class InstMecanicas(BaseDimensionItem):
     pot: Optional[str] = None
@@ -38,6 +41,7 @@ class InstMecanicas(BaseDimensionItem):
     dutos: Optional[float] = None
     cabo_eletrico: Optional[float] = None
     gas_refrig: Optional[str] = None
+
 
 @dataclass
 class InstPressurizadas(BaseDimensionItem):
@@ -49,6 +53,7 @@ class InstPressurizadas(BaseDimensionItem):
     valvulas_qtd: Optional[int] = None
     registros_qtd: Optional[int] = None
     reservatorios_tipo: Optional[str] = None
+
 
 @dataclass
 class InstSeguranca(BaseDimensionItem):

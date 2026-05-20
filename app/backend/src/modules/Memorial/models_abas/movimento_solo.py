@@ -20,36 +20,42 @@ class BaseSoloEntry:
 @dataclass
 class EscavacaoItem(BaseSoloEntry):
     """2.2 Escavações"""
+
     pass
 
 
 @dataclass
 class AterroReaterroItem(BaseSoloEntry):
     """2.3 Aterros e Reaterros"""
+
     pass
 
 
 @dataclass
 class EnrocamentoItem(BaseSoloEntry):
     """2.4 Enrocamentos"""
+
     pass
 
 
 @dataclass
 class ContencaoItem(BaseSoloEntry):
     """2.5 Contenções"""
+
     pass
 
 
 @dataclass
 class TaludamentoItem(BaseSoloEntry):
     """2.6 Taludamentos"""
+
     pass
 
 
 @dataclass
 class NivelamentoCompactacaoItem(BaseSoloEntry):
     """2.7 Nivelamentos e Compactações do Terreno"""
+
     pass
 
 
@@ -58,6 +64,7 @@ class MovimentoSolo:
     """Agregador para as seções de Movimento de Solo do levantamento.
     Cada lista representa as linhas (ambientes) da respectiva tabela no Excel.
     """
+
     escavacoes: List[EscavacaoItem] = field(default_factory=list)
     aterros: List[AterroReaterroItem] = field(default_factory=list)
     enrocamentos: List[EnrocamentoItem] = field(default_factory=list)

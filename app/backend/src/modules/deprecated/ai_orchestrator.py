@@ -7,9 +7,15 @@ from src.models.projeto_db import Project, Planta
 from app.backend.src.modules.deprecated.team_ai import create_team
 from app.backend.src.modules.deprecated.entity_dxf import EntityDxf
 from app.backend.src.modules.deprecated.agents.agent_context import create_context_agent
-from app.backend.src.modules.deprecated.agents.agent_layer_select import create_classificator_agent
-from app.backend.src.modules.deprecated.agents.agent_spatial_analyst import create_spatial_analyst_agent
-from app.backend.src.modules.deprecated.agents.agent_surveyor import create_surveyor_agent
+from app.backend.src.modules.deprecated.agents.agent_layer_select import (
+    create_classificator_agent,
+)
+from app.backend.src.modules.deprecated.agents.agent_spatial_analyst import (
+    create_spatial_analyst_agent,
+)
+from app.backend.src.modules.deprecated.agents.agent_surveyor import (
+    create_surveyor_agent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +26,7 @@ UPLOADS_PATH = BACKEND_ROOT / "uploads"
 
 RESULTS_PATH.mkdir(parents=True, exist_ok=True)
 UPLOADS_PATH.mkdir(parents=True, exist_ok=True)
+
 
 class AIOrchestrator:
     # Lock global para evitar processamentos simultâneos
@@ -34,7 +41,9 @@ class AIOrchestrator:
         """
         # A checagem de lock já é feita na rota, mas reforçamos aqui
         if self._lock.locked():
-            raise RuntimeError("Já existe um processamento de IA em andamento. Por favor, aguarde.")
+            raise RuntimeError(
+                "Já existe um processamento de IA em andamento. Por favor, aguarde."
+            )
 
         project = self.db.query(Project).filter(Project.id == project_id).first()
         if not project:
@@ -52,18 +61,17 @@ class AIOrchestrator:
         for planta in project.blueprint:
             try:
                 result = self.analyze_planta(planta)
-                results.append({
-                    "planta_id": planta.id,
-                    "arquivo": planta.arquivo,
-                    "resultado": result
-                })
+                results.append(
+                    {
+                        "planta_id": planta.id,
+                        "arquivo": planta.arquivo,
+                        "resultado": result,
+                    }
+                )
             except Exception as e:
                 logger.error(f"Erro ao analisar planta {planta.id}: {e}")
-                results.append({
-                    "planta_id": planta.id,
-                    "error": str(e)
-                })
-        
+                results.append({"planta_id": planta.id, "error": str(e)})
+
         # Salvar resultado final em JSON
         self.save_results(project.id, results)
         return results
@@ -76,7 +84,7 @@ class AIOrchestrator:
             project_results = []
             for planta in project.blueprint:
                 yield f"data: Iniciando análise da planta {planta.arquivo} ({planta.tipo})\n\n"
-                
+
                 try:
                     # 1. Localizar o arquivo usando o caminho salvo no banco (projeto_id/arquivo.dxf)
                     relative_path = (planta.arquivo or "").strip()
@@ -107,12 +115,15 @@ class AIOrchestrator:
 
                     # 3. Preparar Agentes
                     context_agent = create_context_agent()
-                    layer_agent = create_classificator_agent(tools=[]) 
+                    layer_agent = create_classificator_agent(tools=[])
                     spatial_agent = create_spatial_analyst_agent(tools=[])
                     surveyor_agent = create_surveyor_agent(tools=[])
 
                     # 4. Criar o Time
-                    team = create_team(entity, [context_agent, layer_agent, spatial_agent, surveyor_agent])
+                    team = create_team(
+                        entity,
+                        [context_agent, layer_agent, spatial_agent, surveyor_agent],
+                    )
 
                     # 5. Executar com stream
                     yield f"data: EXECUTANDO: Maestro coordenando agentes...\n\n"
@@ -120,27 +131,35 @@ class AIOrchestrator:
                     # Agno Team.run with stream=True returns an iterator of RunResponse
                     # Agno Team.run is sync, so we wrap it or use it carefully in async
                     loop = asyncio.get_event_loop()
-                    
+
                     # Para simplificar o stream que já é um gerador, vamos rodar o team.run normalmente
                     # mas o processamento interno pode demorar.
-                    for response_chunk in team.run(f"Analise a planta do tipo '{planta.tipo}' no arquivo '{planta.arquivo}'.", stream=True):
-                        if hasattr(response_chunk, 'content') and response_chunk.content:
+                    for response_chunk in team.run(
+                        f"Analise a planta do tipo '{planta.tipo}' no arquivo '{planta.arquivo}'.",
+                        stream=True,
+                    ):
+                        if (
+                            hasattr(response_chunk, "content")
+                            and response_chunk.content
+                        ):
                             content = response_chunk.content
                         elif isinstance(response_chunk, str):
                             content = response_chunk
                         else:
                             continue
-                        
+
                         full_response += content
                         # Escapar quebras de linha para não quebrar o protocolo SSE
                         safe_content = content.replace("\n", "\\n")
                         yield f"data: {safe_content}\n\n"
 
-                    project_results.append({
-                        "planta_id": planta.id,
-                        "arquivo": planta.arquivo,
-                        "resultado": full_response
-                    })
+                    project_results.append(
+                        {
+                            "planta_id": planta.id,
+                            "arquivo": planta.arquivo,
+                            "resultado": full_response,
+                        }
+                    )
                     yield f"data: Planta {planta.arquivo} concluída.\n\n"
 
                 except Exception as e:
@@ -157,7 +176,7 @@ class AIOrchestrator:
         """
         relative_path = (planta.arquivo or "").strip()
         file_path = UPLOADS_PATH / relative_path
-        
+
         if not file_path.exists():
             # Fallback para legado ou caminhos alternativos
             alt_path = Path("uploads") / relative_path
@@ -170,12 +189,16 @@ class AIOrchestrator:
 
         entity = EntityDxf(file_path)
         context_agent = create_context_agent()
-        layer_agent = create_classificator_agent(tools=[]) 
+        layer_agent = create_classificator_agent(tools=[])
         spatial_agent = create_spatial_analyst_agent(tools=[])
         surveyor_agent = create_surveyor_agent(tools=[])
 
-        team = create_team(entity, [context_agent, layer_agent, spatial_agent, surveyor_agent])
-        response = team.run(f"Analise a planta do tipo '{planta.tipo}' no arquivo '{planta.arquivo}'.")
+        team = create_team(
+            entity, [context_agent, layer_agent, spatial_agent, surveyor_agent]
+        )
+        response = team.run(
+            f"Analise a planta do tipo '{planta.tipo}' no arquivo '{planta.arquivo}'."
+        )
 
         return response.content
 

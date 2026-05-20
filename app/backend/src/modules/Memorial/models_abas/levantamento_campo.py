@@ -45,6 +45,7 @@ class TabelaARegistro:
     - `vaos` lista os vãos (Tipo, C, h, e, A)
     - `alvenarias_adicionais` lista alvenarias adicionais (Tipo, C, h, e, A, V)
     """
+
     ambiente: Optional[str] = None
     dimensoes: List[DimensaoItem] = field(default_factory=list)
     vaos: List[VaoItem] = field(default_factory=list)
@@ -88,6 +89,7 @@ class LajeItem:
 @dataclass
 class TabelaBRegistro:
     """Tabela B: Pilar | Viga | Laje"""
+
     ambiente: Optional[str] = None
     pilares: List[PilarItem] = field(default_factory=list)
     vigas: List[VigaItemTabelaB] = field(default_factory=list)
@@ -97,6 +99,7 @@ class TabelaBRegistro:
 @dataclass
 class TabelaCRegistro:
     """Tabela C: Quadros / Conduletes / Tomadas / Interruptores / Luminárias / Dutos / Cabos / Acessórios / Equipamentos"""
+
     ambiente: Optional[str] = None
     quadros: Optional[int] = None
     conduletes: Optional[int] = None
@@ -140,6 +143,7 @@ class EsgotoItem:
 @dataclass
 class TabelaDRegistro:
     """Tabela D: Água Fria/Quente/Reúso | Água Pluvial | Esgoto"""
+
     ambiente: Optional[str] = None
     agua_fria: List[AguaFriaItem] = field(default_factory=list)
     agua_pluvial: List[AguaPluvialItem] = field(default_factory=list)
@@ -168,6 +172,7 @@ class SPDARegistro:
 @dataclass
 class TabelaFRegistro:
     """Tabela F: Rede | SPDA (vista geral por ambiente)"""
+
     ambiente: Optional[str] = None
     rede: List[RedeRegistro] = field(default_factory=list)
     spda: List[SPDARegistro] = field(default_factory=list)
@@ -196,6 +201,7 @@ class InstPressurizadaItem:
 @dataclass
 class TabelaGRegistro:
     """Tabela G: Contra-incêndio | Instalações Pressurizadas"""
+
     ambiente: Optional[str] = None
     contra_incendio: List[ContraIncendioItem] = field(default_factory=list)
     instalacoes_pressurizadas: List[InstPressurizadaItem] = field(default_factory=list)
@@ -206,6 +212,7 @@ class LevantamentoCampo:
     """Classe principal que agrega todas as tabelas A..G do levantamento de campo.
     Cada atributo representa as linhas/entradas da respectiva tabela no template Excel.
     """
+
     tabela_a: List[TabelaARegistro] = field(default_factory=list)
     tabela_b: List[TabelaBRegistro] = field(default_factory=list)
     tabela_c: List[TabelaCRegistro] = field(default_factory=list)

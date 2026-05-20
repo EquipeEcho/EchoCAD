@@ -1,13 +1,14 @@
 from agno.agent import Agent
 from src.aiconf import quick_model
 
+
 def create_context_agent():
     return Agent(
-        id='context-agent',
-        name='ContextAgent',
+        id="context-agent",
+        name="ContextAgent",
         model=quick_model,
-        role='Analisa e retorne as disciplinas de engenharia relevantes',
-        description='Identifica as disciplinas de engenharia relacionadas a um contexto recebido',
+        role="Analisa e retorne as disciplinas de engenharia relevantes",
+        description="Identifica as disciplinas de engenharia relacionadas a um contexto recebido",
         instructions=[
             """
             You are a civil engineering discipline classifier.
@@ -37,5 +38,6 @@ def create_context_agent():
             6. Do not invent labels.
             7. Do not explain.
             8. Output only the label text.
-            """],
+            """
+        ],
     )

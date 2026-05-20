@@ -87,4 +87,3 @@ class ServicosPreliminares:
     interdicoes: List[InterdicaoItem] = field(default_factory=list)
     remocoes: List[dict] = field(default_factory=list)
     demolicoes: List[DemolicaoItem] = field(default_factory=list)
-

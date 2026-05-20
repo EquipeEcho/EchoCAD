@@ -11,14 +11,16 @@ from src.routes.router_users import router as users_router
 from src.routes.router_blueprints import router as Extrator_DXF
 
 logger.add(
-    'logs/app_{time:YYYY-MM-DD}.log',
-    rotation='10 MB', retention='7 days',
-    level=settings.log_level, backtrace=True, diagnose=True)
+    "logs/app_{time:YYYY-MM-DD}.log",
+    rotation="10 MB",
+    retention="7 days",
+    level=settings.log_level,
+    backtrace=True,
+    diagnose=True,
+)
 
 # TODO: debugging / desabilitar em prod
-logger.debug(
-    "Configuracoes carregadas: {}",
-    settings.model_dump_json(indent=4))
+logger.debug("Configuracoes carregadas: {}", settings.model_dump_json(indent=4))
 
 app = FastAPI(
     title="EchoCAD API",
@@ -42,7 +44,9 @@ app.include_router(users_router)
 app.include_router(Extrator_DXF)
 
 
-@app.get("/", status_code=status.HTTP_200_OK, tags=["root"], summary="Rota de boas vindas")
+@app.get(
+    "/", status_code=status.HTTP_200_OK, tags=["root"], summary="Rota de boas vindas"
+)
 async def root():
     logger.debug("Rota de boas vindas acessada.")
     return {"message": "Welcome to EchoCad Api."}

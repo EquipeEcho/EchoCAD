@@ -56,11 +56,18 @@ def _encontrar_pasta_modulo() -> Path:
         # Relativo ao diretório do script subindo níveis
         script_dir.parent / "EspecificacoesTecnicas",
         script_dir.parent.parent / "EspecificacoesTecnicas",
-        script_dir.parent.parent.parent.parent / "src" / "modules" / "EspecificacoesTecnicas",
+        script_dir.parent.parent.parent.parent
+        / "src"
+        / "modules"
+        / "EspecificacoesTecnicas",
     ]
 
     for c in candidatos:
-        if c.is_dir() and (c / "__init__.py").exists() and (c / "dxf_context_extractor.py").exists():
+        if (
+            c.is_dir()
+            and (c / "__init__.py").exists()
+            and (c / "dxf_context_extractor.py").exists()
+        ):
             return c
     return None
 
@@ -82,10 +89,12 @@ def _carregar_modulo(pasta: Path):
     pkg = "EspecTec"  # nome curto para não conflitar com imports do projeto
 
     # Ordem importa: cada arquivo depende do anterior
-    dxf_mod  = _importar_arquivo(f"{pkg}.dxf_context_extractor", pasta / "dxf_context_extractor.py")
-    spec_mod = _importar_arquivo(f"{pkg}.spec_generator",        pasta / "spec_generator.py")
-    docx_mod = _importar_arquivo(f"{pkg}.docx_builder",          pasta / "docx_builder.py")
-    init_mod = _importar_arquivo(pkg,                             pasta / "__init__.py")
+    dxf_mod = _importar_arquivo(
+        f"{pkg}.dxf_context_extractor", pasta / "dxf_context_extractor.py"
+    )
+    spec_mod = _importar_arquivo(f"{pkg}.spec_generator", pasta / "spec_generator.py")
+    docx_mod = _importar_arquivo(f"{pkg}.docx_builder", pasta / "docx_builder.py")
+    init_mod = _importar_arquivo(pkg, pasta / "__init__.py")
 
     return init_mod, dxf_mod
 
@@ -110,7 +119,7 @@ logger.info(f"Modulo encontrado em: {pasta_modulo}")
 try:
     _init, _dxf = _carregar_modulo(pasta_modulo)
     gerar_especificacoes = _init.gerar_especificacoes
-    DXFContextExtractor  = _dxf.DXFContextExtractor
+    DXFContextExtractor = _dxf.DXFContextExtractor
 except Exception as e:
     logger.error(f"Erro ao carregar modulo: {e}", exc_info=True)
     sys.exit(1)
@@ -125,7 +134,13 @@ def main():
         # Tentar encontrar o teste.dxf automaticamente
         tentativas = [
             Path.cwd() / "app" / "backend" / "uploads" / "teste.dxf",
-            Path.cwd() / "app" / "backend" / "src" / "modules" / "Memorial" / "teste.dxf",
+            Path.cwd()
+            / "app"
+            / "backend"
+            / "src"
+            / "modules"
+            / "Memorial"
+            / "teste.dxf",
             pasta_modulo.parent / "Memorial" / "teste.dxf",
         ]
         dxf_path = next((p for p in tentativas if p.exists()), None)

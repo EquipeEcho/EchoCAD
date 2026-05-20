@@ -42,7 +42,9 @@ def format_result(item, index: int) -> str:
     elif isinstance(item, dict):
         text = item.get("content") or item.get("text") or str(item)
     else:
-        text = getattr(item, "content", None) or getattr(item, "text", None) or str(item)
+        text = (
+            getattr(item, "content", None) or getattr(item, "text", None) or str(item)
+        )
 
     text = text.strip() if isinstance(text, str) else str(text)
     return f"Result {index}:\n{text}\n{'-' * 80}"
@@ -52,9 +54,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Consulta direta ao ChromaDB sem usar agentes."
     )
-    parser.add_argument("query", help="Termo ou frase para buscar na base de conhecimento.")
-    parser.add_argument("-n", "--num", type=int, default=5, help="Número máximo de resultados a retornar.")
-    parser.add_argument("--chroma-path", default=str(CHROMA_PATH), help="Caminho do diretório ChromaDB.")
+    parser.add_argument(
+        "query", help="Termo ou frase para buscar na base de conhecimento."
+    )
+    parser.add_argument(
+        "-n",
+        "--num",
+        type=int,
+        default=5,
+        help="Número máximo de resultados a retornar.",
+    )
+    parser.add_argument(
+        "--chroma-path", default=str(CHROMA_PATH), help="Caminho do diretório ChromaDB."
+    )
     args = parser.parse_args()
 
     chroma_path = Path(args.chroma_path)
@@ -64,7 +76,7 @@ def main() -> None:
         print("Nenhum resultado encontrado.")
         return
 
-    print(f"Mostrando até {args.num} resultados para: {args.query}" )
+    print(f"Mostrando até {args.num} resultados para: {args.query}")
     print("=" * 80)
     for i, item in enumerate(results, start=1):
         print(format_result(item, i))

@@ -5,14 +5,12 @@ from sqlalchemy.orm import sessionmaker
 from src.config import settings
 
 # Usando MySQL conforme configurado no alembic.ini
-engine = create_engine(settings.database_url, echo=settings.echo_database, pool_pre_ping=True)
-
-
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
+engine = create_engine(
+    settings.database_url, echo=settings.echo_database, pool_pre_ping=True
 )
+
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_session():
@@ -21,7 +19,7 @@ def get_session():
         yield session
     except Exception as e:
         session.rollback()
-        logger.error('Database error: {}', e)
+        logger.error("Database error: {}", e)
         raise
     finally:
         session.close()

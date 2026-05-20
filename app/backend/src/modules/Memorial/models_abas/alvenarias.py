@@ -5,10 +5,12 @@ from typing import List, Optional
 
 from .base import BaseDimensionItem
 
+
 @dataclass
 class Paineis(BaseDimensionItem):
     categoria: Optional[str] = None
     material: Optional[str] = None
+
 
 @dataclass
 class VergasContraVergas(BaseDimensionItem):
@@ -17,9 +19,11 @@ class VergasContraVergas(BaseDimensionItem):
     c_verga: Optional[float] = None
     engastamento: Optional[str] = None
 
+
 @dataclass
 class GuiasCalcadasPasseios(BaseDimensionItem):
     pass
+
 
 @dataclass
 class Alvenarias:

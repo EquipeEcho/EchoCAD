@@ -11,7 +11,7 @@ class EntityDxf:
     """
 
     def __init__(self, dxf_file_path: str | Path):
-        self.doc = readfile(dxf_file_path) # gargalo de leitura do arquivo
+        self.doc = readfile(dxf_file_path)  # gargalo de leitura do arquivo
         self.msp = self.doc.modelspace()
         self.layers = [layer.dxf.name for layer in self.doc.layers]
 
@@ -55,24 +55,30 @@ class EntityDxf:
 
                 # Cálculo de comprimento para tipos lineares
                 length = 0.0
-                if etype == 'LINE':
+                if etype == "LINE":
                     length = math.dist(e.dxf.start, e.dxf.end)
-                elif etype == 'LWPOLYLINE':
+                elif etype == "LWPOLYLINE":
                     vertices = list(e.get_points(format="xy"))
                     length = sum(
-                        math.dist(vertices[i], vertices[i+1]) for i in range(len(vertices)-1))
-                elif etype in ('ARC', 'CIRCLE'):
+                        math.dist(vertices[i], vertices[i + 1])
+                        for i in range(len(vertices) - 1)
+                    )
+                elif etype in ("ARC", "CIRCLE"):
                     # Simplificação para resumo; detalhamento virá em outra função
-                    length = e.dxf.radius * \
-                        (e.dxf.end_angle - e.dxf.start_angle if etype ==
-                         'ARC' else 2 * math.pi)
+                    length = e.dxf.radius * (
+                        e.dxf.end_angle - e.dxf.start_angle
+                        if etype == "ARC"
+                        else 2 * math.pi
+                    )
 
                 layer_data[etype]["total_length"] += length
 
             summary[layer] = layer_data
         return summary
 
-    def get_detailed_entities(self, layers: List[str], max_entities: int = 100) -> List[Dict[str, Any]]:
+    def get_detailed_entities(
+        self, layers: List[str], max_entities: int = 100
+    ) -> List[Dict[str, Any]]:
         """
         Retorna uma lista detalhada de entidades. Se houver muitas, retorna um resumo para evitar estouro de contexto.
         """
@@ -90,36 +96,41 @@ class EntityDxf:
                     "layer": e.dxf.layer,
                 }
 
-                if e.dxftype() == 'LINE':
+                if e.dxftype() == "LINE":
                     data["length"] = math.dist(
-                        (e.dxf.start.x, e.dxf.start.y),
-                        (e.dxf.end.x, e.dxf.end.y)
+                        (e.dxf.start.x, e.dxf.start.y), (e.dxf.end.x, e.dxf.end.y)
                     )
                     data["coords"] = (
                         (e.dxf.start.x, e.dxf.start.y),
                         (e.dxf.end.x, e.dxf.end.y),
                     )
 
-                elif e.dxftype() == 'LWPOLYLINE':
+                elif e.dxftype() == "LWPOLYLINE":
                     data["vertices"] = list(e.get_points(format="xy"))
 
-                elif e.dxftype() == 'INSERT':
+                elif e.dxftype() == "INSERT":
                     data["name"] = e.dxf.name
                     data["pos"] = (e.dxf.insert.x, e.dxf.insert.y)
 
-                elif e.dxftype() in ('TEXT', 'MTEXT'):
-                    data["text"] = e.plain_text(
-                    ) if e.dxftype() == 'MTEXT' else e.dxf.text
+                elif e.dxftype() in ("TEXT", "MTEXT"):
+                    data["text"] = (
+                        e.plain_text() if e.dxftype() == "MTEXT" else e.dxf.text
+                    )
 
                 detailed.append(data)
 
             if count > max_entities:
                 detailed.append(
-                    {"info": f"Tratados {max_entities} de {count} itens no layer {layer}. O resumo quantitativo já contém o total."})
+                    {
+                        "info": f"Tratados {max_entities} de {count} itens no layer {layer}. O resumo quantitativo já contém o total."
+                    }
+                )
 
         return detailed
 
-    def get_connectivity_graph(self, layers: List[str], epsilon: float = 0.1) -> Dict[str, Any]:
+    def get_connectivity_graph(
+        self, layers: List[str], epsilon: float = 0.1
+    ) -> Dict[str, Any]:
         """
         Mapeia a conectividade entre entidades (fios, tubos, paredes) criando um grafo.
         Retorna grupos de entidades conectadas e suas somas totais.
@@ -132,11 +143,11 @@ class EntityDxf:
             if "info" in ent:
                 continue
             points = []
-            if ent["type"] == 'LINE':
+            if ent["type"] == "LINE":
                 points = ent["coords"]
-            elif ent["type"] == 'LWPOLYLINE':
+            elif ent["type"] == "LWPOLYLINE":
                 points = ent["vertices"]
-            elif ent["type"] == 'INSERT':
+            elif ent["type"] == "INSERT":
                 points = [ent["pos"]]
 
             ent["connection_points"] = points
@@ -179,10 +190,11 @@ class EntityDxf:
             total_length = sum(e.get("length", 0) for e in cluster)
             # Para polilinhas, calcular comprimento
             for e in cluster:
-                if e["type"] == 'LWPOLYLINE':
+                if e["type"] == "LWPOLYLINE":
                     v = e["vertices"]
-                    total_length += sum(math.dist(v[k], v[k+1])
-                                        for k in range(len(v)-1))
+                    total_length += sum(
+                        math.dist(v[k], v[k + 1]) for k in range(len(v) - 1)
+                    )
 
             types = defaultdict(int)
             names = set()
@@ -193,27 +205,33 @@ class EntityDxf:
                 if "text" in e:
                     names.add(e["text"])
 
-            synthesis.append({
-                "entities_count": len(cluster),
-                "total_length": round(total_length, 3),
-                "types": dict(types),
-                "identifiers": list(names),
-                "entities_ids": [e["id"] for e in cluster]
-            })
+            synthesis.append(
+                {
+                    "entities_count": len(cluster),
+                    "total_length": round(total_length, 3),
+                    "types": dict(types),
+                    "identifiers": list(names),
+                    "entities_ids": [e["id"] for e in cluster],
+                }
+            )
 
         return {"clusters": synthesis}
 
-    def find_text_near_entities(self, entity_ids: List[str], search_radius: float = 1.0) -> Dict[str, str]:
+    def find_text_near_entities(
+        self, entity_ids: List[str], search_radius: float = 1.0
+    ) -> Dict[str, str]:
         """
         Busca textos próximos a determinadas entidades para capturar metadados (ex: bitola, material).
         """
         # Implementação de busca espacial rápida (pode ser otimizada com R-tree se necessário)
         all_texts = []
-        for e in self.msp.query('TEXT MTEXT'):
-            all_texts.append({
-                "text": e.plain_text() if e.dxftype() == 'MTEXT' else e.dxf.text,
-                "pos": (e.dxf.insert.x, e.dxf.insert.y)
-            })
+        for e in self.msp.query("TEXT MTEXT"):
+            all_texts.append(
+                {
+                    "text": e.plain_text() if e.dxftype() == "MTEXT" else e.dxf.text,
+                    "pos": (e.dxf.insert.x, e.dxf.insert.y),
+                }
+            )
 
         results = {}
         for hid in entity_ids:
@@ -223,15 +241,18 @@ class EntityDxf:
 
             # Posição aproximada da entidade
             pos = (0, 0)
-            if ent.dxftype() == 'INSERT':
+            if ent.dxftype() == "INSERT":
                 pos = (ent.dxf.insert.x, ent.dxf.insert.y)
-            elif ent.dxftype() == 'LINE':
-                pos = ((ent.dxf.start.x + ent.dxf.end.x)/2,
-                       (ent.dxf.start.y + ent.dxf.end.y)/2)
+            elif ent.dxftype() == "LINE":
+                pos = (
+                    (ent.dxf.start.x + ent.dxf.end.x) / 2,
+                    (ent.dxf.start.y + ent.dxf.end.y) / 2,
+                )
             # ... mais tipos ...
 
-            nearby = [t["text"] for t in all_texts if math.dist(
-                pos, t["pos"]) < search_radius]
+            nearby = [
+                t["text"] for t in all_texts if math.dist(pos, t["pos"]) < search_radius
+            ]
             if nearby:
                 results[hid] = " | ".join(nearby)
 

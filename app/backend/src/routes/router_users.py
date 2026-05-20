@@ -10,17 +10,17 @@ from src.schemas.user_schema import (
 )
 from src.controller.crud_users import get_user_by_email, create_user, update_user
 
-router = APIRouter(prefix='/users', tags=["Users"])
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post('/login', status_code=status.HTTP_200_OK, response_model=UserPublicSchema)
+@router.post("/login", status_code=status.HTTP_200_OK, response_model=UserPublicSchema)
 async def route_login(data: LoginUserSchema, session: Session = Depends(get_session)):
-    '''
+    """
     Endpoint para autenticação de usuários.
     Args:
         data (LoginUser): Esquema de login contendo email e senha do usuário.
         session (Session): Sessão do banco de dados, injetada automaticamente pelo FastAPI.
-    '''
+    """
     user = get_user_by_email(session, data.email, data.password)
     if not user:
         raise HTTPException(
@@ -35,20 +35,22 @@ async def route_login(data: LoginUserSchema, session: Session = Depends(get_sess
         email=user.email,
         role=user.role,
         created_at=user.created_at,
-        message="Login successful"
+        message="Login successful",
     )
 
 
-@router.post('/', status_code=status.HTTP_201_CREATED, response_model=UserPublicSchema)
-async def route_create_user(user: CreateUserSchema, session: Session = Depends(get_session)):
-    '''
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=UserPublicSchema)
+async def route_create_user(
+    user: CreateUserSchema, session: Session = Depends(get_session)
+):
+    """
     Endpoint para criação de um novo usuário.
     Args:
         user (CreateUserSchema): Dados do usuário a ser criado.
         session (Session): Sessão do banco de dados, injetada automaticamente pelo FastAPI.
     Returns:
         UserPublicSchema: O usuário criado com sucesso.
-    '''
+    """
     try:
         new_user = create_user(session, user)
         return UserPublicSchema(
@@ -57,36 +59,37 @@ async def route_create_user(user: CreateUserSchema, session: Session = Depends(g
             email=new_user.email,
             role=new_user.role,
             created_at=new_user.created_at,
-            message="User created successfully"
+            message="User created successfully",
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error creating user: {str(e)}"
+            detail=f"Error creating user: {str(e)}",
         )
     except SystemError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating user: {str(e)}"
+            detail=f"Error creating user: {str(e)}",
         )
 
 
-@router.patch('/', status_code=status.HTTP_200_OK, response_model=UserPublicSchema)
-async def route_update_user(user_data: UpdateUserSchema, session: Session = Depends(get_session)):
-    '''
+@router.patch("/", status_code=status.HTTP_200_OK, response_model=UserPublicSchema)
+async def route_update_user(
+    user_data: UpdateUserSchema, session: Session = Depends(get_session)
+):
+    """
     Endpoint para atualização dos dados de um usuário existente.
     Args:
         user_data (UpdateUserSchema): Os dados atualizados do usuário.
         session (Session): Sessão do banco de dados, injetada automaticamente pelo FastAPI.
     Returns:
         UserPublicSchema: O usuário atualizado com sucesso.
-    '''
+    """
     try:
         updated_user = update_user(session, user_data)
         if not updated_user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
         return UserPublicSchema(
             id=updated_user.id,
@@ -94,15 +97,15 @@ async def route_update_user(user_data: UpdateUserSchema, session: Session = Depe
             email=updated_user.email,
             role=updated_user.role,
             created_at=updated_user.created_at,
-            message="User updated successfully"
+            message="User updated successfully",
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error updating user: {str(e)}"
+            detail=f"Error updating user: {str(e)}",
         )
     except SystemError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating user: {str(e)}"
+            detail=f"Error updating user: {str(e)}",
         )

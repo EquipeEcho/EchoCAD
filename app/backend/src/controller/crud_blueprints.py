@@ -46,7 +46,7 @@ def read_all_blueprints(db: Session) -> list[Blueprint]:
         db (Session): Sessão ativa do SQLAlchemy.
 
     Returns:
-        list[Blueprint]: Uma lista contendo todas as instâncias de plantas encontradas. 
+        list[Blueprint]: Uma lista contendo todas as instâncias de plantas encontradas.
                       Retorna uma lista vazia [] se não houver registros.
     """
     query = select(Blueprint)
