@@ -23,7 +23,7 @@ import {
   UploadDocument,
 } from "../types/documents";
 import { formatInputDate } from "../utils/date";
-import { processProject, getProjectResult, getProjeto } from "../services/api";
+import { processProject, getProjectResult, getProjeto, API_BASE_URL } from "../services/api";
 
 type ProcessingResult = {
   file_url: string;
@@ -57,15 +57,12 @@ type PrototypeContextValue = {
   toggleStandard: (standardId: string) => Promise<void>;
   downloadStandard: (standardId: string) => void;
   simulatePreviewAction: (fileName: string) => void;
-  downloadDocumentAsset: (url: string | undefined, label: string) => void;
+  downloadDocumentAsset: (url: string | undefined, label: string) => Promise<void>;
   refreshCurrentDocument: (projectId: number) => Promise<void>;
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
-
-// URL base da API
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 type ProjetoApiItem = {
   id?: number | string;

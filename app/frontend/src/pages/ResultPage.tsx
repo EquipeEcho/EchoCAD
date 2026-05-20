@@ -1,20 +1,36 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import {
   CheckCircleIcon,
   DownloadIcon,
+  FileTypeIcon,
   InfoCircleIcon,
   SpinnerIcon,
 } from "../components/Icons";
-import { PreviewPanel } from "../components/PreviewPanel";
 import { ProjectSaveModal } from "../components/ProjectSaveModal";
 import { SectionTitle } from "../components/SectionTitle";
+import { SurfaceCard } from "../components/SurfaceCard";
 import { usePrototype } from "../hooks/usePrototype";
-import { ProjectSaveInput } from "../types/documents";
+import { API_BASE_URL } from "../services/api";
+import { FileKind, ProjectSaveInput } from "../types/documents";
 
-// Exibe o documento gerado e as ações de download.
+type ResultDownloadAsset = {
+  id: string;
+  title: string;
+  description: string;
+  fileHint: string;
+  fileName: string;
+  kind: FileKind;
+  url?: string;
+};
+
+type ResultRouteState = {
+  refresh?: boolean;
+  projectId?: number;
+};
+
 export function ResultPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,51 +42,100 @@ export function ResultPage() {
     startAIProcessing,
     isAIProcessing,
     refreshCurrentDocument,
+    activeProjectData,
   } = usePrototype();
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [downloadingAssetId, setDownloadingAssetId] = useState<string | null>(null);
   const refreshedIds = useRef<Set<number>>(new Set());
 
-  const routeState = location.state as { refresh?: boolean; projectId?: number } | null;
+  const routeState = location.state as ResultRouteState | null;
+
+  const resolvedProjectId = useMemo(() => {
+    if (routeState?.projectId) {
+      return routeState.projectId;
+    }
+
+    if (activeProjectData?.projectId) {
+      return activeProjectData.projectId;
+    }
+
+    const parsedId = Number(currentDocument?.id);
+    return Number.isFinite(parsedId) ? parsedId : undefined;
+  }, [activeProjectData?.projectId, currentDocument?.id, routeState?.projectId]);
+
+  const downloadAssets = useMemo<ResultDownloadAsset[]>(() => {
+    const projectId = resolvedProjectId;
+
+    return [
+      {
+        id: "memorial-calculo",
+        title: "Memorial de cálculos",
+        description: "Arquivo gerado com cálculos, premissas e validações extraídas do projeto.",
+        fileHint: "Arquivo do memorial de cálculos",
+        fileName: projectId
+          ? `projeto_${projectId}_memorial_calculo.py`
+          : "memorial_calculo.py",
+        kind: "xlsx",
+        url: projectId
+          ? `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`
+          : undefined,
+      },
+      {
+        id: "especificacoes-tecnicas",
+        title: "Especificações técnicas",
+        description: "Documento técnico consolidado com critérios, materiais e referências normativas.",
+        fileHint: "Arquivo das especificações técnicas",
+        fileName: projectId
+          ? `projeto_${projectId}_especificacoes_tecnicas.py`
+          : "especificacoes_tecnicas.py",
+        kind: "pdf",
+        url: projectId
+          ? `${API_BASE_URL}/especificacao_tecnica/projeto/${projectId}/download`
+          : undefined,
+      },
+    ];
+  }, [resolvedProjectId]);
 
   useEffect(() => {
     const handleInitialLoad = async () => {
-      // Prioridade 1: Refresh solicitado via navegação (ex: após criar projeto)
-      if (routeState?.refresh && routeState.projectId && !refreshedIds.current.has(routeState.projectId)) {
-        const pid = routeState.projectId;
-        refreshedIds.current.add(pid);
+      if (
+        routeState?.refresh &&
+        routeState.projectId &&
+        !refreshedIds.current.has(routeState.projectId)
+      ) {
+        const projectId = routeState.projectId;
+        refreshedIds.current.add(projectId);
         setIsRefreshing(true);
-        await refreshCurrentDocument(pid);
+        await refreshCurrentDocument(projectId);
         setIsRefreshing(false);
-        // Limpamos o state da localização para evitar refresh em re-renders futuros
         navigate(location.pathname, { replace: true, state: {} });
         return;
-      } 
-      
-      // Prioridade 2: Documento atual sem resultados (carregado via histórico ou refresh de página)
-      if (currentDocument && currentDocument.file_urls.length === 0 && currentDocument.tableRows.length === 0) {
-         const projectId = parseInt(currentDocument.id);
-         if (!isNaN(projectId) && !refreshedIds.current.has(projectId)) {
-            refreshedIds.current.add(projectId);
-            refreshCurrentDocument(projectId);
-         }
+      }
+
+      if (
+        currentDocument &&
+        currentDocument.file_urls.length === 0 &&
+        currentDocument.tableRows.length === 0
+      ) {
+        const projectId = Number(currentDocument.id);
+
+        if (Number.isFinite(projectId) && !refreshedIds.current.has(projectId)) {
+          refreshedIds.current.add(projectId);
+          refreshCurrentDocument(projectId);
+        }
       }
     };
 
     handleInitialLoad();
-  }, [routeState, currentDocument, refreshCurrentDocument, navigate, location.pathname]);
+  }, [currentDocument, location.pathname, navigate, refreshCurrentDocument, routeState]);
 
   useEffect(() => {
-    if (
-      currentDocument &&
-      shouldPromptProjectSave &&
-      !currentDocument.projectInfo
-    ) {
+    if (currentDocument && shouldPromptProjectSave && !currentDocument.projectInfo) {
       setShowProjectForm(true);
     }
   }, [currentDocument, shouldPromptProjectSave]);
 
-  // Volta para a tela anterior ou para a home.
   const handleBack = () => {
     if (window.history.length > 1) {
       navigate(-1);
@@ -86,20 +151,40 @@ export function ResultPage() {
   };
 
   const handleStartProcessing = () => {
-    if (!currentDocument) return;
-    const projectId = parseInt(currentDocument.id);
-    if (isNaN(projectId)) return;
+    if (!currentDocument) {
+      return;
+    }
+
+    const projectId = resolvedProjectId ?? Number(currentDocument.id);
+
+    if (!Number.isFinite(projectId)) {
+      return;
+    }
 
     const projectInfo: ProjectSaveInput = {
-      name: currentDocument.projectInfo?.name || currentDocument.title.replace("Memorial de cálculo - ", ""),
+      name:
+        currentDocument.projectInfo?.name ||
+        currentDocument.title.replace(/^Memorial.*?-\s*/, ""),
       cliente: currentDocument.projectInfo?.cliente,
       descricao: currentDocument.projectInfo?.descricao || currentDocument.summary,
     };
 
-    // Os arquivos originais podem não estar disponíveis se vier do histórico
-    // mas o backend já os tem. Passamos lista vazia se necessário.
     startAIProcessing(projectId, projectInfo, []);
     navigate("/processando");
+  };
+
+  const handleDownloadAsset = async (asset: ResultDownloadAsset) => {
+    if (downloadingAssetId) {
+      return;
+    }
+
+    setDownloadingAssetId(asset.id);
+
+    try {
+      await downloadDocumentAsset(asset.url, asset.fileName);
+    } finally {
+      setDownloadingAssetId(null);
+    }
   };
 
   if (!currentDocument) {
@@ -119,8 +204,8 @@ export function ResultPage() {
     );
   }
 
-  const fileUrls = currentDocument.file_urls;
-  const isPending = fileUrls.length === 0 && currentDocument.tableRows.length === 0;
+  const isPending =
+    currentDocument.file_urls.length === 0 && currentDocument.tableRows.length === 0;
 
   if (isRefreshing) {
     return (
@@ -140,51 +225,94 @@ export function ResultPage() {
     <main className="page">
       <div className="page__content page__content--result">
         <section className="result-hero" aria-labelledby="result-title">
-          <div className={`result-hero__icon${isPending ? " result-hero__icon--pending" : ""}`} aria-hidden="true">
+          <div
+            className={`result-hero__icon${isPending ? " result-hero__icon--pending" : ""}`}
+            aria-hidden="true"
+          >
             {isPending ? <InfoCircleIcon /> : <CheckCircleIcon />}
           </div>
           <SectionTitle
             className="result-hero__heading"
             eyebrow="Resultado"
             titleId="result-title"
-            title={isPending ? "Processamento pendente" : "Processamento concluído"}
-            description={isPending 
-              ? "Este projeto ainda não foi processado pela IA. Clique no botão abaixo para iniciar."
-              : "Os dados foram analisados com sucesso e o memorial está pronto para exportação."}
+            title={
+              isPending
+                ? "Documentos aguardando geração"
+                : "Documentos prontos para download"
+            }
+            description={
+              isPending
+                ? "Este projeto ainda precisa passar pelo processamento para liberar o memorial de cálculos e as especificações técnicas."
+                : "Baixe os arquivos finais gerados para este projeto."
+            }
             align="center"
           />
         </section>
 
-        <PreviewPanel document={currentDocument} />
+        <SurfaceCard
+          as="section"
+          className="result-downloads"
+          aria-labelledby="result-downloads-title"
+        >
+          <div className="result-downloads__header">
+            <div>
+              <p className="result-downloads__eyebrow">Arquivos gerados</p>
+              <h2 id="result-downloads-title" className="result-downloads__title">
+                Entregáveis técnicos
+              </h2>
+            </div>
+            {resolvedProjectId ? (
+              <span className="result-downloads__badge">Projeto #{resolvedProjectId}</span>
+            ) : null}
+          </div>
+
+          <div className="result-downloads__grid">
+            {downloadAssets.map((asset) => {
+              const isDownloading = downloadingAssetId === asset.id;
+
+              return (
+                <article key={asset.id} className="result-download-card">
+                  <div className="result-download-card__icon" aria-hidden="true">
+                    <FileTypeIcon kind={asset.kind} />
+                  </div>
+                  <div className="result-download-card__body">
+                    <h3 className="result-download-card__title">{asset.title}</h3>
+                    <p className="result-download-card__description">
+                      {asset.description}
+                    </p>
+                    <p className="result-download-card__meta">
+                      {isPending ? "Disponível após o processamento" : asset.fileHint}
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    leadingIcon={
+                      isDownloading ? <SpinnerIcon className="spin" /> : <DownloadIcon />
+                    }
+                    onClick={() => handleDownloadAsset(asset)}
+                    disabled={isPending || isDownloading || !asset.url}
+                  >
+                    {isDownloading ? "Baixando..." : "Baixar"}
+                  </Button>
+                </article>
+              );
+            })}
+          </div>
+        </SurfaceCard>
 
         <div className="result-actions">
           {isPending ? (
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               onClick={handleStartProcessing}
               disabled={isAIProcessing}
             >
               {isAIProcessing ? "Processando..." : "Iniciar processamento agora"}
             </Button>
-          ) : (
-            fileUrls.map((url, index) => (
-              <Button
-                key={`${url}-${index}`}
-                variant="primary"
-                leadingIcon={<DownloadIcon />}
-                onClick={() =>
-                  downloadDocumentAsset(url, `memorial-${index + 1}.xlsx`)
-                }
-              >
-                Baixar XLSX
-              </Button>
-            ))
-          )}
+          ) : null}
 
           <Button variant="secondary" onClick={() => setShowProjectForm(true)}>
-            {currentDocument.projectInfo
-              ? "Editar informações"
-              : "Salvar projeto"}
+            {currentDocument.projectInfo ? "Editar informações" : "Salvar projeto"}
           </Button>
 
           <Button variant="secondary" onClick={handleBack}>
