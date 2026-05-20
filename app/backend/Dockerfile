@@ -1,35 +1,38 @@
-FROM python:3.14-slim AS builder
+FROM python:3.13-slim AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Instalar uv para o build
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=off
+    UV_COMPILE_BYTECODE=1
 
 WORKDIR /app
 
+# Instalar dependências usando cache do uv
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev
 
-FROM python:3.14-slim
+# Estágio Final: Runtime
+FROM python:3.13-slim as runtime
 
 WORKDIR /app
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app"
+
+# Copiar apenas o ambiente virtual (não precisamos do uv aqui)
 COPY --from=builder /app/.venv /app/.venv
 
-COPY . .
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-uv sync --frozen --no-dev
-
-# Garantir que o ambiente virtual do uv seja usado automaticamente
-ENV PATH="/app/.venv/bin:$PATH"
+# Copiar apenas o necessário
+COPY src ./src
+# Se houver outros arquivos essenciais na raiz (como alembic.ini), adicione-os aqui:
+COPY alembic.ini .
+COPY alembic ./alembic
 
 EXPOSE 8000
 
-# 6. Comando para rodar o FastAPI
-# Usando o comando padrão do FastAPI (que internamente usa o uvicorn)
+# Comando para rodar o FastAPI
 CMD ["fastapi", "run", "src/main.py", "--port", "8000"]
