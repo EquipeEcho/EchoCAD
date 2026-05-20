@@ -69,6 +69,18 @@ def get_user_by_email(db: Session, email: str, password: str) -> User | None:
         raise SystemError("Ocorreu um erro inesperado ao recuperar o usuário") from e
 
 
+def get_user_by_id(db: Session, user_id: int) -> User | None:
+    """
+    Recupera um usuário do banco de dados pelo seu ID.
+    """
+    try:
+        stmt = select(User).where(User.id == user_id)
+        return db.execute(stmt).scalar_one_or_none()
+    except Exception as e:
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao recuperar o usuário") from e
+
+
 def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
     """
     Atualiza um usuário existente no banco de dados.

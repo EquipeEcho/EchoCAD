@@ -23,7 +23,7 @@ import {
   UploadDocument,
 } from "../types/documents";
 import { formatInputDate } from "../utils/date";
-import { processProject, getProjectResult, getProjeto, API_BASE_URL } from "../services/api";
+import { processProject, getProjectResult, getProjeto, listProjetos, API_BASE_URL } from "../services/api";
 
 type ProcessingResult = {
   file_url: string;
@@ -170,12 +170,8 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       setHistoryError(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/project/all`);
-        if (!response.ok) {
-          throw new Error(`Erro ao buscar projetos: ${response.status}`);
-        }
+        const projetos = await listProjetos();
 
-        const projetos = (await response.json()) as ProjetoApiItem[];
         const normalizedHistory = projetos.map((projeto) => {
           const projectId = String(projeto.id ?? `projeto-${Math.random()}`);
           const createdAt = projeto.created_at

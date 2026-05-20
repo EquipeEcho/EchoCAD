@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 import json
 from pathlib import Path
 
+from src.auth import get_current_user
+
 from src.controller.crud_blueprints import create_blueprint, read_all_blueprints
 from src.database import get_session
 from src.schemas.system_schema import Success
@@ -19,7 +21,9 @@ router = APIRouter(prefix="/planta_cad", tags=["planta_cad"])
     response_model=BlueprintPublic,
 )
 async def route_create_blueprint(
-    planta: BlueprintSchema, db: Session = Depends(get_session)
+    planta: BlueprintSchema,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
 ):
     """
     Rota para adicionar uma planta de CAD no banco de dados.
@@ -34,7 +38,10 @@ async def route_create_blueprint(
 
 
 @router.get("/", summary="Listar plantas CAD", status_code=status.HTTP_200_OK)
-async def list_blueprints(db: Session = Depends(get_session)):
+async def list_blueprints(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     """
     Rota para listar todas as plantas CAD do projeto.
     """
@@ -48,7 +55,10 @@ async def list_blueprints(db: Session = Depends(get_session)):
 
 
 @router.get("/", summary="Extrai dados do .DXF", status_code=status.HTTP_200_OK)
-async def Extrator_DXF(Caminho: str):
+async def Extrator_DXF(
+    Caminho: str,
+    current_user=Depends(get_current_user),
+):
     try:
         # Define o caminho do DXF
         pasta_do_script = Path(__file__).parent

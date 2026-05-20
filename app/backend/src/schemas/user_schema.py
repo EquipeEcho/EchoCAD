@@ -61,6 +61,14 @@ class UserPublicSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TokenResponseSchema(BaseModel):
+    access_token: str = Field(..., description="JWT de acesso do usuário")
+    token_type: str = Field("bearer", description="Tipo de token")
+    user: UserPublicSchema = Field(..., description="Dados públicos do usuário autenticado")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CreateProjectSchema(BaseModel):
     id_user: int = Field(..., description="ID do usuario criador do projeto")
     name: ProjectName = Field(..., description="Nome do projeto")

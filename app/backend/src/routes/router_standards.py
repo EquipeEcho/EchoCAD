@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from src.auth import get_current_user
 from src.database import get_session
 from src.schemas.system_schema import Success
 from src.schemas.user_schema import StandardSchema
@@ -21,7 +22,9 @@ router = APIRouter(prefix="/norma", tags=["norma"])
     response_model=Success,
 )
 async def route_create_standards(
-    norma_schema: StandardSchema, db: Session = Depends(get_session)
+    norma_schema: StandardSchema,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
 ):
     """
     Rota adição de uma nova norma técnica.
@@ -36,7 +39,10 @@ async def route_create_standards(
 
 
 @router.get("/", summary="Listar todas as normas", status_code=status.HTTP_200_OK)
-async def list_standards(db: Session = Depends(get_session)):
+async def list_standards(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     try:
         result = read_all_standards(db)
         return result
@@ -51,7 +57,11 @@ async def list_standards(db: Session = Depends(get_session)):
     summary="Ativar/Desativar norma",
     status_code=status.HTTP_200_OK,
 )
-async def toggle_standard(standard_id: int, db: Session = Depends(get_session)):
+async def toggle_standard(
+    standard_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     """
     Alterna o status de ativa/inativa de uma norma técnica.
     """

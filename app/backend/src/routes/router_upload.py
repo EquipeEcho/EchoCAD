@@ -4,8 +4,9 @@ import shutil
 from pathlib import Path
 
 # Third Party (Bibliotecas instaladas - ex: FastAPI, SQLAlchemy)
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
+from src.auth import get_current_user
 # Local Application (Módulos internos do seu projeto)
 # from src.controller.file_controller import save_file_metadata
 # from src.database import get_session
@@ -25,7 +26,11 @@ DEFAULT_PATH.mkdir(parents=True, exist_ok=True)
 @router.post(
     "/{project_id}", status_code=status.HTTP_201_CREATED, response_model=UploadResponse
 )
-async def upload(project_id: int, file: UploadFile = File(...)):
+async def upload(
+    project_id: int,
+    current_user=Depends(get_current_user),
+    file: UploadFile = File(...),
+):
     """
     Rota para upload de arquivos.
     """

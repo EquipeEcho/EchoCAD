@@ -5,6 +5,7 @@ import shutil
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from src.auth import get_current_user
 from src.controller.crud_projects import (
     create_projeto,
     read_all_projetos,
@@ -29,7 +30,9 @@ router = APIRouter(prefix="/project", tags=["projeto"])
     response_model=ProjectPublicSchema,
 )
 async def post_create_project(
-    project_schema: CreateProjectSchema, db: Session = Depends(get_session)
+    project_schema: CreateProjectSchema,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
 ):
     """
     Rota para criação de um novo projeto.
@@ -57,7 +60,10 @@ async def post_create_project(
     status_code=status.HTTP_200_OK,
     response_model=list[ProjectPublicSchema],
 )
-async def get_list_projects(db: Session = Depends(get_session)):
+async def get_list_projects(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     """
     Rota para listar todos os projetos existentes.
     """
@@ -79,7 +85,11 @@ async def get_list_projects(db: Session = Depends(get_session)):
     status_code=status.HTTP_200_OK,
     response_model=ProjectPublicSchema,
 )
-async def get_project(projeto_id: int, db: Session = Depends(get_session)):
+async def get_project(
+    projeto_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     """
     Rota para buscar um projeto específico pelo seu ID.
     """
@@ -104,7 +114,9 @@ async def get_project(projeto_id: int, db: Session = Depends(get_session)):
     response_model=ProjectPublicSchema,
 )
 async def patch_update_project(
-    project_schema: UpdateProjectSchema, db: Session = Depends(get_session)
+    project_schema: UpdateProjectSchema,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
 ):
     """
     Rota para atualizar um projeto existente.
@@ -127,7 +139,11 @@ async def patch_update_project(
 
 # TODO: implementar validação.
 @router.delete("/", summary="Deletar projeto", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(projeto_id: int, db: Session = Depends(get_session)):
+async def delete_project(
+    projeto_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
     """
     Rota para deletar um projeto e seus arquivos associados.
     - Remove referências de normas (tabela projeto_norma)

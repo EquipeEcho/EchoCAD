@@ -10,6 +10,14 @@ export interface AuthUser {
   message?: string;
 }
 
+export interface AuthSession {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+}
+
+export interface AuthResponse extends AuthSession {}
+
 export interface RegisterPayload {
   name: string;
   email: string;
@@ -22,15 +30,44 @@ export interface LoginPayload {
   password: string;
 }
 
-export interface AuthResponse {
-  user: AuthUser;
-}
-
 interface ProjetoCreatePayload {
   name: string;
   description?: string;
   client?: string;
   id_user: number;
+}
+
+const AUTH_SESSION_KEY = "echocad_auth_user";
+
+function getStoredAuthSession(): AuthSession | null {
+  const stored = window.localStorage.getItem(AUTH_SESSION_KEY);
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === "object" && "access_token" in parsed && "user" in parsed) {
+      return parsed as AuthSession;
+    }
+  } catch {
+    window.localStorage.removeItem(AUTH_SESSION_KEY);
+  }
+
+  return null;
+}
+
+function getAuthHeaders(): HeadersInit | undefined {
+  const session = getStoredAuthSession();
+  if (!session?.access_token) {
+    console.warn("No auth token found in session");
+    return undefined;
+  }
+
+  console.log("Using auth token:", session.access_token.substring(0, 20) + "...");
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+  };
 }
 
 interface PlantaCADCreatePayload {
@@ -87,10 +124,12 @@ export async function registerUser(userData: RegisterPayload): Promise<AuthRespo
     throw new Error(await parseErrorMessage(response, "Erro ao cadastrar usuário"));
   }
 
-  return { user: await response.json() };
+  return await response.json();
 }
 
 export async function loginUser(credentials: LoginPayload): Promise<AuthResponse> {
+  console.log("Sending login request to:", `${API_BASE_URL}/users/login`);
+  
   const response = await fetch(`${API_BASE_URL}/users/login`, {
     method: "POST",
     headers: {
@@ -100,10 +139,20 @@ export async function loginUser(credentials: LoginPayload): Promise<AuthResponse
   });
 
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Erro ao fazer login"));
+    const errorMsg = await parseErrorMessage(response, "Erro ao fazer login");
+    console.error("Login failed:", response.status, errorMsg);
+    throw new Error(errorMsg);
   }
 
-  return { user: await response.json() };
+  const data = await response.json();
+  console.log("Login response:", { 
+    has_access_token: !!data.access_token, 
+    token_type: data.token_type,
+    has_user: !!data.user,
+    user_id: data.user?.id 
+  });
+  
+  return data;
 }
 
 /**
@@ -118,6 +167,7 @@ export async function createProjeto(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(getAuthHeaders() ?? {}),
     },
     body: JSON.stringify(projectData),
   });
@@ -145,6 +195,9 @@ export async function uploadFile(
 
   const response = await fetch(`${API_BASE_URL}/upload/${projectId}`, {
     method: "POST",
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
     body: formData,
   });
 
@@ -168,6 +221,7 @@ export async function createPlantaCAD(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(getAuthHeaders() ?? {}),
     },
     body: JSON.stringify(plantaData),
   });
@@ -209,7 +263,11 @@ export async function createMultiplePlantasCAD(
  * @returns The project data
  */
 export async function getProjeto(projectId: number): Promise<ProjectResponse> {
-  const response = await fetch(`${API_BASE_URL}/project/?projeto_id=${projectId}`);
+  const response = await fetch(`${API_BASE_URL}/project/?projeto_id=${projectId}`, {
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
+  });
 
   if (!response.ok) {
     throw new Error("Erro ao buscar projeto");
@@ -223,14 +281,23 @@ export async function getProjeto(projectId: number): Promise<ProjectResponse> {
  * @returns Array of all projects
  */
 export async function listProjetos(): Promise<ProjectResponse[]> {
-  const response = await fetch(`${API_BASE_URL}/projects/`);
-  console.log("Response status:", response.status);
+  const headers = getAuthHeaders() ?? {};
+  console.log("Fetching projects with headers:", Object.keys(headers));
+  
+  const response = await fetch(`${API_BASE_URL}/project/all`, {
+    headers,
+  });
+  console.log("Fetching project list with status:", response.status);
 
   if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error("Failed to list projects:", response.status, errorData);
     throw new Error("Erro ao listar projetos");
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log("Projects fetched:", data.length);
+  return data;
 }
 
 /**
@@ -243,11 +310,14 @@ export async function processProject(projectId: number, stream: boolean = false)
   const url = `${API_BASE_URL}/processamento/${projectId}${stream ? "?stream=true" : ""}`;
   
   if (stream) {
-    return fetch(url, { method: "POST" });
+    return fetch(url, { method: "POST", headers: { ...(getAuthHeaders() ?? {}) } });
   }
 
   const response = await fetch(url, {
     method: "POST",
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
   });
 
   if (!response.ok) {
@@ -263,7 +333,11 @@ export async function processProject(projectId: number, stream: boolean = false)
  * @param projectId The project ID
  */
 export async function getProjectResult(projectId: number) {
-  const response = await fetch(`${API_BASE_URL}/processamento/${projectId}/resultado`);
+  const response = await fetch(`${API_BASE_URL}/processamento/${projectId}/resultado`, {
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
+  });
   
   if (!response.ok) {
     if (response.status === 404) return null;
@@ -279,6 +353,7 @@ export async function createNorma(data: NormaCreatePayload) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(getAuthHeaders() ?? {}),
     },
     body: JSON.stringify(data),
   });
@@ -295,7 +370,11 @@ export async function createNorma(data: NormaCreatePayload) {
 
 // Listar normas
 export async function listNormas() {
-  const response = await fetch(`${API_BASE_URL}/norma/`);
+  const response = await fetch(`${API_BASE_URL}/norma/`, {
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
+  });
 
   if (!response.ok) {
     throw new Error("Erro ao buscar normas");

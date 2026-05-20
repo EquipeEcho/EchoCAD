@@ -33,10 +33,14 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
+      console.log("Attempting login with:", { email, password: "***" });
       await login({ email, password });
+      console.log("Login successful, stored session:", window.localStorage.getItem("echocad_auth_user"));
       navigate(fromPath, { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Não foi possível entrar.");
+      const errorMsg = error instanceof Error ? error.message : "Não foi possível entrar.";
+      console.error("Login error:", errorMsg);
+      setErrorMessage(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
