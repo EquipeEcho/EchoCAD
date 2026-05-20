@@ -2,6 +2,11 @@
 .git
 .gitignore
 
+# Docker
+Dockerfile
+docker-compose*.yaml
+.dockerignore
+
 # IDE
 .vscode
 .idea
@@ -24,12 +29,19 @@ venv
 
 # Arquivos de Configuração Local
 .env
-.env.local
+.env.*
+!.env.example
 
 # Bancos de Dados e Logs
 database.db
 *.log
 logs/
+*.sql
+
+# Dados e Arquivos Grandes (Ignorar se não forem essenciais para a API)
+src/modules/chroma_vector/rag.tar.xz
+*.xlsx
+*.docx
 
 # Documentação
 README.md
