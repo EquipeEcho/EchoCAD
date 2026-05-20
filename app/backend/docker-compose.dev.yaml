@@ -16,13 +16,14 @@ services:
       - mariadb_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-echocad_admin}", "-p${MYSQL_PASSWORD:-echocad_admin_password}"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-echocad_admin}", "-p${MYSQL_PASSWORD:-echocad_admin_password}" ]
       start_period: 10s
       interval: 10s
       timeout: 5s
       retries: 3
     restart: unless-stopped
-  api_backend:
+  backend:
+    image: echocad_server:dev_v1
     build:
       context: .
       dockerfile: Dockerfile
