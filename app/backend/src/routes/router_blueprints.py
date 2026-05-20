@@ -40,7 +40,7 @@ async def list_blueprints(db: Session = Depends(get_session)):
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 @router.get("/", summary="Extrai dados do .DXF", status_code=status.HTTP_200_OK)
-async def Extrator_DXF(Caminho: String):
+async def Extrator_DXF(Caminho: str):
     try:    
         # Define o caminho do DXF
         pasta_do_script = Path(__file__).parent

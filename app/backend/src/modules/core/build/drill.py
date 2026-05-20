@@ -526,4 +526,15 @@ def processar_dxf(caminho_arquivo):
 # ==============================================================================
 
 # 1. Carrega as configurações do dicionário JSON externo
+if __name__ == "__main__":
+    from pathlib import Path
+    import os
+
+    print("Diretório atual:", os.getcwd())
+    print("Arquivos na pasta:", os.listdir())
+    print("Arquivo existe?", Path("Teste.dxf").exists())
+
+    resultado = processar_dxf(r"Teste.dxf")
+
+    print(json.dumps(resultado, indent=4, ensure_ascii=False))
  

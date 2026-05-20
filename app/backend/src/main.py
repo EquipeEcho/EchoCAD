@@ -8,6 +8,7 @@ from src.routes.router_project import router as projeto_router
 from src.routes.router_standards import router as norma_router
 from src.routes.router_upload import router as upload_router
 from src.routes.router_users import router as users_router
+from src.routes.router_blueprints import router as Extrator_DXF
 
 logger.add(
     'logs/app_{time:YYYY-MM-DD}.log',
@@ -38,6 +39,7 @@ app.include_router(projeto_router)
 app.include_router(planta_router)
 app.include_router(norma_router)
 app.include_router(users_router)
+app.include_router(Extrator_DXF)
 
 
 @app.get("/", status_code=status.HTTP_200_OK, tags=["root"], summary="Rota de boas vindas")
