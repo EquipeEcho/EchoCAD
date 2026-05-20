@@ -194,6 +194,28 @@
   color: var(--color-text-soft);
 }
 
+[data-theme="dark"] .processing-status,
+[data-theme="dark"] .processing-metric,
+[data-theme="dark"] .processing-activity__item,
+[data-theme="dark"] .result-download-card {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+[data-theme="dark"] .processing-metric {
+  background: var(--color-surface-soft);
+}
+
+[data-theme="dark"] .processing-activity__marker,
+[data-theme="dark"] .result-downloads__badge {
+  background: var(--color-surface-muted);
+  color: var(--color-text-soft);
+}
+
+[data-theme="dark"] .result-download-card__icon {
+  background: var(--color-blue-soft);
+}
+
 [data-theme="dark"] .progress-indicator__bar {
   background: #243142;
 }
