@@ -44,6 +44,7 @@
 
 ## Docker Compose
 - `docker compose up` - start services from compose file
+- `docker compose -f <docker-compose-file.yml> up` - start service from specific compose file
 - `docker compose up -d` - start services in background
 - `docker compose down` - stop and remove services
 - `docker compose build` - build services
