@@ -16,8 +16,8 @@ services:
       - mariadb_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-echocad_admin}", "-p${MYSQL_PASSWORD:-echocad_admin_password}" ]
-      start_period: 10s
+      test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-echocad_admin}", "-p${MYSQL_PASSWORD:-echocad_admin_password}" ]
+      start_period: 30s
       interval: 10s
       timeout: 5s
       retries: 3
@@ -28,6 +28,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: echocad_server
+    environment:
+      database_url: ${DATABASE_URL}
     networks:
       - echocad_network
     ports:

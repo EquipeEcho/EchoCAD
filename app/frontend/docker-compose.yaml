@@ -1,0 +1,15 @@
+services:
+  frontend:
+    image: echocad_fronted:dev_v1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: echocad_frontend
+    networks:
+      - echocad_network
+    ports:
+      - 80:80
+
+networks:
+  echocad_network:
+    driver: bridge
