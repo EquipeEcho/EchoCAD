@@ -1,16 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
-import {
-  CheckCircleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  InfoCircleIcon,
-  SpinnerIcon,
-} from "../components/Icons";
-import { SectionTitle } from "../components/SectionTitle";
-import { SurfaceCard } from "../components/SurfaceCard";
+import { CheckCircleIcon, InfoCircleIcon } from "../components/Icons";
 import { usePrototype } from "../hooks/usePrototype";
 import { ProjectSaveInput, UploadDocument } from "../types/documents";
 
@@ -40,31 +32,36 @@ export function ProcessingPage() {
 
   const projectInfo = routeState?.projectInfo || activeProjectData?.projectInfo;
   const projectId = routeState?.projectId || activeProjectData?.projectId;
-
-  const [showLogs, setShowLogs] = useState(true);
-  const logsEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [processingLogs]);
-
   const latestLog = processingLogs[processingLogs.length - 1];
   const latestLogStatus = latestLog?.toLowerCase() || "";
+  const hasGeneratedResult = Boolean(
+    currentDocument &&
+      (currentDocument.file_urls.length > 0 || currentDocument.tableRows.length > 0),
+  );
   const isDone = Boolean(
     !isAIProcessing &&
-      ((processingLogs.length > 0 &&
-        (latestLogStatus.includes("conclu") || latestLogStatus.includes("[done]"))) ||
-        (currentDocument &&
-          (currentDocument.file_urls.length > 0 || currentDocument.tableRows.length > 0))),
+      (hasGeneratedResult ||
+        (processingLogs.length > 0 &&
+          (latestLogStatus.includes("conclu") || latestLogStatus.includes("[done]")))),
   );
+  const hasError = Boolean(
+    !isAIProcessing &&
+      processingLogs.length > 0 &&
+      (latestLogStatus.includes("erro") || latestLogStatus.includes("falha")),
+  );
+  const canStartManually = Boolean(projectId && projectInfo && !isAIProcessing);
 
-  const statusLabel = isDone
-    ? "Análise finalizada"
-    : isAIProcessing
-      ? "Processamento em execução"
-      : "Aguardando início";
+  useEffect(() => {
+    if (!isDone) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      navigate("/resultado", { replace: true });
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isDone, navigate]);
 
   const handleStartManual = () => {
     if (projectId && projectInfo && !isAIProcessing) {
@@ -72,7 +69,7 @@ export function ProcessingPage() {
     }
   };
 
-  if (filesToProcess.length === 0 && !isAIProcessing) {
+  if (filesToProcess.length === 0 && !isAIProcessing && !isDone && !currentDocument) {
     return (
       <main className="page">
         <div className="page__content page__content--narrow">
@@ -89,87 +86,71 @@ export function ProcessingPage() {
     );
   }
 
+  const title = hasError
+    ? "Não foi possível concluir o processamento"
+    : isDone
+      ? "Processamento concluído"
+      : isAIProcessing
+        ? "Seu projeto está sendo processado"
+        : "Processamento pronto para iniciar";
+
+  const description = hasError
+    ? "Ocorreu uma falha durante a geração dos arquivos. Tente novamente ou volte para a tela de resultados."
+    : isDone
+      ? "Tudo pronto. Abrindo a tela de resultados..."
+      : isAIProcessing
+        ? "Estamos analisando os arquivos e preparando os documentos finais. Isso pode levar alguns instantes."
+        : "Inicie o processamento para gerar os documentos finais do projeto.";
+
   return (
     <main className="page">
       <div className="page__content page__content--processing">
-        <SurfaceCard
-          as="section"
+        <section
           className="processing-card"
+          aria-busy={isAIProcessing}
           aria-labelledby="processing-title"
         >
-          <SectionTitle
-            className="processing-card__heading"
-            eyebrow="Processamento"
-            titleId="processing-title"
-            title={isDone ? "Processamento concluído" : "Processamento em andamento"}
-            description={
-              isDone
-                ? "A análise terminou e os arquivos finais podem ser acessados na tela de resultados."
-                : "Acompanhe o estado atual pelos eventos recebidos do backend."
-            }
-            align="center"
-          />
-
-          <div className="processing-status" data-state={isDone ? "done" : isAIProcessing ? "active" : "idle"}>
-            <div className="processing-status__icon" aria-hidden="true">
-              {isDone ? <CheckCircleIcon /> : isAIProcessing ? <SpinnerIcon className="spin" /> : <InfoCircleIcon />}
-            </div>
-            <div>
-              <p className="processing-status__label">{statusLabel}</p>
-              <p className="processing-status__detail">
-                {latestLog || "Nenhum evento recebido ainda."}
-              </p>
-            </div>
-          </div>
-
-          <div className="processing-logs-container">
-            <button
-              className="processing-logs-toggle"
-              onClick={() => setShowLogs(!showLogs)}
-            >
-              {showLogs ? <ChevronUpIcon /> : <ChevronDownIcon />}
-              <span>{showLogs ? "Ocultar" : "Ver"} log de processamento da IA</span>
-            </button>
-
-            {showLogs && (
-              <div className="processing-logs">
-                {processingLogs.length === 0 ? (
-                  <p className="processing-logs__empty">Aguardando início do pipeline...</p>
-                ) : null}
-                {processingLogs.map((log, index) => (
-                  <div key={`${log}-${index}`} className="processing-logs__item">
-                    {log}
-                  </div>
-                ))}
-                <div ref={logsEndRef} />
-              </div>
-            )}
-          </div>
-
-          <div className="processing-actions">
-            {!isDone ? (
-              <>
-                <Button variant="secondary" onClick={() => navigate("/")}>
-                  Minimizar e ir para Home
-                </Button>
-                {!isAIProcessing ? (
-                  <Button variant="primary" onClick={handleStartManual}>
-                    Iniciar agora
-                  </Button>
-                ) : null}
-              </>
+          <div
+            className="processing-loader"
+            data-state={isDone ? "done" : hasError ? "error" : "loading"}
+            aria-hidden="true"
+          >
+            {isDone || hasError ? (
+              isDone ? <CheckCircleIcon /> : <InfoCircleIcon />
             ) : (
               <>
-                <Button variant="secondary" onClick={() => navigate("/")}>
-                  Voltar para Home
-                </Button>
-                <Button variant="success" onClick={() => navigate("/resultado")}>
-                  Ver resultados
-                </Button>
+                <span className="processing-loader__ring processing-loader__ring--outer" />
+                <span className="processing-loader__ring processing-loader__ring--middle" />
+                <span className="processing-loader__ring processing-loader__ring--inner" />
+                <span className="processing-loader__dot processing-loader__dot--one" />
+                <span className="processing-loader__dot processing-loader__dot--two" />
+                <span className="processing-loader__dot processing-loader__dot--three" />
               </>
             )}
           </div>
-        </SurfaceCard>
+
+          <div className="processing-message" role="status" aria-live="polite">
+            <h1 id="processing-title" className="processing-message__title">
+              {title}
+            </h1>
+            <p className="processing-message__description">{description}</p>
+          </div>
+
+          {hasError || (!isAIProcessing && !isDone) ? (
+            <div className="processing-actions">
+              {hasError ? (
+                <Button variant="secondary" onClick={() => navigate("/resultado")}>
+                  Voltar para resultados
+                </Button>
+              ) : null}
+              {canStartManually ? (
+                <Button variant="primary" onClick={handleStartManual}>
+                  Iniciar processamento
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
       </div>
     </main>
   );
