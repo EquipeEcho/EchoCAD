@@ -14,7 +14,7 @@ logger.add(
     "logs/app_{time:YYYY-MM-DD}.log",
     rotation="10 MB",
     retention="7 days",
-    level=settings.log_level,
+    level=settings.LOG_LEVEL,
     backtrace=True,
     diagnose=True,
 )

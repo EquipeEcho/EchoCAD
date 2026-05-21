@@ -143,7 +143,7 @@ def main():
     print("🔄 Iniciando reset do banco de dados EchoCAD...")
 
     # Parse database URL from config
-    db_config = parse_database_url(settings.database_url)
+    db_config = parse_database_url(settings.DATABASE_URL)
     print(
         f"📍 Configuração do banco: {db_config['host']}:{db_config['port']}/{db_config['database']}"
     )

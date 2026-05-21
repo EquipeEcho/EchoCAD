@@ -6,7 +6,6 @@ from ezdxf.filemanagement import readfile
 from ezdxf.lldxf.const import DXFStructureError
 
 
-
 # ==============================================================================
 # CARREGADOR DINÂMICO DO DICIONÁRIO CONFIG
 # ==============================================================================
@@ -640,6 +639,8 @@ if __name__ == "__main__":
     print("Arquivos na pasta:", os.listdir())
     print("Arquivo existe?", Path("Teste.dxf").exists())
 
-    resultado = processar_dxf(r"C:\Users\ADS_DSM\.projects\EchoCAD\app\backend\src\modules\core\build\Teste.dxf")
+    resultado = processar_dxf(
+        r"C:\Users\ADS_DSM\.projects\EchoCAD\app\backend\src\modules\core\build\Teste.dxf"
+    )
 
     print(json.dumps(resultado, indent=4, ensure_ascii=False))

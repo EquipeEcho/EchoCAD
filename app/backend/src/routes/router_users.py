@@ -15,7 +15,9 @@ from src.controller.crud_users import get_user_by_email, create_user, update_use
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("/login", status_code=status.HTTP_200_OK, response_model=TokenResponseSchema)
+@router.post(
+    "/login", status_code=status.HTTP_200_OK, response_model=TokenResponseSchema
+)
 async def route_login(request: Request, session: Session = Depends(get_session)):
     """
     Endpoint para autenticação de usuários.
@@ -24,13 +26,16 @@ async def route_login(request: Request, session: Session = Depends(get_session))
     content_type = request.headers.get("content-type", "")
     email = None
     password = None
-    
+
     try:
         if "application/json" in content_type:
             body = await request.json()
             email = body.get("email")
             password = body.get("password")
-        elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        elif (
+            "application/x-www-form-urlencoded" in content_type
+            or "multipart/form-data" in content_type
+        ):
             body = await request.form()
             email = body.get("email") or body.get("username")
             password = body.get("password")
@@ -44,13 +49,13 @@ async def route_login(request: Request, session: Session = Depends(get_session))
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Erro ao processar requisição: {str(e)}",
         )
-    
+
     if not email or not password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email/username e password são obrigatórios",
         )
-    
+
     user = get_user_by_email(session, email, password)
     if not user:
         raise HTTPException(
@@ -75,7 +80,9 @@ async def route_login(request: Request, session: Session = Depends(get_session))
     return response
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=TokenResponseSchema)
+@router.post(
+    "/", status_code=status.HTTP_201_CREATED, response_model=TokenResponseSchema
+)
 async def route_create_user(
     user: CreateUserSchema, session: Session = Depends(get_session)
 ):

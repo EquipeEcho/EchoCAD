@@ -22,14 +22,16 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
+
   backend:
     image: echocad_server:dev_v1
     build:
-      context: .
       dockerfile: Dockerfile
     container_name: echocad_server
     environment:
-      database_url: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      JWT_TOKEN: ${JWT_TOKEN}
     networks:
       - echocad_network
     ports:

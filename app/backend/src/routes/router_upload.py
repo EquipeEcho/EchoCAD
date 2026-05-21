@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from src.auth import get_current_user
+
 # Local Application (Módulos internos do seu projeto)
 # from src.controller.file_controller import save_file_metadata
 # from src.database import get_session

@@ -2,7 +2,6 @@ services:
   frontend:
     image: echocad_fronted:dev_v1
     build:
-      context: .
       dockerfile: Dockerfile
     container_name: echocad_frontend
     networks:

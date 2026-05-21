@@ -64,7 +64,9 @@ class UserPublicSchema(BaseModel):
 class TokenResponseSchema(BaseModel):
     access_token: str = Field(..., description="JWT de acesso do usuário")
     token_type: str = Field("bearer", description="Tipo de token")
-    user: UserPublicSchema = Field(..., description="Dados públicos do usuário autenticado")
+    user: UserPublicSchema = Field(
+        ..., description="Dados públicos do usuário autenticado"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
