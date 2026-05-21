@@ -31,8 +31,12 @@ COPY src ./src
 # Se houver outros arquivos essenciais na raiz (como alembic.ini), adicione-os aqui:
 COPY alembic.ini .
 COPY alembic ./alembic
+COPY start.sh .
+RUN chmod +x start.sh
 
 EXPOSE 8000
+
+ENTRYPOINT ["./start.sh"]
 
 # Comando para rodar o FastAPI
 CMD ["fastapi", "run", "src/main.py", "--port", "8000"]
