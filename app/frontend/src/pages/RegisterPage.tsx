@@ -15,6 +15,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -139,7 +140,7 @@ export function RegisterPage() {
               <span className="password-field">
                 <input
                   className="form-field__control password-field__control"
-                  type={isPasswordVisible ? "text" : "password"}
+                  type={isConfirmPasswordVisible ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   autoComplete="new-password"
@@ -150,11 +151,11 @@ export function RegisterPage() {
                 <button
                   className="password-field__toggle"
                   type="button"
-                  onClick={() => setIsPasswordVisible((current) => !current)}
-                  aria-label={isPasswordVisible ? "Ocultar senha" : "Mostrar senha"}
-                  title={isPasswordVisible ? "Ocultar senha" : "Mostrar senha"}
+                  onClick={() => setIsConfirmPasswordVisible((current) => !current)}
+                  aria-label={isConfirmPasswordVisible ? "Ocultar senha" : "Mostrar senha"}
+                  title={isConfirmPasswordVisible ? "Ocultar senha" : "Mostrar senha"}
                 >
-                  {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
+                  {isConfirmPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </span>
             </label>
