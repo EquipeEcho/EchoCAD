@@ -14,7 +14,6 @@ services:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-echocad_admin}", "-p${MYSQL_PASSWORD:-echocad_admin_password}" ]
       start_period: 30s
@@ -31,7 +30,10 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      JWT_TOKEN: ${JWT_TOKEN}
+      JWT_TOKEN: ${JWT_TOKEN:-super_secret_jwt_key_change_me}
+      ECHO_DATABASE: ${ECHO_DATABASE:-true}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
     networks:
       - echocad_network
     ports:
