@@ -57,7 +57,7 @@ function getStoredAuthSession(): AuthSession | null {
   return null;
 }
 
-function getAuthHeaders(): HeadersInit | undefined {
+export function getAuthHeaders(): HeadersInit | undefined {
   const session = getStoredAuthSession();
   if (!session?.access_token) {
     console.warn("No auth token found in session");

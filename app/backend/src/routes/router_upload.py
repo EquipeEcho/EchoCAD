@@ -42,10 +42,11 @@ async def upload(
         )
 
     # Validar extensão do arquivo
-    if not file.filename.lower().endswith(("dxf", "pdf", "doc", "docx")):
+    allowed_suffixes = {".dxf", ".pdf", ".doc", ".docx"}
+    if Path(file.filename).suffix.lower() not in allowed_suffixes:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Formato não suportado.",
+            detail="Formato nao suportado. Envie arquivos DXF, PDF, DOC ou DOCX.",
         )
 
     try:

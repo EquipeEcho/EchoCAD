@@ -14,12 +14,15 @@ import { FileRow } from "../components/FileRow";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { usePrototype } from "../hooks/usePrototype";
+import { API_BASE_URL, getAuthHeaders } from "../services/api";
 import { HistoryDocument } from "../types/documents";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
-
 async function downloadFile(url: string, fileName: string) {
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
+  });
   if (!response.ok) {
     throw new Error(`Erro ao baixar ${fileName}`);
   }
@@ -78,16 +81,10 @@ export function HistoryPage() {
 
     setDownloadingProjectId(document.id);
     try {
-      await Promise.all([
-        downloadFile(
-          `${API_BASE_URL}/especificacao_tecnica/projeto/${projectId}/download`,
-          `projeto_${projectId}_especificacoes_tecnicas.py`,
-        ),
-        downloadFile(
-          `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`,
-          `projeto_${projectId}_memorial_calculo.py`,
-        ),
-      ]);
+      await downloadFile(
+        `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`,
+        `projeto_${projectId}_memorial_calculo.xlsx`,
+      );
     } catch (error) {
       console.error(error);
       window.alert(

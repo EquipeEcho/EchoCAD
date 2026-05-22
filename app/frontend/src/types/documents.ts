@@ -1,4 +1,4 @@
-export type FileKind = "dwg" | "dxf" | "pdf" | "xlsx";
+export type FileKind = "dxf" | "pdf" | "doc" | "docx" | "xlsx";
 
 export type ToastTone = "success" | "error" | "info";
 

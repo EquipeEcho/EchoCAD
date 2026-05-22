@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Aborta o script se algum comando falhar
 set -e

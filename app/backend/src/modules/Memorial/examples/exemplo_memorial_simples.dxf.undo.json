@@ -1,0 +1,90 @@
+{
+  "formatId": "stgen-dxf-undo-v1",
+  "version": "1.0",
+  "fileHash": "34ed5ca9",
+  "lastModified": 1779369834419,
+  "undoStack": [
+    {
+      "type": "delete",
+      "label": "Delete",
+      "timestamp": 1779369794440,
+      "data": {
+        "actionType": "delete",
+        "entities": [
+          {
+            "type": "MTEXT",
+            "layer": "arq - textos",
+            "data": {
+              "position": {
+                "x": 0.35,
+                "y": 2.45,
+                "z": 0
+              },
+              "text": "SALA ADMINISTRATIVA\n(ADMINISTRATIVO)\n12,00 m�\nP = 14,00 m\nPD = 3,00 m",
+              "height": 0.25,
+              "attachmentPoint": 1
+            }
+          }
+        ],
+        "indices": [
+          0
+        ]
+      }
+    },
+    {
+      "type": "delete",
+      "label": "Delete",
+      "timestamp": 1779369798446,
+      "data": {
+        "actionType": "delete",
+        "entities": [
+          {
+            "type": "MTEXT",
+            "layer": "arq - textos",
+            "data": {
+              "position": {
+                "x": 5.35,
+                "y": 1.45,
+                "z": 0
+              },
+              "text": "BANHEIRO\n(SERVICO)\n4,00 m�\nP = 8,00 m\nPD = 2,80 m",
+              "height": 0.25,
+              "attachmentPoint": 1
+            }
+          }
+        ],
+        "indices": [
+          5
+        ]
+      }
+    },
+    {
+      "type": "delete",
+      "label": "Delete",
+      "timestamp": 1779369832414,
+      "data": {
+        "actionType": "delete",
+        "entities": [
+          {
+            "type": "MTEXT",
+            "layer": "arq - textos",
+            "data": {
+              "position": {
+                "x": 0.35,
+                "y": 5.95,
+                "z": 0
+              },
+              "text": "COPA\n(APOIO)\n7,50 m�\nP = 11,00 m\nPD = 3,00 m",
+              "height": 0.25,
+              "attachmentPoint": 1
+            }
+          }
+        ],
+        "indices": [
+          10
+        ]
+      }
+    }
+  ],
+  "redoStack": []
+}

@@ -74,8 +74,8 @@ export function ResultPage() {
         description: "Arquivo gerado com cálculos, premissas e validações extraídas do projeto.",
         fileHint: "Arquivo do memorial de cálculos",
         fileName: projectId
-          ? `projeto_${projectId}_memorial_calculo.py`
-          : "memorial_calculo.py",
+          ? `projeto_${projectId}_memorial_calculo.xlsx`
+          : "memorial_calculo.xlsx",
         kind: "xlsx",
         url: projectId
           ? `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`
@@ -87,14 +87,12 @@ export function ResultPage() {
         description: "Documento técnico consolidado com critérios, materiais e referências normativas.",
         fileHint: "Arquivo das especificações técnicas",
         fileName: projectId
-          ? `projeto_${projectId}_especificacoes_tecnicas.py`
-          : "especificacoes_tecnicas.py",
+          ? `projeto_${projectId}_especificacoes_tecnicas.docx`
+          : "especificacoes_tecnicas.docx",
         kind: "pdf",
-        url: projectId
-          ? `${API_BASE_URL}/especificacao_tecnica/projeto/${projectId}/download`
-          : undefined,
+        url: undefined,
       },
-    ];
+    ].filter((asset) => asset.id === "memorial-calculo") as ResultDownloadAsset[];
   }, [resolvedProjectId]);
 
   useEffect(() => {

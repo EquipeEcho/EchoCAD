@@ -23,7 +23,7 @@ import {
   UploadDocument,
 } from "../types/documents";
 import { formatInputDate } from "../utils/date";
-import { processProject, getProjectResult, getProjeto, listProjetos, API_BASE_URL } from "../services/api";
+import { processProject, getProjectResult, getProjeto, listProjetos, API_BASE_URL, getAuthHeaders } from "../services/api";
 
 type ProcessingResult = {
   file_url: string;
@@ -734,7 +734,11 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     }
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          ...(getAuthHeaders() ?? {}),
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Erro ao baixar arquivo");

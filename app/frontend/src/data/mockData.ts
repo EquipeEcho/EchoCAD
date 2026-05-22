@@ -39,7 +39,7 @@ function buildPreviewDocument(
 }
 
 export const mockUploadDocuments: UploadDocument[] = [
-  { id: "upload-1", name: "Planta_Batalhao_A1.dwg", kind: "dwg" },
+  { id: "upload-1", name: "Planta_Batalhao_A1.dxf", kind: "dxf" },
   { id: "upload-2", name: "Memorial_Preliminar.pdf", kind: "pdf" },
   { id: "upload-3", name: "Croqui_Infraestrutura.dxf", kind: "dxf" },
 ];
@@ -55,13 +55,13 @@ export const mockHistoryDocuments: HistoryDocument[] = [
       "Memorial de cálculo - Batalhão Central",
       "20/03/2026",
       "EchoCAD-7429",
-      ["Planta_Batalhao_Central.dwg", "Memorial_Base.pdf"],
+      ["Planta_Batalhao_Central.dxf", "Memorial_Base.pdf"],
     ),
   },
   {
     id: "history-2",
-    name: "Planta_Administrativa_A2.dwg",
-    kind: "dwg",
+    name: "Planta_Administrativa_A2.dxf",
+    kind: "dxf",
     date: "18/03/2026",
     size: "1.8 MB",
     document: buildPreviewDocument(
@@ -69,7 +69,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
       "Memorial de cálculo - Bloco Administrativo A2",
       "18/03/2026",
       "EchoCAD-7310",
-      ["Planta_Administrativa_A2.dwg", "Croqui_Fundacao.dxf"],
+      ["Planta_Administrativa_A2.dxf", "Croqui_Fundacao.dxf"],
     ),
   },
   {
@@ -149,7 +149,12 @@ export const mockTechnicalStandards: TechnicalStandard[] = [
 export function getFileKindFromName(fileName: string): FileKind | null {
   const extension = fileName.toLowerCase().split(".").pop();
 
-  if (extension !== "dwg" && extension !== "dxf" && extension !== "pdf") {
+  if (
+    extension !== "dxf" &&
+    extension !== "pdf" &&
+    extension !== "doc" &&
+    extension !== "docx"
+  ) {
     return null;
   }
 

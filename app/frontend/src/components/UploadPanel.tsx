@@ -1,6 +1,7 @@
 import { ChangeEvent, DragEvent, MouseEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePrototype } from "../hooks/usePrototype";
+import { useAuth } from "../providers/AuthProvider";
 import {
   ProjectSaveInput,
   UploadDocument,
@@ -21,6 +22,10 @@ import { ProjectSaveModal } from "./ProjectSaveModal";
 import { PlantaCADModal, PlantaCADInfo } from "./PlantaCADModal";
 import { createProjeto, createMultiplePlantasCAD, uploadFile } from "../services/api";
 
+const ACCEPTED_UPLOAD_FORMATS_LABEL = "DXF, PDF, DOC e DOCX";
+const REQUIRED_DXF_MESSAGE =
+  "Envie ao menos um arquivo DXF para gerar o memorial de calculo.";
+
 // Monta a mensagem de status após selecionar arquivos.
 function buildUploadStatusMessage(
   addedCount: number,
@@ -40,7 +45,7 @@ function buildUploadStatusMessage(
 
   if (invalidCount > 0) {
     return {
-      message: "Somente arquivos PDF, DWG e DXF são aceitos.",
+      message: `Somente arquivos ${ACCEPTED_UPLOAD_FORMATS_LABEL} sao aceitos.`,
       tone: "error" as UploadStatusTone,
     };
   }
@@ -53,7 +58,7 @@ function buildUploadStatusMessage(
   }
 
   return {
-    message: "Formatos aceitos: PDF, DWG e DXF.",
+    message: `Formatos aceitos: ${ACCEPTED_UPLOAD_FORMATS_LABEL}.`,
     tone: "info" as UploadStatusTone,
   };
 }
@@ -68,13 +73,22 @@ function getSuggestedProjectName(files: UploadDocument[]) {
   return primaryFileName.replace(/[_-]+/g, " ").trim();
 }
 
+function hasDxfFile(files: UploadDocument[]) {
+  return files.some((file) => file.kind === "dxf");
+}
+
+function selectionIncludesDxf(files: File[]) {
+  return files.some((file) => file.name.toLowerCase().endsWith(".dxf"));
+}
+
 // Controla a seleção e o envio dos arquivos do frontend.
 export function UploadPanel() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
-    "Formatos aceitos: PDF, DWG e DXF.",
+    `Formatos aceitos: ${ACCEPTED_UPLOAD_FORMATS_LABEL}.`,
   );
   const [statusTone, setStatusTone] = useState<UploadStatusTone>("info");
   const [filePendingRemoval, setFilePendingRemoval] =
@@ -91,11 +105,13 @@ export function UploadPanel() {
     simulatePreviewAction,
     showToast,
     isAIProcessing,
+    startAIProcessing,
   } = usePrototype();
 
   // Processa os arquivos escolhidos e atualiza o status.
   const applyFileSelection = (files: FileList | File[]) => {
-    const result = addUploadedFiles(files);
+    const selectedFiles = Array.from(files);
+    const result = addUploadedFiles(selectedFiles);
     const nextTotalCount = uploadedFiles.length + result.addedCount;
     const nextStatus = buildUploadStatusMessage(
       result.addedCount,
@@ -114,8 +130,9 @@ export function UploadPanel() {
           : `${result.addedCount} arquivos adicionados com sucesso.`,
         "success",
       );
-      // Mostrar modal de planta CAD quando novos arquivos são adicionados
-      setShowPlantaCADModal(true);
+      if (selectionIncludesDxf(selectedFiles) && !currentPlantaInfo) {
+        setShowPlantaCADModal(true);
+      }
     } else if (result.invalidCount > 0) {
       showToast(nextStatus.message, "error");
     }
@@ -161,7 +178,14 @@ export function UploadPanel() {
       return;
     }
 
+    const remainingFiles = uploadedFiles.filter(
+      (document) => document.id !== filePendingRemoval.id,
+    );
+
     removeUploadedFile(filePendingRemoval.id);
+    if (!hasDxfFile(remainingFiles)) {
+      setCurrentPlantaInfo(null);
+    }
     showToast("Arquivo removido da lista.", "info");
     setFilePendingRemoval(null);
   };
@@ -169,6 +193,11 @@ export function UploadPanel() {
   const handleStartProcessingClick = () => {
     if (uploadedFiles.length === 0) {
       showToast("Nenhum arquivo selecionado.", "error");
+      return;
+    }
+
+    if (!hasDxfFile(uploadedFiles)) {
+      showToast(REQUIRED_DXF_MESSAGE, "error");
       return;
     }
 
@@ -189,6 +218,11 @@ export function UploadPanel() {
       return;
     }
 
+    if (!hasDxfFile(uploadedFiles)) {
+      showToast(REQUIRED_DXF_MESSAGE, "error");
+      return;
+    }
+
     if (!currentPlantaInfo) {
       showToast("Informações da planta CAD não encontradas.", "error");
       return;
@@ -205,7 +239,7 @@ export function UploadPanel() {
         name: projectInfo.name,
         description: `${projectInfo.descricao || ""}${projectInfo.descricao ? "\n" : ""}Arquivos: ${uploadedFiles.map(f => f.name).join(", ")}`,
         client: projectInfo.cliente,
-        id_user: 1, 
+        id_user: user?.id ?? 1,
       });
 
       // 2. Fazer upload de cada arquivo e criar as entradas de planta CAD
@@ -227,12 +261,21 @@ export function UploadPanel() {
         await createMultiplePlantasCAD(plantasData, createdProject.id);
       }
 
-      showToast("Projeto e arquivos salvos com sucesso!", "success");
+      showToast("Projeto e arquivos salvos. Iniciando processamento...", "success");
 
       // 3. Limpar uploads e navegar para a página de resultado
+      const filesForProcessing = [...uploadedFiles];
       clearUploadedFiles();
+      void startAIProcessing(createdProject.id, projectInfo, filesForProcessing);
 
-      navigate("/resultado", { state: { refresh: true, projectId: createdProject.id } });
+      navigate("/processando", {
+        state: {
+          refresh: true,
+          projectId: createdProject.id,
+          projectInfo,
+          files: filesForProcessing,
+        },
+      });
       
     } catch (error) {
       console.error("Erro ao salvar projeto:", error);
@@ -259,7 +302,7 @@ export function UploadPanel() {
         ref={inputRef}
         className="upload-panel__input"
         type="file"
-        accept=".dwg,.dxf,.pdf"
+        accept=".dxf,.pdf,.doc,.docx"
         multiple
         onChange={handleInputChange}
       />
@@ -288,8 +331,7 @@ export function UploadPanel() {
           </div>
           <p className="upload-empty__title">Envie seus arquivos técnicos</p>
           <p className="upload-empty__description">
-            Arraste documentos CAD ou clique para selecionar arquivos do
-            computador.
+            Arraste arquivos DXF ou documentos de apoio aceitos pelo backend.
           </p>
           <Button
             variant="primary"

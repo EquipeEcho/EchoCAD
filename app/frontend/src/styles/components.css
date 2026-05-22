@@ -323,9 +323,13 @@
   color: #ef4444;
 }
 
-.file-row[data-kind="dwg"] .file-row__icon,
 .file-row[data-kind="dxf"] .file-row__icon {
   color: #4f6ef7;
+}
+
+.file-row[data-kind="doc"] .file-row__icon,
+.file-row[data-kind="docx"] .file-row__icon {
+  color: #2563eb;
 }
 
 .file-row[data-kind="xlsx"] .file-row__icon {
@@ -370,6 +374,12 @@
 .file-row[data-kind="pdf"] .file-row__kind {
   background: #fef2f2;
   color: #dc2626;
+}
+
+.file-row[data-kind="doc"] .file-row__kind,
+.file-row[data-kind="docx"] .file-row__kind {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .file-row[data-kind="xlsx"] .file-row__kind {

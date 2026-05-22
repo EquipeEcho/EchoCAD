@@ -166,6 +166,30 @@ class CADExtractor:
         self._loaded = self._parser.load()
 
     @staticmethod
+    def _is_text_layer(layer: str) -> bool:
+        layer_l = layer.lower().strip()
+        return layer_l in LAYERS_TEXTO or "texto" in layer_l or "text" in layer_l
+
+    @staticmethod
+    def _is_wall_layer(layer: str) -> bool:
+        layer_l = layer.lower().strip()
+        return (
+            layer_l in LAYERS_PAREDE
+            or "alvenaria" in layer_l
+            or "parede" in layer_l
+        )
+
+    @staticmethod
+    def _is_opening_layer(layer: str) -> bool:
+        layer_l = layer.lower().strip()
+        return (
+            layer_l in LAYERS_VAO
+            or "esquadria" in layer_l
+            or "porta" in layer_l
+            or "janela" in layer_l
+        )
+
+    @staticmethod
     def _limpar_mtext(raw: str) -> str:
         # Remover formatação de parágrafo inicial (\pxqc; etc.)
         t = re.sub(r"\\p[^;]*;", "", raw, flags=re.IGNORECASE)
@@ -220,6 +244,26 @@ class CADExtractor:
             return 0.0
 
     @staticmethod
+    def _segmento_line(data: Dict) -> Optional[Tuple[Tuple[float, float], Tuple[float, float]]]:
+        try:
+            x1, y1 = float(data[10][0]), float(data[20][0])
+            x2 = (
+                float(data[11][0])
+                if 11 in data
+                else (float(data[10][1]) if len(data.get(10, [])) > 1 else x1)
+            )
+            y2 = (
+                float(data[21][0])
+                if 21 in data
+                else (float(data[20][1]) if len(data.get(20, [])) > 1 else y1)
+            )
+            if math.isclose(x1, x2) and math.isclose(y1, y2):
+                return None
+            return (x1, y1), (x2, y2)
+        except Exception:
+            return None
+
+    @staticmethod
     def _comprimento_lwpolyline(data: Dict) -> float:
         try:
             xs = [float(v) for v in data.get(10, [])]
@@ -233,6 +277,166 @@ class CADExtractor:
         except Exception:
             return 0.0
 
+    @staticmethod
+    def _segmentos_lwpolyline(data: Dict) -> List[Tuple[Tuple[float, float], Tuple[float, float]]]:
+        try:
+            xs = [float(v) for v in data.get(10, [])]
+            ys = [float(v) for v in data.get(20, [])]
+            if len(xs) < 2 or len(xs) != len(ys):
+                return []
+
+            pontos = list(zip(xs, ys))
+            segmentos = list(zip(pontos, pontos[1:]))
+            flags = int(data.get(70, ["0"])[0])
+            if flags & 1:
+                segmentos.append((pontos[-1], pontos[0]))
+            return [
+                (p1, p2)
+                for p1, p2 in segmentos
+                if not (math.isclose(p1[0], p2[0]) and math.isclose(p1[1], p2[1]))
+            ]
+        except Exception:
+            return []
+
+    @staticmethod
+    def _escala_por_dimensao(width: float, height: float) -> float:
+        maior = max(abs(width), abs(height))
+        if maior > 1000:
+            return 0.001
+        if maior > 100:
+            return 0.01
+        return 1.0
+
+    @staticmethod
+    def _distancia(p1: Tuple[float, float], p2: Tuple[float, float]) -> float:
+        return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+
+    @staticmethod
+    def _ponto_chave(p: Tuple[float, float]) -> Tuple[float, float]:
+        return round(p[0], 3), round(p[1], 3)
+
+    def _extrair_ambientes_por_geometria(self, entities: List[Dict]) -> List[Ambiente]:
+        segmentos_parede: List[Tuple[Tuple[float, float], Tuple[float, float]]] = []
+        segmentos_vao: List[Tuple[Tuple[float, float], Tuple[float, float]]] = []
+
+        for e in entities:
+            layer = e["data"].get(8, [""])[0]
+            etype = e["type"]
+            segmentos: List[Tuple[Tuple[float, float], Tuple[float, float]]] = []
+
+            if etype == "LINE":
+                segmento = self._segmento_line(e["data"])
+                segmentos = [segmento] if segmento else []
+            elif etype == "LWPOLYLINE":
+                segmentos = self._segmentos_lwpolyline(e["data"])
+
+            if not segmentos:
+                continue
+
+            if self._is_wall_layer(layer):
+                segmentos_parede.extend(segmentos)
+            elif self._is_opening_layer(layer):
+                segmentos_vao.extend(segmentos)
+
+        if not segmentos_parede:
+            return []
+
+        ponto_para_segmentos: Dict[Tuple[float, float], List[int]] = defaultdict(list)
+        for idx, (p1, p2) in enumerate(segmentos_parede):
+            ponto_para_segmentos[self._ponto_chave(p1)].append(idx)
+            ponto_para_segmentos[self._ponto_chave(p2)].append(idx)
+
+        componentes: List[List[int]] = []
+        visitados = set()
+        for idx in range(len(segmentos_parede)):
+            if idx in visitados:
+                continue
+            pilha = [idx]
+            componente = []
+            visitados.add(idx)
+
+            while pilha:
+                atual = pilha.pop()
+                componente.append(atual)
+                for p in segmentos_parede[atual]:
+                    for vizinho in ponto_para_segmentos[self._ponto_chave(p)]:
+                        if vizinho not in visitados:
+                            visitados.add(vizinho)
+                            pilha.append(vizinho)
+
+            componentes.append(componente)
+
+        ambientes: List[Ambiente] = []
+        for comp_idx, componente in enumerate(componentes, start=1):
+            pontos = [
+                ponto
+                for seg_idx in componente
+                for ponto in segmentos_parede[seg_idx]
+            ]
+            if len({self._ponto_chave(p) for p in pontos}) < 3:
+                continue
+
+            xs = [p[0] for p in pontos]
+            ys = [p[1] for p in pontos]
+            min_x, max_x = min(xs), max(xs)
+            min_y, max_y = min(ys), max(ys)
+            width_raw = max_x - min_x
+            height_raw = max_y - min_y
+            if width_raw <= 0 or height_raw <= 0:
+                continue
+
+            escala = self._escala_por_dimensao(width_raw, height_raw)
+            width = width_raw * escala
+            height = height_raw * escala
+            area = round(width * height, 2)
+            if area <= 0:
+                continue
+
+            perimetro = round(
+                sum(
+                    self._distancia(*segmentos_parede[seg_idx]) * escala
+                    for seg_idx in componente
+                ),
+                2,
+            )
+            if perimetro <= 0:
+                perimetro = round(2 * (width + height), 2)
+
+            comprimento_vaos = 0.0
+            margem = max(width_raw, height_raw) * 0.02 + 0.05
+            for p1, p2 in segmentos_vao:
+                mx = (p1[0] + p2[0]) / 2
+                my = (p1[1] + p2[1]) / 2
+                if (
+                    min_x - margem <= mx <= max_x + margem
+                    and min_y - margem <= my <= max_y + margem
+                ):
+                    comprimento_vaos += self._distancia(p1, p2) * escala
+
+            pe_direito = ALTURA_PADRAO
+            area_bruta = round(perimetro * pe_direito, 2)
+            area_vaos = round(comprimento_vaos * self.ALTURA_VAO_PADRAO, 2)
+            area_liquida = round(max(area_bruta - area_vaos, 0), 2)
+
+            ambientes.append(
+                Ambiente(
+                    nome=f"AMBIENTE {comp_idx}",
+                    area=area,
+                    perimetro=perimetro,
+                    pe_direito=pe_direito,
+                    comprimento_paredes=perimetro,
+                    comprimento_vaos=round(comprimento_vaos, 2),
+                    area_bruta_parede=area_bruta,
+                    area_vaos=area_vaos,
+                    area_liquida_parede=area_liquida,
+                    cx=round(((min_x + max_x) / 2) * escala, 2),
+                    cy=round(((min_y + max_y) / 2) * escala, 2),
+                )
+            )
+
+        ambientes.sort(key=lambda a: (a.cy, a.cx))
+        return ambientes
+
     def extrair_dados_reais(self) -> List[Ambiente]:
         if not self._loaded:
             return []
@@ -244,7 +448,7 @@ class CADExtractor:
 
         for e in entities:
             layer = e["data"].get(8, [""])[0].lower().strip()
-            if layer not in LAYERS_TEXTO:
+            if not self._is_text_layer(layer):
                 continue
             if e["type"] not in ("TEXT", "MTEXT"):
                 continue
@@ -366,7 +570,15 @@ class CADExtractor:
             )
 
         if not ambientes_dict:
-            logger.warning("Nenhum ambiente encontrado pelo parser de texto.")
+            ambientes_geometria = self._extrair_ambientes_por_geometria(entities)
+            if ambientes_geometria:
+                logger.warning(
+                    "Nenhum ambiente encontrado por texto; usando fallback geométrico "
+                    f"com {len(ambientes_geometria)} ambiente(s)."
+                )
+                return ambientes_geometria
+
+            logger.warning("Nenhum ambiente encontrado pelo parser de texto ou geometria.")
             return []
 
         ambientes_lista = list(ambientes_dict.values())
