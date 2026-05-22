@@ -1,5 +1,5 @@
 // API base URL - configure this based on your environment
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 export interface AuthUser {
   id: number;

@@ -41,6 +41,7 @@ logs/
 # Dados e Arquivos Grandes (Ignorar se não forem essenciais para a API)
 src/modules/chroma_vector/rag.tar.xz
 *.xlsx
+!src/templates/*.xlsx
 *.docx
 
 # Documentação

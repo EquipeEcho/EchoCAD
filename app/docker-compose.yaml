@@ -25,10 +25,11 @@ services:
   backend:
     image: echocad_server:dev_v1
     build:
+      context: ./backend
       dockerfile: Dockerfile
     container_name: echocad_server
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://user:echocad_password@mariadb:3306/echocad_db}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       JWT_TOKEN: ${JWT_TOKEN:-super_secret_jwt_key_change_me}
       ECHO_DATABASE: ${ECHO_DATABASE:-true}
@@ -41,6 +42,29 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+
+  frontend:
+    image: echocad_fronted:dev_v1
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: echocad_frontend
+    networks:
+      - echocad_network
+    ports:
+      - 80:80
+    depends_on:
+      - backend
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: dev_morumbi_cloudflared
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN} --url http://frontend:80
+    networks:
+      - echocad_network
 
 volumes:
   mariadb_data:
