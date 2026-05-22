@@ -54,21 +54,26 @@ async def list_blueprints(
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
 
 
-@router.get("/", summary="Extrai dados do .DXF", status_code=status.HTTP_200_OK)
-async def Extrator_DXF(
-    Caminho: str,
+@router.get("/extrair", summary="Extrai dados do .DXF", status_code=status.HTTP_200_OK)
+async def extrair_dxf(
+    caminho: str,
     current_user=Depends(get_current_user),
 ):
     try:
-        # Define o caminho do DXF
-        pasta_do_script = Path(__file__).parent
-        caminho = Caminho
-
+        # 1. Verifica se o arquivo realmente existe e barra a execução se não existir
         if not Path(caminho).exists():
-            print("Coloque o caminho do .DXF")
+            raise HTTPException(
+                status_code=404, 
+                detail="Arquivo .DXF não encontrado no caminho especificado."
+            )
+            
         # 2. Roda o motor passando as configurações dinâmicas
         relatorio_json = processar_dxf(caminho)
         return relatorio_json
+        
+    except HTTPException:
+        # Repassa o erro 404 sem mascarar ele no except de baixo
+        raise 
     except Exception as e:
         msg = "Erro ao extrair dados do .DXF"
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")
