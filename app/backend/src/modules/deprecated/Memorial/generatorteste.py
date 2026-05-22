@@ -12,7 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from .dxf_extractor import CADExtractor, ProjetoMemorial
+from .dxf_extractor import Ambiente, CADExtractor, ProjetoMemorial
 from ..BuscarPrecos.sinapi import buscar_preco_sinapi, carregar_sinapi
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -42,6 +42,52 @@ def _categoria_sinapi(nome: str) -> str:
         if chave in nome_l:
             return material
     return "bloco cerâmico"
+
+
+def _criar_ambiente_por_quantitativos(quantitativos: dict[str, Any] | None):
+    if not quantitativos:
+        return []
+
+    paredes = quantitativos.get("paredes", [])
+    if not paredes:
+        return []
+
+    resumo = quantitativos.get("resumo_global", {})
+    total_comprimento = sum(p.get("comprimento_m") or 0 for p in paredes)
+    total_area_bruta = sum(p.get("area_externa_m2") or 0 for p in paredes)
+    total_volume_bruto = sum(p.get("volume_bruto_m3") or 0 for p in paredes)
+    total_volume_liquido = resumo.get("volume_final_liquido_alvenaria_m3")
+    total_descontos = sum(
+        d.get("volume_descontado_m3") or 0
+        for p in paredes
+        for d in p.get("descontos_aberturas", [])
+    )
+    espessuras = [p.get("espessura_m") for p in paredes if p.get("espessura_m")]
+    espessura = sum(espessuras) / len(espessuras) if espessuras else 0.15
+
+    if total_comprimento <= 0 or total_area_bruta <= 0:
+        return []
+
+    pe_direito = total_area_bruta / total_comprimento
+    area_vaos = total_descontos / espessura if espessura else 0
+    if not area_vaos and total_volume_bruto and total_volume_liquido is not None:
+        area_vaos = max((total_volume_bruto - total_volume_liquido) / espessura, 0)
+
+    area_total = resumo.get("area_total_laje_m2") or 0
+    ambiente = Ambiente(
+        nome="AMBIENTE TECNICO",
+        subtitulo="Gerado pelos quantitativos do DXF",
+        area=round(area_total, 2),
+        perimetro=round(total_comprimento, 2),
+        pe_direito=round(pe_direito, 2),
+        espessura_parede=round(espessura, 3),
+        comprimento_paredes=round(total_comprimento, 2),
+        comprimento_vaos=round(area_vaos / CADExtractor.ALTURA_VAO_PADRAO, 2),
+        area_bruta_parede=round(total_area_bruta, 2),
+        area_vaos=round(area_vaos, 2),
+        area_liquida_parede=round(max(total_area_bruta - area_vaos, 0), 2),
+    )
+    return [ambiente]
 
 
 # ---------------------------------------------------------------------------
@@ -650,6 +696,10 @@ def run_integration(
 
     extractor = CADExtractor(dxf_file)
     ambientes = extractor.extrair_dados_reais()
+    if not ambientes:
+        ambientes = _criar_ambiente_por_quantitativos(quantitativos_dxf)
+        if ambientes:
+            logger.info("Ambiente tecnico criado a partir dos quantitativos do drill.py.")
     logger.info(f"Ambientes encontrados: {len(ambientes)}")
     if not ambientes:
         raise ValueError(

@@ -69,6 +69,41 @@ def pontos_proximos(p1, p2, tolerancia=1e-6):
     return abs(p1[0] - p2[0]) <= tolerancia and abs(p1[1] - p2[1]) <= tolerancia
 
 
+def extrair_xy_vertice(vertice):
+    """Normaliza vertices do ezdxf entre Vec3 e tuplas/listas."""
+    if hasattr(vertice, "x") and hasattr(vertice, "y"):
+        return (vertice.x, vertice.y)
+    return (vertice[0], vertice[1])
+
+
+def extrair_vertices_xy(entidade):
+    if hasattr(entidade, "get_points"):
+        vertices = entidade.get_points()
+    else:
+        vertices = entidade.vertices()
+    return [extrair_xy_vertice(v) for v in vertices]
+
+
+def calcular_comprimento_entidade(entidade):
+    if entidade.dxftype() == "LINE":
+        return math.hypot(
+            entidade.dxf.end.x - entidade.dxf.start.x,
+            entidade.dxf.end.y - entidade.dxf.start.y,
+        )
+
+    vertices = extrair_vertices_xy(entidade)
+    comprimento = sum(
+        math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+        for p1, p2 in zip(vertices, vertices[1:])
+    )
+    if getattr(entidade, "closed", False) and len(vertices) > 2:
+        comprimento += math.hypot(
+            vertices[0][0] - vertices[-1][0],
+            vertices[0][1] - vertices[-1][1],
+        )
+    return comprimento
+
+
 def calcular_area_por_segmentos(segmentos, tolerancia=1e-6):
     """Tenta reconstruir um contorno fechado a partir de segmentos e calcular a área."""
     if len(segmentos) < 3:
@@ -133,11 +168,11 @@ def estimar_comprimento_bloco(doc, nome_bloco, escala_x=1.0, escala_y=1.0):
                 max_y = max(max_y, p.y)
                 encontrou = True
         elif tipo == "LWPOLYLINE":
-            for v in ent.vertices():
-                min_x = min(min_x, v.x)
-                min_y = min(min_y, v.y)
-                max_x = max(max_x, v.x)
-                max_y = max(max_y, v.y)
+            for x, y in extrair_vertices_xy(ent):
+                min_x = min(min_x, x)
+                min_y = min(min_y, y)
+                max_x = max(max_x, x)
+                max_y = max(max_y, y)
                 encontrou = True
 
     if not encontrou:
@@ -192,19 +227,7 @@ def processar_dxf(caminho_arquivo):
             )
             chave = f"fio_{bitola}mm2"
 
-            if json_saida := entidade.dxftype() == "LINE":
-                comprimento = math.hypot(
-                    entidade.dxf.end.x - entidade.dxf.start.x,
-                    entidade.dxf.end.y - entidade.dxf.start.y,
-                )
-            else:
-                comprimento = sum(
-                    math.hypot(p2.x - p1.x, p2.y - p1.y)
-                    for p1, p2 in zip(
-                        entidade.vertices(),
-                        ezdxf.math.Vec3.generate(entidade.vertices()[1:]),
-                    )
-                )
+            comprimento = calcular_comprimento_entidade(entidade)
 
             dados_eletrica[chave] = dados_eletrica.get(chave, 0.0) + comprimento
 
@@ -215,19 +238,7 @@ def processar_dxf(caminho_arquivo):
             )
             chave = f"cano_{int(diametro)}mm"
 
-            if entidade.dxftype() == "LINE":
-                comprimento = math.hypot(
-                    entidade.dxf.end.x - entidade.dxf.start.x,
-                    entidade.dxf.end.y - entidade.dxf.start.y,
-                )
-            else:
-                comprimento = sum(
-                    math.hypot(p2.x - p1.x, p2.y - p1.y)
-                    for p1, p2 in zip(
-                        entidade.vertices(),
-                        ezdxf.math.Vec3.generate(entidade.vertices()[1:]),
-                    )
-                )
+            comprimento = calcular_comprimento_entidade(entidade)
 
             dados_encanamento[chave] = dados_encanamento.get(chave, 0.0) + comprimento
 
@@ -241,19 +252,7 @@ def processar_dxf(caminho_arquivo):
                 )
             )
 
-            if entidade.dxftype() == "LINE":
-                comp_horizontal = math.hypot(
-                    entidade.dxf.end.x - entidade.dxf.start.x,
-                    entidade.dxf.end.y - entidade.dxf.start.y,
-                )
-            else:
-                comp_horizontal = sum(
-                    math.hypot(p2.x - p1.x, p2.y - p1.y)
-                    for p1, p2 in zip(
-                        entidade.vertices(),
-                        ezdxf.math.Vec3.generate(entidade.vertices()[1:]),
-                    )
-                )
+            comp_horizontal = calcular_comprimento_entidade(entidade)
 
             dados_escadas.append(
                 {
@@ -273,8 +272,10 @@ def processar_dxf(caminho_arquivo):
                 p2 = (entidade.dxf.end.x, entity_end_y := entidade.dxf.end.y)
                 segmentos = [(p1, p2)]
             else:
-                vertices = [(v.x, v.y) for v in entidade.vertices()]
+                vertices = extrair_vertices_xy(entidade)
                 segmentos = list(zip(vertices, vertices[1:]))
+                if getattr(entidade, "closed", False) and len(vertices) > 2:
+                    segmentos.append((vertices[-1], vertices[0]))
 
             for idx, seg in enumerate(segmentos):
                 comp_seg = math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1])
@@ -308,8 +309,10 @@ def processar_dxf(caminho_arquivo):
                 p2 = (entidade.dxf.end.x, entidade.dxf.end.y)
                 segmentos = [(p1, p2)]
             else:
-                vertices = [(v.x, v.y) for v in entidade.vertices()]
+                vertices = extrair_vertices_xy(entidade)
                 segmentos = list(zip(vertices, vertices[1:]))
+                if getattr(entidade, "closed", False) and len(vertices) > 2:
+                    segmentos.append((vertices[-1], vertices[0]))
 
             for idx, seg in enumerate(segmentos):
                 comp_seg = math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1])
@@ -336,7 +339,7 @@ def processar_dxf(caminho_arquivo):
             espessura = laje_config.get("espessura_m", esp_laje_padrao)
 
             if entidade.dxftype() == "LWPOLYLINE":
-                vertices = [(v.x, v.y) for v in entidade.vertices()]
+                vertices = extrair_vertices_xy(entidade)
                 if len(vertices) >= 3:
                     if not entidade.closed and vertices[0] != vertices[-1]:
                         vertices.append(vertices[0])
