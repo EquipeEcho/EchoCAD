@@ -327,7 +327,7 @@ def build_docx(specs: EspecificacoesTecnicas, output_path: str) -> Path:
 
 if __name__ == "__main__":
     # Teste rápido
-    from spec_generator import SpecGenerator
+    from app.backend.src.modules.deprecated.EspecificacoesTecnicas.spec_generator import SpecGenerator
 
     specs = SpecGenerator.gerar_especificacao()
     build_docx(specs, "output/EspecificacoesTecnicas_Exemplo.docx")
