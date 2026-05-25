@@ -32,6 +32,7 @@ import {
   listProjetos,
   processProject,
 } from "../services/api";
+import { useAuth } from "./AuthProvider";
 
 type ProcessingResult = {
   file_url: string;
@@ -141,6 +142,7 @@ function buildTechnicalStandard(file: File): TechnicalStandard | null {
 
 // Centraliza o estado do protótipo e das simulações.
 export function PrototypeProvider({ children }: PropsWithChildren) {
+  const { isAuthLoading, isAuthenticated, user } = useAuth();
   const [uploadedFiles, setUploadedFiles] = useState<UploadDocument[]>([]);
   const uploadedFilesRef = useRef<UploadDocument[]>([]);
   const [historyDocuments, setHistoryDocuments] = useState<HistoryDocument[]>([]);
@@ -173,6 +175,19 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   }, [toast]);
 
   useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setHistoryDocuments([]);
+      setHistoryError(null);
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    let shouldUpdate = true;
+
     const fetchProjetos = async () => {
       setIsLoadingHistory(true);
       setHistoryError(null);
@@ -212,18 +227,28 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
           };
         });
 
-        setHistoryDocuments(normalizedHistory);
+        if (shouldUpdate) {
+          setHistoryDocuments(normalizedHistory);
+        }
       } catch (error) {
         console.error(error);
-        setHistoryError("Não foi possível carregar os projetos.");
-        setHistoryDocuments([]);
+        if (shouldUpdate) {
+          setHistoryError("Não foi possível carregar os projetos.");
+          setHistoryDocuments([]);
+        }
       } finally {
-        setIsLoadingHistory(false);
+        if (shouldUpdate) {
+          setIsLoadingHistory(false);
+        }
       }
     };
 
     fetchProjetos();
-  }, []);
+
+    return () => {
+      shouldUpdate = false;
+    };
+  }, [isAuthLoading, isAuthenticated, user?.id]);
 
   // Exibe uma notificacao temporaria na interface.
   const showToast = (message: string, tone: ToastTone = "info") => {
