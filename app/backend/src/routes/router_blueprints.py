@@ -9,7 +9,7 @@ from src.controller.crud_blueprints import create_blueprint, read_all_blueprints
 from src.database import get_session
 from src.schemas.system_schema import Success
 from src.schemas.user_schema import BlueprintSchema, BlueprintPublic
-from src.modules.core.drill import processar_dxf
+from src.modules.drill import processar_dxf
 
 router = APIRouter(prefix="/planta_cad", tags=["planta_cad"])
 

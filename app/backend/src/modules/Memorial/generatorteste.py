@@ -13,7 +13,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from .dxf_extractor import Ambiente, CADExtractor, ProjetoMemorial
-from ..BuscarPrecos.sinapi import buscar_preco_sinapi, carregar_sinapi
+from .sinapi import buscar_preco_sinapi, carregar_sinapi
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -685,7 +685,7 @@ def run_integration(
 
     if quantitativos_dxf is None:
         try:
-            from src.modules.core.drill import processar_dxf
+            from src.modules.drill import processar_dxf
 
             quantitativos_dxf = processar_dxf(dxf_file)
             if quantitativos_dxf.get("erro"):

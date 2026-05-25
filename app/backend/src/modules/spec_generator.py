@@ -1,5 +1,5 @@
 # spec_generator.py
-# Gera especificações técnicas usando a configuração centralizada de IA (Groq ou Ollama).
+# Gera especificações técnicas usando a configuração centralizada de IA (Groq).
 # Recebe o contexto extraído do DXF e produz um documento Word estruturado
 # seguindo o padrão do caderno de encargos do Exército Brasileiro.
 
@@ -10,9 +10,10 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from agno.agent import Agent
-from src.aiconf import high_model
+from agno.models.groq import Groq
+from src.config import settings
 
-from .dxf_context_extractor import ContextoDXF
+from src.modules.dxf_context_extractor import ContextoDXF
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +67,11 @@ class EspecificacoesTecnicas:
 # ---------------------------------------------------------------------------
 class SpecGenerator:
     def __init__(self):
-        """Inicializa o gerador com a configuração centralizada de IA."""
-        logger.info(f"Inicializando SpecGenerator com modelo: {high_model}")
+        """Inicializa o gerador com a configuração de IA via Groq."""
+        # Definindo o modelo diretamente aqui conforme instrução do usuário
+        high_model = Groq(id="llama-3.3-70b-versatile", api_key=settings.GROQ_API_KEY)
+        
+        logger.info(f"Inicializando SpecGenerator com modelo Groq: {high_model.id}")
         self.agent = Agent(
             name="spec-generator",
             model=high_model,
@@ -75,10 +79,10 @@ class SpecGenerator:
         )
 
     # ------------------------------------------------------------------
-    # Chamada à API de IA (Groq ou Ollama via aiconf)
+    # Chamada à API de IA (Groq via config)
     # ------------------------------------------------------------------
     def _chamar_api(self, prompt_usuario: str) -> Optional[str]:
-        """Chama a IA configurada (Groq ou Ollama) via agno."""
+        """Chama a IA configurada (Groq) via agno."""
         try:
             logger.debug(f"Chamando IA para gerar especificações...")
             resposta = self.agent.run(prompt_usuario, stream=False)

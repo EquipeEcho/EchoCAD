@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     echo_database: bool = True
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
+    GROQ_API_KEY: str = Field(default="gsk_REPLACE_ME")
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf_8", extra="ignore"

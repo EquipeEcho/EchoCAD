@@ -3,36 +3,47 @@
 # formatado seguindo o padrão do caderno de encargos do Exército.
 
 import logging
+import re
 from pathlib import Path
-from typing import List
+from typing import Any, List, TYPE_CHECKING
 
 from .spec_generator import EspecificacoesTecnicas
+
+# Importações para Type Checking (Pylance)
+# Usamos strings para evitar erros se a lib não estiver instalada
+if TYPE_CHECKING:
+    DocumentType = Any
+    Table = Any
+    Paragraph = Any
+    WD_ALIGN_PARAGRAPH = Any
+else:
+    DocumentType = Any
+    Table = Any
+    Paragraph = Any
+    WD_ALIGN_PARAGRAPH = Any
+
+# Importações em runtime com fallback
+try:
+    from docx import Document
+    from docx.enum.text import WD_ALIGN_PARAGRAPH as WD_ALIGN
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    from docx.shared import Cm, Pt, RGBColor
+    HAS_DOCX = True
+    WD_ALIGN_PARAGRAPH = WD_ALIGN
+except (ImportError, AttributeError):
+    HAS_DOCX = False
+    WD_ALIGN_PARAGRAPH = None
 
 logger = logging.getLogger(__name__)
 
 
-def _build_docx(specs: EspecificacoesTecnicas, output_path: str) -> Path:
-    """
-    Constrói o documento Word usando python-docx.
-    Fallback para docx-js via Node se python-docx não estiver disponível.
-    """
-    try:
-        from docx import Document
-        from docx.shared import Pt, Cm, RGBColor
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-        from docx.oxml.ns import qn
-        from docx.oxml import OxmlElement
-
-        return _build_with_python_docx(specs, output_path)
-    except ImportError:
-        logger.warning("python-docx não encontrado. Tentando alternativa...")
-        return _build_with_xml(specs, output_path)
-
-
-def _set_heading_style(paragraph, level: int, doc):
+def _set_heading_style(paragraph: Any, level: int):
     """Aplica estilo de título ao parágrafo."""
+    if not HAS_DOCX or WD_ALIGN_PARAGRAPH is None:
+        return
+
     from docx.shared import Pt, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     run = paragraph.runs[0] if paragraph.runs else paragraph.add_run(paragraph.text)
 
@@ -54,11 +65,14 @@ def _set_heading_style(paragraph, level: int, doc):
         run.font.bold = True
 
 
-def _add_table(doc, headers: List[str], rows: List[List[str]]):
+def _add_table(doc: Any, headers: List[str], rows: List[List[Any]]):
     """Adiciona uma tabela formatada ao documento."""
-    from docx.shared import Pt, RGBColor
+    if not HAS_DOCX:
+        return
+
+    from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement  # Importação necessária para o XML
+    from docx.shared import Pt, RGBColor
 
     table = doc.add_table(rows=1 + len(rows), cols=len(headers))
     table.style = "Table Grid"
@@ -79,9 +93,9 @@ def _add_table(doc, headers: List[str], rows: List[List[str]]):
         tc = hdr_cells[i]._tc
         tcPr = tc.get_or_add_tcPr()
 
-        shd = OxmlElement("w:shd")  # Criando o elemento XML manualmente
+        shd = OxmlElement("w:shd")
         shd.set(qn("w:fill"), "003366")
-        shd.set(qn("w:val"), "clear")  # Define como preenchimento sólido
+        shd.set(qn("w:val"), "clear")
         tcPr.append(shd)
 
         # Texto branco
@@ -100,18 +114,34 @@ def _add_table(doc, headers: List[str], rows: List[List[str]]):
             if i % 2 == 0:
                 tc = row_cells[j]._tc
                 tcPr = tc.get_or_add_tcPr()
-
-                # --- CORREÇÃO DO FUNDO CINZA ---
                 shd = OxmlElement("w:shd")
                 shd.set(qn("w:fill"), "F5F5F5")
                 shd.set(qn("w:val"), "clear")
                 tcPr.append(shd)
 
 
-def _add_conteudo_formatado(doc, conteudo: str):
-    """Adiciona texto com marcadores **bold** ao documento."""
+def _add_run_formatado(paragraph: Any, texto: str):
+    """Adiciona runs ao parágrafo respeitando **negrito**."""
+    if not HAS_DOCX:
+        return
+
     from docx.shared import Pt
-    import re
+
+    partes = re.split(r"\*\*(.+?)\*\*", texto)
+    for i, parte in enumerate(partes):
+        if not parte:
+            continue
+        run = paragraph.add_run(parte)
+        run.font.bold = i % 2 == 1
+        run.font.size = Pt(10)
+
+
+def _add_conteudo_formatado(doc: Any, conteudo: str):
+    """Adiciona texto com marcadores **bold** ao documento."""
+    if not HAS_DOCX:
+        return
+
+    from docx.shared import Pt
 
     for linha in conteudo.split("\n"):
         linha = linha.rstrip()
@@ -134,26 +164,11 @@ def _add_conteudo_formatado(doc, conteudo: str):
             run.font.size = Pt(10)
 
 
-def _add_run_formatado(paragraph, texto: str):
-    """Adiciona runs ao parágrafo respeitando **negrito**."""
-    import re
-    from docx.shared import Pt
-
-    partes = re.split(r"\*\*(.+?)\*\*", texto)
-    for i, parte in enumerate(partes):
-        if not parte:
-            continue
-        run = paragraph.add_run(parte)
-        run.font.bold = i % 2 == 1
-        run.font.size = Pt(10)
-
-
 def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> Path:
+    """Implementação real usando python-docx."""
     from docx import Document
-    from docx.shared import Pt, Cm, RGBColor, Inches
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.oxml.ns import qn
-
+    from docx.shared import Pt, Cm, RGBColor
+    
     doc = Document()
 
     # ---- Configurar página ----
@@ -167,19 +182,22 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
     # ---- Página de capa ----
     p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if WD_ALIGN_PARAGRAPH:
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = p.add_run("Anexo 2 ao Projeto Básico")
     run.font.size = Pt(12)
 
     p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if WD_ALIGN_PARAGRAPH:
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = p.add_run(f"Número Único de Protocolo: {specs.numero_protocolo}")
     run.font.size = Pt(11)
 
     doc.add_paragraph()
 
     p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if WD_ALIGN_PARAGRAPH:
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = p.add_run("CADERNO DE ENCARGO E ESPECIFICAÇÕES TÉCNICAS")
     run.font.size = Pt(16)
     run.font.bold = True
@@ -187,7 +205,8 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
     doc.add_paragraph()
     p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if WD_ALIGN_PARAGRAPH:
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = p.add_run(specs.nome_projeto.upper())
     run.font.size = Pt(14)
     run.font.bold = True
@@ -196,7 +215,7 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
     # ---- Finalidade ----
     h = doc.add_heading("FINALIDADE", level=1)
-    _set_heading_style(h, 1, doc)
+    _set_heading_style(h, 1)
     doc.add_paragraph(
         "As presentes especificações técnicas têm por finalidade descrever os serviços "
         "a serem executados pela contratada, de modo que ela possa fornecer a mão de obra "
@@ -205,12 +224,12 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
     # ---- Objeto ----
     h = doc.add_heading("OBJETO", level=1)
-    _set_heading_style(h, 1, doc)
+    _set_heading_style(h, 1)
     doc.add_paragraph(specs.objeto).runs[0].font.size = Pt(10)
 
     # ---- Acrônimos ----
     h = doc.add_heading("ACRÔNIMOS E SÍMBOLOS", level=1)
-    _set_heading_style(h, 1, doc)
+    _set_heading_style(h, 1)
     _add_table(
         doc,
         ["Sigla", "Significado"],
@@ -232,7 +251,7 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
     # ---- Referências Normativas Gerais ----
     h = doc.add_heading("REFERÊNCIAS NORMATIVAS", level=1)
-    _set_heading_style(h, 1, doc)
+    _set_heading_style(h, 1)
     for ref in specs.referencias_normativas:
         p = doc.add_paragraph(style="List Bullet")
         run = p.add_run(ref)
@@ -241,7 +260,7 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
     # ---- Vida Útil ----
     if specs.vida_util:
         h = doc.add_heading("VIDA ÚTIL E GARANTIAS", level=1)
-        _set_heading_style(h, 1, doc)
+        _set_heading_style(h, 1)
         rows_vu = [
             [
                 item.get("item", ""),
@@ -258,23 +277,18 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
     # ---- Seções principais ----
     for secao in specs.secoes:
-        # Título da seção
         h = doc.add_heading(f"{secao.numero}. {secao.titulo}", level=1)
-        _set_heading_style(h, 1, doc)
+        _set_heading_style(h, 1)
 
-        # Introdução
         if secao.conteudo:
             _add_conteudo_formatado(doc, secao.conteudo)
             doc.add_paragraph()
 
-        # Subseções
         for sub in secao.subsecoes:
             h2 = doc.add_heading(f"{sub.numero} {sub.titulo}", level=2)
-            _set_heading_style(h2, 2, doc)
-
+            _set_heading_style(h2, 2)
             if sub.conteudo:
                 _add_conteudo_formatado(doc, sub.conteudo)
-
             doc.add_paragraph()
 
         doc.add_paragraph()
@@ -292,15 +306,16 @@ def _build_with_xml(specs: EspecificacoesTecnicas, output_path: str) -> Path:
     out_p = Path(output_path).with_suffix(".txt")
     out_p.parent.mkdir(parents=True, exist_ok=True)
 
-    lines = []
-    lines.append("CADERNO DE ENCARGO E ESPECIFICAÇÕES TÉCNICAS")
-    lines.append(f"Projeto: {specs.nome_projeto}")
-    lines.append(f"Protocolo: {specs.numero_protocolo}")
-    lines.append("=" * 70)
-    lines.append("")
-    lines.append("OBJETO")
-    lines.append(specs.objeto)
-    lines.append("")
+    lines = [
+        "CADERNO DE ENCARGO E ESPECIFICAÇÕES TÉCNICAS",
+        f"Projeto: {specs.nome_projeto}",
+        f"Protocolo: {specs.numero_protocolo}",
+        "=" * 70,
+        "",
+        "OBJETO",
+        specs.objeto,
+        ""
+    ]
 
     for secao in specs.secoes:
         lines.append(f"\n{'=' * 70}")
@@ -322,12 +337,14 @@ def _build_with_xml(specs: EspecificacoesTecnicas, output_path: str) -> Path:
 
 def build_docx(specs: EspecificacoesTecnicas, output_path: str) -> Path:
     """Ponto de entrada público para construção do documento."""
-    return _build_docx(specs, output_path)
+    if HAS_DOCX:
+        try:
+            return _build_with_python_docx(specs, output_path)
+        except Exception as e:
+            logger.error(f"Erro ao gerar DOCX: {e}. Usando fallback TXT.")
+    
+    return _build_with_xml(specs, output_path)
 
 
 if __name__ == "__main__":
-    # Teste rápido
-    from app.backend.src.modules.deprecated.EspecificacoesTecnicas.spec_generator import SpecGenerator
-
-    specs = SpecGenerator.gerar_especificacao()
-    build_docx(specs, "output/EspecificacoesTecnicas_Exemplo.docx")
+    print("Execute test_especificacoes.py para testes completos.")

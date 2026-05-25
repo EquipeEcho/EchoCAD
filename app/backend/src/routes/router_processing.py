@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 from src.auth import get_current_user
 from src.database import get_session
 from src.models.projeto_db import Blueprint, Project, Report
-from src.modules.core.drill import processar_dxf
-from src.modules.deprecated.Memorial.generatorteste import run_integration
+from src.modules.drill import processar_dxf
+from src.modules.Memorial.generatorteste import run_integration
 
 router = APIRouter(prefix="/processamento", tags=["processamento"])
 memorial_router = APIRouter(prefix="/memorial_calculo", tags=["memorial_calculo"])
