@@ -15,7 +15,7 @@ type LocationState = {
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, login } = useAuth();
+  const { authNotice, clearAuthNotice, isAuthenticated, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -30,16 +30,14 @@ export function LoginPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
+    clearAuthNotice();
     setIsSubmitting(true);
 
     try {
-      console.log("Attempting login with:", { email, password: "***" });
       await login({ email, password });
-      console.log("Login successful, stored session:", window.localStorage.getItem("echocad_auth_user"));
       navigate(fromPath, { replace: true });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Não foi possível entrar.";
-      console.error("Login error:", errorMsg);
       setErrorMessage(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -105,9 +103,9 @@ export function LoginPage() {
               </span>
             </label>
 
-            {errorMessage ? (
+            {errorMessage || authNotice ? (
               <p className="auth-form__message auth-form__message--error" role="alert">
-                {errorMessage}
+                {errorMessage || authNotice}
               </p>
             ) : null}
 

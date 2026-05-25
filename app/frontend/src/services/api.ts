@@ -37,9 +37,78 @@ interface ProjetoCreatePayload {
   id_user: number;
 }
 
-const AUTH_SESSION_KEY = "echocad_auth_user";
+export const AUTH_SESSION_KEY = "echocad_auth_user";
+export const SESSION_EXPIRED_EVENT = "echocad:session-expired";
+export const SESSION_EXPIRED_MESSAGE =
+  "Sua sessão expirou. Faça login novamente.";
 
-function getStoredAuthSession(): AuthSession | null {
+type JwtPayload = {
+  exp?: number;
+};
+
+function canUseBrowserStorage() {
+  return typeof window !== "undefined" && Boolean(window.localStorage);
+}
+
+function decodeJwtPayload(token: string): JwtPayload | null {
+  const payload = token.split(".")[1];
+
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      Math.ceil(normalizedPayload.length / 4) * 4,
+      "=",
+    );
+
+    return JSON.parse(window.atob(paddedPayload)) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function getSessionExpirationTime(session: AuthSession | null) {
+  if (!session?.access_token) {
+    return null;
+  }
+
+  const payload = decodeJwtPayload(session.access_token);
+
+  return payload?.exp ? payload.exp * 1000 : null;
+}
+
+export function isAuthSessionExpired(session: AuthSession | null) {
+  const expiresAt = getSessionExpirationTime(session);
+
+  return Boolean(expiresAt && expiresAt <= Date.now());
+}
+
+export function clearStoredAuthSession() {
+  if (canUseBrowserStorage()) {
+    window.localStorage.removeItem(AUTH_SESSION_KEY);
+  }
+}
+
+export function notifySessionExpired(message = SESSION_EXPIRED_MESSAGE) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(SESSION_EXPIRED_EVENT, {
+      detail: { message },
+    }),
+  );
+}
+
+export function readStoredAuthSession(): AuthSession | null {
+  if (!canUseBrowserStorage()) {
+    return null;
+  }
+
   const stored = window.localStorage.getItem(AUTH_SESSION_KEY);
   if (!stored) {
     return null;
@@ -55,6 +124,18 @@ function getStoredAuthSession(): AuthSession | null {
   }
 
   return null;
+}
+
+function getStoredAuthSession(): AuthSession | null {
+  const session = readStoredAuthSession();
+
+  if (isAuthSessionExpired(session)) {
+    clearStoredAuthSession();
+    notifySessionExpired();
+    return null;
+  }
+
+  return session;
 }
 
 export function getAuthHeaders(): HeadersInit | undefined {
@@ -173,8 +254,7 @@ export async function createProjeto(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Erro ao criar projeto");
+    await throwAuthenticatedApiError(response, "Erro ao criar projeto");
   }
 
   return response.json();
@@ -202,8 +282,7 @@ export async function uploadFile(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Erro ao fazer upload do arquivo");
+    await throwAuthenticatedApiError(response, "Erro ao fazer upload do arquivo");
   }
 
   return response.json();
@@ -227,8 +306,7 @@ export async function createPlantaCAD(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Erro ao criar planta CAD");
+    await throwAuthenticatedApiError(response, "Erro ao criar planta CAD");
   }
 
   return response.json();
@@ -270,7 +348,7 @@ export async function getProjeto(projectId: number): Promise<ProjectResponse> {
   });
 
   if (!response.ok) {
-    throw new Error("Erro ao buscar projeto");
+    await throwAuthenticatedApiError(response, "Erro ao buscar projeto");
   }
 
   return response.json();
@@ -288,8 +366,18 @@ export async function deleteProjeto(projectId: number): Promise<void> {
   );
 
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, "Erro ao remover projeto"));
+    await throwAuthenticatedApiError(response, "Erro ao remover projeto");
   }
+}
+
+async function throwAuthenticatedApiError(response: Response, fallbackMessage: string) {
+  if (response.status === 401) {
+    clearStoredAuthSession();
+    notifySessionExpired();
+    throw new Error(SESSION_EXPIRED_MESSAGE);
+  }
+
+  throw new Error(await parseErrorMessage(response, fallbackMessage));
 }
 
 /**
@@ -306,9 +394,8 @@ export async function listProjetos(): Promise<ProjectResponse[]> {
   console.log("Fetching project list with status:", response.status);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    console.error("Failed to list projects:", response.status, errorData);
-    throw new Error("Erro ao listar projetos");
+    console.error("Failed to list projects:", response.status);
+    await throwAuthenticatedApiError(response, "Erro ao listar projetos");
   }
 
   const data = await response.json();
@@ -326,7 +413,16 @@ export async function processProject(projectId: number, stream: boolean = false)
   const url = `${API_BASE_URL}/processamento/${projectId}${stream ? "?stream=true" : ""}`;
   
   if (stream) {
-    return fetch(url, { method: "POST", headers: { ...(getAuthHeaders() ?? {}) } });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { ...(getAuthHeaders() ?? {}) },
+    });
+
+    if (!response.ok) {
+      await throwAuthenticatedApiError(response, "Erro ao processar projeto");
+    }
+
+    return response;
   }
 
   const response = await fetch(url, {
@@ -337,8 +433,7 @@ export async function processProject(projectId: number, stream: boolean = false)
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Erro ao processar projeto");
+    await throwAuthenticatedApiError(response, "Erro ao processar projeto");
   }
 
   return response.json();
@@ -357,7 +452,7 @@ export async function getProjectResult(projectId: number) {
   
   if (!response.ok) {
     if (response.status === 404) return null;
-    throw new Error("Erro ao buscar resultado do processamento");
+    await throwAuthenticatedApiError(response, "Erro ao buscar resultado do processamento");
   }
 
   return response.json();
@@ -375,10 +470,7 @@ export async function createNorma(data: NormaCreatePayload) {
   });
 
   if (!response.ok) {
-    // Melhoria: Capturar o erro detalhado do FastAPI (422)
-    const errorData = await response.json();
-    console.error("Erro detalhado do servidor:", errorData);
-    throw new Error(errorData.detail?.[0]?.msg || "Erro ao criar norma");
+    await throwAuthenticatedApiError(response, "Erro ao criar norma");
   }
 
   return response.json();
@@ -393,7 +485,7 @@ export async function listNormas() {
   });
 
   if (!response.ok) {
-    throw new Error("Erro ao buscar normas");
+    await throwAuthenticatedApiError(response, "Erro ao buscar normas");
   }
 
   return response.json();

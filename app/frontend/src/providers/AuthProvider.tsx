@@ -1,17 +1,25 @@
 import {
   PropsWithChildren,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
 import {
+  AUTH_SESSION_KEY,
   AuthSession,
   AuthUser,
   LoginPayload,
   RegisterPayload,
+  SESSION_EXPIRED_EVENT,
+  SESSION_EXPIRED_MESSAGE,
+  clearStoredAuthSession,
+  getSessionExpirationTime,
+  isAuthSessionExpired,
   loginUser,
+  readStoredAuthSession,
   registerUser,
 } from "../services/api";
 
@@ -19,71 +27,117 @@ type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAuthLoading: boolean;
+  authNotice: string | null;
+  clearAuthNotice: () => void;
   login: (credentials: LoginPayload) => Promise<void>;
   register: (userData: RegisterPayload) => Promise<void>;
   logout: () => void;
 };
 
-const AUTH_USER_KEY = "echocad_auth_user";
-
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStoredSession(): AuthSession | null {
-  const stored = window.localStorage.getItem(AUTH_USER_KEY);
+function readInitialAuthState(): {
+  session: AuthSession | null;
+  notice: string | null;
+} {
+  const storedSession = readStoredAuthSession();
 
-  if (!stored) {
-    console.log("No stored session found");
-    return null;
+  if (isAuthSessionExpired(storedSession)) {
+    clearStoredAuthSession();
+    return {
+      session: null,
+      notice: SESSION_EXPIRED_MESSAGE,
+    };
   }
 
-  try {
-    const parsed = JSON.parse(stored);
-    console.log("Stored session found:", { 
-      has_access_token: !!parsed.access_token, 
-      user_id: parsed.user?.id 
-    });
-    
-    if (parsed && typeof parsed === "object" && "access_token" in parsed && "user" in parsed) {
-      return parsed as AuthSession;
-    }
-
-    console.warn("Stored session format invalid");
-    return null;
-  } catch (e) {
-    console.error("Error parsing stored session:", e);
-    window.localStorage.removeItem(AUTH_USER_KEY);
-    return null;
-  }
+  return {
+    session: storedSession,
+    notice: null,
+  };
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
+  const [initialAuthState] = useState<ReturnType<typeof readInitialAuthState>>(
+    () => readInitialAuthState(),
+  );
+  const [session, setSession] = useState<AuthSession | null>(
+    initialAuthState.session,
+  );
+  const [authNotice, setAuthNotice] = useState<string | null>(
+    initialAuthState.notice,
+  );
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const saveSession = (nextSession: AuthSession) => {
-    console.log("Saving auth session:", { 
-      user_id: nextSession.user?.id, 
-      token_type: nextSession.token_type 
-    });
-    window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextSession));
+    window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(nextSession));
     setSession(nextSession);
+    setAuthNotice(null);
   };
 
-  const clearSession = () => {
-    console.log("Clearing auth session");
-    window.localStorage.removeItem(AUTH_USER_KEY);
+  const clearSession = useCallback(() => {
+    clearStoredAuthSession();
     setSession(null);
-  };
+    setAuthNotice(null);
+  }, []);
+
+  const expireSession = useCallback((message = SESSION_EXPIRED_MESSAGE) => {
+    clearStoredAuthSession();
+    setSession(null);
+    setAuthNotice(message);
+  }, []);
 
   useEffect(() => {
     setIsAuthLoading(false);
   }, []);
+
+  useEffect(() => {
+    const handleSessionExpired = (event: Event) => {
+      const sessionEvent = event as CustomEvent<{ message?: string }>;
+      expireSession(sessionEvent.detail?.message);
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    };
+  }, [expireSession]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const expiresAt = getSessionExpirationTime(session);
+
+    if (!expiresAt) {
+      return;
+    }
+
+    const millisecondsUntilExpiration = expiresAt - Date.now();
+
+    if (millisecondsUntilExpiration <= 0) {
+      expireSession();
+      return;
+    }
+
+    const timeoutId = window.setTimeout(
+      () => expireSession(),
+      millisecondsUntilExpiration,
+    );
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [expireSession, session]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user: session?.user ?? null,
       isAuthenticated: Boolean(session?.user),
       isAuthLoading,
+      authNotice,
+      clearAuthNotice: () => setAuthNotice(null),
       login: async (credentials) => {
         const response = await loginUser(credentials);
         saveSession(response);
@@ -94,7 +148,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
       logout: clearSession,
     }),
-    [isAuthLoading, session],
+    [authNotice, clearSession, isAuthLoading, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
