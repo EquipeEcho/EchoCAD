@@ -15,6 +15,7 @@ import {
   AddFilesResult,
   GeneratedDocument,
   HistoryDocument,
+  PreviewTableRow,
   ProjectInfo,
   ProjectSaveInput,
   TechnicalStandard,
@@ -114,6 +115,42 @@ function formatFileSize(file: File) {
   return `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function extractProcessingContent(apiResults: any[]) {
+  const tableRows: PreviewTableRow[] = [];
+  const previewLines: string[] = [];
+  const fileUrls = apiResults
+    .map((result) => result.file_url)
+    .filter(Boolean);
+
+  apiResults.forEach((res) => {
+    try {
+      const rawResult = res.resultado || "";
+      const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+      const aiJson = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+      if (!aiJson) {
+        return;
+      }
+
+      const resumo = aiJson.resumo_executivo || aiJson;
+      Object.entries(resumo).forEach(([key, value]) => {
+        tableRows.push({
+          label: key,
+          value: typeof value === "object" ? JSON.stringify(value) : String(value),
+        });
+      });
+
+      if (aiJson.sintese) {
+        previewLines.push(String(aiJson.sintese));
+      }
+    } catch (error) {
+      console.warn("Falha ao parsear JSON da IA:", error);
+    }
+  });
+
+  return { fileUrls, previewLines, tableRows };
+}
+
 function buildTechnicalStandard(file: File): TechnicalStandard | null {
   const kind = getFileKindFromName(file.name);
 
@@ -197,33 +234,41 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
         const normalizedHistory = projetos.map((projeto) => {
           const projectId = String(projeto.id ?? `projeto-${Math.random()}`);
+          const projectName = projeto.name?.trim() || `Projeto ${projectId}`;
+          const projectInfo = buildProjectInfo({
+            name: projectName,
+            cliente: projeto.client?.trim() || undefined,
+            descricao: projeto.description?.trim() || undefined,
+          });
           const createdAt = projeto.created_at
             ? new Date(projeto.created_at)
             : new Date();
           const previewLines = [
-            projeto.description?.trim() || "Sem descrição informada.",
-            `Cliente: ${projeto.client?.trim() || "Não informado"}`,
+            projectInfo.descricao || "Sem descrição informada.",
+            `Cliente: ${projectInfo.cliente || "Não informado"}`,
           ];
 
           return {
             id: projectId,
-            name: projeto.name?.trim() || `Projeto ${projectId}`,
+            name: projectName,
             kind: "pdf" as const,
             date: createdAt.toLocaleDateString("pt-BR"),
             size: "N/A",
             document: {
               id: projectId,
-              title: projeto.name?.trim() || `Projeto ${projectId}`,
+              title: projectName,
               subtitle: "Projeto cadastrado no banco de dados",
               createdAt: createdAt.toLocaleString("pt-BR"),
               reference: `PROJ-${projectId}`,
               versionLabel: "v1",
-              summary: projeto.description?.trim() || "Projeto sem descrição.",
+              summary: projectInfo.descricao || "Projeto sem descrição.",
               previewLines,
               tableRows: [],
               sourceFiles: [],
               file_urls: [],
+              projectInfo,
             },
+            projectInfo,
           };
         });
 
@@ -363,6 +408,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     sourceFiles?: UploadDocument[],
   ) => {
     let baseDocument: GeneratedDocument;
+    const processingContent = extractProcessingContent(apiResults);
 
     const filesToProcess = sourceFiles?.length
       ? sourceFiles
@@ -371,12 +417,12 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     if (filesToProcess.length > 0) {
       baseDocument = {
         ...buildGeneratedDocumentFromUploads(filesToProcess),
-        file_urls: apiResults.map((result) => result.file_url).filter(Boolean),
+        file_urls: processingContent.fileUrls,
       };
     } else if (currentDocument) {
       baseDocument = {
         ...currentDocument,
-        file_urls: apiResults.map((result) => result.file_url).filter(Boolean),
+        file_urls: processingContent.fileUrls,
       };
     } else {
       return null;
@@ -384,45 +430,15 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
     // Mapear resultados reais da IA para o documento
     if (apiResults.length > 0) {
-      const tableRows: { label: string; value: string }[] = [];
-      const previewLines: string[] = [];
-
-      apiResults.forEach((res) => {
-        try {
-          // A IA retorna o JSON dentro de uma string (response.content)
-          // Precisamos tentar extrair o JSON puro se houver lixo em volta
-          const rawResult = res.resultado || "";
-          const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
-          const aiJson = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-          if (aiJson) {
-            // Se tiver resumo_executivo, usamos ele
-            const resumo = aiJson.resumo_executivo || aiJson;
-            Object.entries(resumo).forEach(([key, value]) => {
-              tableRows.push({
-                label: key,
-                value: typeof value === "object" ? JSON.stringify(value) : String(value),
-              });
-            });
-            
-            if (aiJson.sintese) {
-               previewLines.push(aiJson.sintese);
-            }
-          }
-        } catch (e) {
-          console.warn("Falha ao parsear JSON da IA:", e);
-        }
-      });
-
-      if (tableRows.length > 0) {
-        baseDocument.tableRows = tableRows;
+      if (processingContent.tableRows.length > 0) {
+        baseDocument.tableRows = processingContent.tableRows;
         baseDocument.summary = "Memorial gerado automaticamente via análise de IA sobre as plantas fornecidas.";
       } else {
         baseDocument.summary = "Arquivo não processado corretamente ou formato de saída da IA incompatível.";
       }
       
-      if (previewLines.length > 0) {
-        baseDocument.previewLines = previewLines;
+      if (processingContent.previewLines.length > 0) {
+        baseDocument.previewLines = processingContent.previewLines;
       }
     } else {
       baseDocument.summary = "Arquivo não processado (nenhum resultado da IA disponível).";
@@ -502,34 +518,43 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    // Tentar buscar resultado real da IA se for um ID numérico
-    const numericId = parseInt(documentId);
-    if (!isNaN(numericId)) {
-      try {
-        const apiResults = await getProjectResult(numericId);
-        if (apiResults) {
-          // Re-processar para preencher tableRows
-          const projectInfo: ProjectSaveInput = {
-            name: historyDocument.document.projectInfo?.name || historyDocument.name,
-            cliente: historyDocument.document.projectInfo?.cliente,
-            descricao: historyDocument.document.projectInfo?.descricao,
-          };
-          
-          // Re-aproveitar completeProcessing mas sem navegar
-          const sourceFiles = uploadedFilesRef.current.length > 0 
-            ? uploadedFilesRef.current 
-            : historyDocument.document.sourceFiles.map(name => ({ name, kind: "dxf" } as any));
-
-          completeProcessing(apiResults, projectInfo, sourceFiles);
-          return;
-        }
-      } catch (e) {
-        console.warn("Sem resultado de IA para este item do histórico");
-      }
-    }
-
     setCurrentDocument(historyDocument.document);
     setShouldPromptProjectSave(false);
+
+    // Tentar buscar resultado real da IA se for um ID numérico
+    const numericId = Number(documentId);
+    if (!Number.isFinite(numericId)) {
+      return;
+    }
+
+    try {
+      const apiResults = await getProjectResult(numericId);
+
+      if (!Array.isArray(apiResults) || apiResults.length === 0) {
+        return;
+      }
+
+      const processingContent = extractProcessingContent(apiResults);
+
+      setCurrentDocument({
+        ...historyDocument.document,
+        summary:
+          processingContent.tableRows.length > 0
+            ? "Memorial gerado automaticamente via análise de IA sobre as plantas fornecidas."
+            : historyDocument.document.summary,
+        previewLines:
+          processingContent.previewLines.length > 0
+            ? processingContent.previewLines
+            : historyDocument.document.previewLines,
+        tableRows:
+          processingContent.tableRows.length > 0
+            ? processingContent.tableRows
+            : historyDocument.document.tableRows,
+        file_urls: processingContent.fileUrls,
+      });
+    } catch (error) {
+      console.warn("Sem resultado de IA para este item do histórico", error);
+    }
   };
 
   // Remove um item do histórico salvo E do banco de dados.
