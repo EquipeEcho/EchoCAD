@@ -3,7 +3,13 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from src.models.projeto_db import Blueprint, Project, Report, Specification
+from src.models.projeto_db import (
+    Blueprint,
+    Project,
+    ProjectStandard,
+    Report,
+    Specification,
+)
 from src.schemas.user_schema import CreateProjectSchema, UpdateProjectSchema
 
 
@@ -115,6 +121,9 @@ def remove_project(db: Session, projeto_id: int) -> None:
     if not existing_project:
         raise ValueError(f"Projeto com ID {projeto_id} não encontrado.")
 
+    db.execute(
+        delete(ProjectStandard).where(ProjectStandard.id_project == projeto_id)
+    )
     db.execute(delete(Report).where(Report.id_project == projeto_id))
     db.execute(delete(Blueprint).where(Blueprint.id_project == projeto_id))
     db.execute(delete(Specification).where(Specification.id_project == projeto_id))

@@ -23,7 +23,15 @@ import {
   UploadDocument,
 } from "../types/documents";
 import { formatInputDate } from "../utils/date";
-import { processProject, getProjectResult, getProjeto, listProjetos, API_BASE_URL, getAuthHeaders } from "../services/api";
+import {
+  API_BASE_URL,
+  deleteProjeto,
+  getAuthHeaders,
+  getProjectResult,
+  getProjeto,
+  listProjetos,
+  processProject,
+} from "../services/api";
 
 type ProcessingResult = {
   file_url: string;
@@ -51,7 +59,7 @@ type PrototypeContextValue = {
   ) => GeneratedDocument | null;
   saveCurrentProject: (projectInfo: ProjectSaveInput) => void;
   openHistoryPreview: (documentId: string) => void;
-  removeHistoryDocument: (documentId: string) => void;
+  removeHistoryDocument: (documentId: string) => Promise<void>;
   downloadHistoryBundle: () => void;
   addTechnicalStandards: (fileList: FileList | File[]) => AddFilesResult;
   toggleStandard: (standardId: string) => Promise<void>;
@@ -501,27 +509,24 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
   // Remove um item do histórico salvo E do banco de dados.
   const removeHistoryDocument = async (documentId: string) => {
-    try {
-      // Chamada DELETE para o backend remover projeto e arquivos
-      const response = await fetch(
-        `${API_BASE_URL}/project/?projeto_id=${documentId}`,
-        { method: "DELETE" }
-      );
+    const projectId = Number(documentId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        showToast(
-          `Erro ao remover projeto: ${errorData.detail || "Erro desconhecido"}`,
-          "error"
-        );
-        return;
-      }
+    if (!Number.isFinite(projectId)) {
+      setHistoryDocuments((currentHistory) =>
+        currentHistory.filter((document) => document.id !== documentId),
+      );
+      showToast("Projeto removido com sucesso.", "success");
+      return;
+    }
+
+    try {
+      await deleteProjeto(projectId);
 
       // Remove do estado local após sucesso
       setHistoryDocuments((currentHistory) =>
         currentHistory.filter((document) => document.id !== documentId),
       );
-      showToast("Projeto removido com sucesso (pasta renomeada para .deleted).", "success");
+      showToast("Projeto removido com sucesso.", "success");
     } catch (error) {
       console.error("Erro ao remover projeto:", error);
       showToast(

@@ -276,6 +276,22 @@ export async function getProjeto(projectId: number): Promise<ProjectResponse> {
   return response.json();
 }
 
+export async function deleteProjeto(projectId: number): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/project/?projeto_id=${projectId}`,
+    {
+      method: "DELETE",
+      headers: {
+        ...(getAuthHeaders() ?? {}),
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "Erro ao remover projeto"));
+  }
+}
+
 /**
  * Lists all projects
  * @returns Array of all projects

@@ -64,7 +64,7 @@ export function HistoryPage() {
       return;
     }
 
-    removeHistoryDocument(pendingRemoval.id);
+    await removeHistoryDocument(pendingRemoval.id);
     setPendingRemoval(null);
   };
 
@@ -194,10 +194,10 @@ export function HistoryPage() {
         </SurfaceCard>
         <ConfirmationModal
           open={Boolean(pendingRemoval)}
-          title="Remover projeto da lista"
+          title="Remover projeto"
           description={
             <p>
-              Deseja remover <strong>{pendingRemoval?.name}</strong> da lista local?
+              Deseja remover <strong>{pendingRemoval?.name}</strong> do histórico?
             </p>
           }
           confirmLabel="Remover"

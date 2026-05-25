@@ -172,6 +172,9 @@ async def delete_project(
     except HTTPException:
         db.rollback()
         raise
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Erro ao deletar o projeto: {e}")
         db.rollback()
