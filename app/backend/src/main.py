@@ -9,6 +9,7 @@ from src.routes.router_processing import memorial_router, router as processing_r
 from src.routes.router_standards import router as norma_router
 from src.routes.router_upload import router as upload_router
 from src.routes.router_users import router as users_router
+from src.routes.router_specification import router as specification_router
 
 logger.add(
     "logs/app_{time:YYYY-MM-DD}.log",
@@ -43,6 +44,7 @@ app.include_router(processing_router)
 app.include_router(memorial_router)
 app.include_router(norma_router)
 app.include_router(users_router)
+app.include_router(specification_router)
 
 
 @app.get(
