@@ -85,6 +85,14 @@ export function HistoryPage() {
         `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`,
         `projeto_${projectId}_memorial_calculo.xlsx`,
       );
+      try {
+        await downloadFile(
+          `${API_BASE_URL}/especificacoes_tecnicas/projeto/${projectId}/download`,
+          `projeto_${projectId}_especificacoes_tecnicas.docx`,
+        );
+      } catch (specError) {
+        console.warn("Especificacoes tecnicas indisponiveis para este projeto.", specError);
+      }
     } catch (error) {
       console.error(error);
       window.alert(

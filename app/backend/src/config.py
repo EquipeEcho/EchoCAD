@@ -20,4 +20,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-logger.debug(settings.model_dump_json(indent=2))
+safe_settings = settings.model_dump()
+for secret_key in ("jwt_secret_key", "GROQ_API_KEY"):
+    if safe_settings.get(secret_key):
+        safe_settings[secret_key] = "***"
+logger.debug(safe_settings)

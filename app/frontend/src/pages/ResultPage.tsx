@@ -89,10 +89,12 @@ export function ResultPage() {
         fileName: projectId
           ? `projeto_${projectId}_especificacoes_tecnicas.docx`
           : "especificacoes_tecnicas.docx",
-        kind: "pdf",
-        url: undefined,
+        kind: "docx",
+        url: projectId
+          ? `${API_BASE_URL}/especificacoes_tecnicas/projeto/${projectId}/download`
+          : undefined,
       },
-    ].filter((asset) => asset.id === "memorial-calculo") as ResultDownloadAsset[];
+    ];
   }, [resolvedProjectId]);
 
   useEffect(() => {

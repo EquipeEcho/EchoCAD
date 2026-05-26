@@ -9,12 +9,16 @@ from sqlalchemy.orm import Session
 
 from src.auth import get_current_user
 from src.database import get_session
-from src.models.projeto_db import Blueprint, Project, Report
+from src.models.projeto_db import Blueprint, Project, Report, Specification
+from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 from src.modules.drill import processar_dxf
 from src.modules.Memorial.generatorteste import run_integration
 
 router = APIRouter(prefix="/processamento", tags=["processamento"])
 memorial_router = APIRouter(prefix="/memorial_calculo", tags=["memorial_calculo"])
+technical_spec_router = APIRouter(
+    prefix="/especificacoes_tecnicas", tags=["especificacoes_tecnicas"]
+)
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 UPLOADS_DIR = BACKEND_ROOT / "uploads"
@@ -85,6 +89,14 @@ def _latest_report(db: Session, project_id: int) -> Report | None:
     ).scalars().first()
 
 
+def _latest_specification(db: Session, project_id: int) -> Specification | None:
+    return db.execute(
+        select(Specification)
+        .where(Specification.id_project == project_id)
+        .order_by(Specification.id.desc())
+    ).scalars().first()
+
+
 def _save_report_path(db: Session, project_id: int, relative_path: str) -> Report:
     report = _latest_report(db, project_id)
 
@@ -97,6 +109,20 @@ def _save_report_path(db: Session, project_id: int, relative_path: str) -> Repor
     db.commit()
     db.refresh(report)
     return report
+
+
+def _save_specification_path(db: Session, project_id: int, relative_path: str) -> Specification:
+    specification = _latest_specification(db, project_id)
+
+    if specification:
+        specification.path = relative_path
+    else:
+        specification = Specification(path=relative_path, id_project=project_id)
+        db.add(specification)
+
+    db.commit()
+    db.refresh(specification)
+    return specification
 
 
 def _extract_drill_data(dxf_file: Path) -> dict[str, Any]:
@@ -148,7 +174,33 @@ def _load_drill_data(report: Report) -> dict[str, Any] | None:
         return None
 
 
-def _build_result_summary(project: Project, report: Report, extracted_data: dict[str, Any] | None) -> dict[str, Any]:
+def _specification_relative_path(project_id: int) -> str:
+    return f"{project_id}/generated/projeto_{project_id}_especificacoes_tecnicas.docx"
+
+
+def _specification_output_path(project_id: int) -> Path:
+    return UPLOADS_DIR / _specification_relative_path(project_id)
+
+
+def _get_specification_path(db: Session, project_id: int) -> Path | None:
+    specification = _latest_specification(db, project_id)
+
+    if specification:
+        specification_path = _resolve_upload_path(specification.path)
+        if specification_path and specification_path.exists():
+            return specification_path
+
+    fallback_path = _specification_output_path(project_id)
+    return fallback_path if fallback_path.exists() else None
+
+
+def _build_result_summary(
+    project: Project,
+    report: Report,
+    extracted_data: dict[str, Any] | None,
+    specification_path: Path | None = None,
+    specification_error: str | None = None,
+) -> dict[str, Any]:
     resumo_global = extracted_data.get("resumo_global", {}) if extracted_data else {}
 
     return {
@@ -156,6 +208,11 @@ def _build_result_summary(project: Project, report: Report, extracted_data: dict
             "Projeto": project.name,
             "Memorial de calculo": "Arquivo gerado a partir dos dados extraidos pelo drill.py.",
             "Arquivo": Path(report.path).name,
+            "Especificacoes tecnicas": (
+                specification_path.name
+                if specification_path
+                else "Nao geradas" if specification_error else "Indisponivel"
+            ),
             "Portas": resumo_global.get("quantidade_total_portas", 0),
             "Janelas": resumo_global.get("quantidade_total_janelas", 0),
             "Volume liquido de alvenaria (m3)": resumo_global.get("volume_final_liquido_alvenaria_m3", 0),
@@ -165,6 +222,7 @@ def _build_result_summary(project: Project, report: Report, extracted_data: dict
             "Comprimento total de fios (m)": resumo_global.get("comprimento_total_fios_m", 0),
             "Comprimento total de canos (m)": resumo_global.get("comprimento_total_canos_m", 0),
         },
+        "erro_especificacoes_tecnicas": specification_error,
         "dados_extraidos_drill": extracted_data or {},
     }
 
@@ -174,6 +232,8 @@ def _report_to_payload(
     report: Report,
     project: Project,
     extracted_data: dict[str, Any] | None = None,
+    specification_path: Path | None = None,
+    specification_error: str | None = None,
 ) -> dict[str, Any]:
     if extracted_data is None:
         extracted_data = _load_drill_data(report)
@@ -187,11 +247,67 @@ def _report_to_payload(
         ),
         "path": report.path,
         "extraction_path": str(drill_path.relative_to(UPLOADS_DIR)) if drill_path else None,
-        "resultado": json.dumps(_build_result_summary(project, report, extracted_data), ensure_ascii=False),
+        "resultado": json.dumps(
+            _build_result_summary(
+                project,
+                report,
+                extracted_data,
+                specification_path=specification_path,
+                specification_error=specification_error,
+            ),
+            ensure_ascii=False,
+        ),
     }
 
 
-def _generate_memorial(db: Session, project_id: int, request: Request) -> dict[str, Any]:
+def _specification_to_payload(
+    request: Request,
+    project: Project,
+    specification_path: Path,
+) -> dict[str, Any]:
+    relative_path = str(specification_path.relative_to(UPLOADS_DIR))
+    return {
+        "tipo": "especificacoes_tecnicas",
+        "file_url": str(
+            request.url_for("download_especificacoes_tecnicas", project_id=project.id)
+        ),
+        "path": relative_path,
+        "resultado": json.dumps(
+            {
+                "resumo_executivo": {
+                    "Projeto": project.name,
+                    "Especificacoes tecnicas": specification_path.name,
+                    "Arquivo": specification_path.name,
+                }
+            },
+            ensure_ascii=False,
+        ),
+    }
+
+
+def _generate_specification(
+    db: Session,
+    project: Project,
+    dxf_file: Path,
+    generated_dir: Path,
+) -> Path:
+    output_file = generated_dir / f"projeto_{project.id}_especificacoes_tecnicas.docx"
+
+    arquivo_gerado = gerar_especificacoes(
+        dxf_file=str(dxf_file),
+        output_path=str(output_file),
+        nome_projeto=project.name,
+    )
+
+    relative_output = str(arquivo_gerado.relative_to(UPLOADS_DIR))
+    try:
+        _save_specification_path(db, project.id, relative_output)
+    except Exception:
+        db.rollback()
+    return arquivo_gerado
+
+
+def _generate_project_documents(db: Session, project_id: int, request: Request) -> list[dict[str, Any]]:
     project = _get_project(db, project_id)
     dxf_files = _get_project_dxf_files(db, project_id)
 
@@ -199,14 +315,15 @@ def _generate_memorial(db: Session, project_id: int, request: Request) -> dict[s
     generated_dir = project_dir / "generated"
     generated_dir.mkdir(parents=True, exist_ok=True)
 
+    dxf_file = dxf_files[0]
     output_file = generated_dir / f"projeto_{project_id}_memorial_calculo.xlsx"
     relative_output = f"{project_id}/generated/{output_file.name}"
-    extracted_data = _extract_drill_data(dxf_files[0])
+    extracted_data = _extract_drill_data(dxf_file)
     _save_drill_json(project_id, generated_dir, extracted_data)
 
     try:
         run_integration(
-            dxf_file=str(dxf_files[0]),
+            dxf_file=str(dxf_file),
             template_file=str(TEMPLATE_FILE),
             output_file=str(output_file),
             quantitativos_dxf=extracted_data,
@@ -217,8 +334,30 @@ def _generate_memorial(db: Session, project_id: int, request: Request) -> dict[s
             detail=str(exc),
         ) from exc
 
+    specification_path: Path | None = None
+    specification_error: str | None = None
+    try:
+        specification_path = _generate_specification(db, project, dxf_file, generated_dir)
+    except Exception as exc:
+        db.rollback()
+        specification_error = str(exc)
+
     report = _save_report_path(db, project_id, relative_output)
-    return _report_to_payload(request, report, project, extracted_data)
+    payloads = [
+        _report_to_payload(
+            request,
+            report,
+            project,
+            extracted_data,
+            specification_path=specification_path,
+            specification_error=specification_error,
+        )
+    ]
+
+    if specification_path and specification_path.exists():
+        payloads.append(_specification_to_payload(request, project, specification_path))
+
+    return payloads
 
 
 @router.post("/{project_id}", summary="Processar projeto")
@@ -230,13 +369,15 @@ async def process_project(
     db: Session = Depends(get_session),
 ):
     if not stream:
-        return [_generate_memorial(db, project_id, request)]
+        return _generate_project_documents(db, project_id, request)
 
     def event_stream():
         yield "data: Iniciando processamento do projeto...\n\n"
         try:
-            result = _generate_memorial(db, project_id, request)
+            result = _generate_project_documents(db, project_id, request)
             yield "data: Memorial de calculo gerado com sucesso.\n\n"
+            if any(item.get("tipo") == "especificacoes_tecnicas" for item in result):
+                yield "data: Especificacoes tecnicas geradas com sucesso.\n\n"
             yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
         except HTTPException as exc:
@@ -266,7 +407,12 @@ async def get_processing_result(
             detail="Resultado de processamento nao encontrado.",
         )
 
-    return [_report_to_payload(request, report, project)]
+    specification_path = _get_specification_path(db, project_id)
+    payloads = [_report_to_payload(request, report, project, specification_path=specification_path)]
+    if specification_path:
+        payloads.append(_specification_to_payload(request, project, specification_path))
+
+    return payloads
 
 
 @memorial_router.get(
@@ -299,4 +445,30 @@ async def download_memorial_calculo(
         path=file_path,
         filename=f"projeto_{project_id}_memorial_calculo.xlsx",
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@technical_spec_router.get(
+    "/projeto/{project_id}/download",
+    name="download_especificacoes_tecnicas",
+    summary="Baixar especificacoes tecnicas",
+)
+async def download_especificacoes_tecnicas(
+    project_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_session),
+):
+    _get_project(db, project_id)
+    file_path = _get_specification_path(db, project_id)
+
+    if not file_path or not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Arquivo de especificacoes tecnicas nao encontrado.",
+        )
+
+    return FileResponse(
+        path=file_path,
+        filename=f"projeto_{project_id}_especificacoes_tecnicas.docx",
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )

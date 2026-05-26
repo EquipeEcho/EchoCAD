@@ -5,7 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
 from src.routes.router_blueprints import router as planta_router
 from src.routes.router_project import router as projeto_router
-from src.routes.router_processing import memorial_router, router as processing_router
+from src.routes.router_processing import (
+    memorial_router,
+    router as processing_router,
+    technical_spec_router,
+)
 from src.routes.router_standards import router as norma_router
 from src.routes.router_upload import router as upload_router
 from src.routes.router_users import router as users_router
@@ -21,7 +25,11 @@ logger.add(
 )
 
 # TODO: debugging / desabilitar em prod
-logger.debug("Configuracoes carregadas: {}", settings.model_dump_json(indent=4))
+safe_settings = settings.model_dump()
+for secret_key in ("jwt_secret_key", "GROQ_API_KEY"):
+    if safe_settings.get(secret_key):
+        safe_settings[secret_key] = "***"
+logger.debug("Configuracoes carregadas: {}", safe_settings)
 
 app = FastAPI(
     title="EchoCAD API",
@@ -42,6 +50,7 @@ app.include_router(projeto_router)
 app.include_router(planta_router)
 app.include_router(processing_router)
 app.include_router(memorial_router)
+app.include_router(technical_spec_router)
 app.include_router(norma_router)
 app.include_router(users_router)
 app.include_router(specification_router)

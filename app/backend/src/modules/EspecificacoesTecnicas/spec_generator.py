@@ -123,6 +123,14 @@ class SpecGenerator:
             except requests.HTTPError:
                 logger.error(f"Erro HTTP Groq {resp.status_code}: {resp.text[:200]}")
                 return None
+            except requests.RequestException as e:
+                espera = min(5 * (2 ** tentativa), 60)
+                logger.warning(
+                    f"Falha temporaria na API Groq (tentativa {tentativa+1}/6): {e}. "
+                    f"Aguardando {espera:.1f}s..."
+                )
+                time.sleep(espera)
+                continue
             except Exception as e:
                 logger.error(f"Erro na API Groq: {e}")
                 return None

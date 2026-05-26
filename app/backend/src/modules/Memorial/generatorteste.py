@@ -4,6 +4,7 @@
 # para as colunas de dados), mas mantém a aba "Levantamento Campo" compatível.
 
 import logging
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -88,6 +89,167 @@ def _criar_ambiente_por_quantitativos(quantitativos: dict[str, Any] | None):
         area_liquida_parede=round(max(total_area_bruta - area_vaos, 0), 2),
     )
     return [ambiente]
+
+
+def _media_valores_parede(paredes: list[dict[str, Any]], chave: str, padrao: float) -> float:
+    valores = [p.get(chave) for p in paredes if p.get(chave)]
+    return sum(valores) / len(valores) if valores else padrao
+
+
+def _normalizar_ponto(ponto, casas: int = 6):
+    return (round(float(ponto[0]), casas), round(float(ponto[1]), casas))
+
+
+def _distancia(p1, p2) -> float:
+    return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+
+
+def _area_poligono(vertices: list[tuple[float, float]]) -> float:
+    if len(vertices) < 3:
+        return 0.0
+    return abs(
+        sum(
+            vertices[i][0] * vertices[(i + 1) % len(vertices)][1]
+            - vertices[(i + 1) % len(vertices)][0] * vertices[i][1]
+            for i in range(len(vertices))
+        )
+        / 2
+    )
+
+
+def _ordenar_componente_fechado(segmentos: list[tuple[tuple[float, float], tuple[float, float]]]):
+    if len(segmentos) < 3:
+        return []
+
+    adj: dict[tuple[float, float], list[tuple[float, float]]] = {}
+    for p1, p2 in segmentos:
+        adj.setdefault(p1, []).append(p2)
+        adj.setdefault(p2, []).append(p1)
+
+    if any(len(vizinhos) != 2 for vizinhos in adj.values()):
+        return []
+
+    inicio = segmentos[0][0]
+    anterior = None
+    atual = inicio
+    vertices = [inicio]
+
+    for _ in range(len(segmentos)):
+        candidatos = [p for p in adj[atual] if p != anterior]
+        if not candidatos:
+            return []
+        proximo = candidatos[0]
+        anterior, atual = atual, proximo
+        if atual == inicio:
+            return vertices
+        vertices.append(atual)
+
+    return []
+
+
+def _extrair_contornos_fechados_dxf(dxf_file: str):
+    try:
+        import ezdxf
+    except Exception as exc:
+        logger.warning(f"Nao foi possivel importar ezdxf para fallback geometrico: {exc}")
+        return []
+
+    try:
+        doc = ezdxf.readfile(dxf_file)
+    except Exception as exc:
+        logger.warning(f"Nao foi possivel ler DXF para fallback geometrico: {exc}")
+        return []
+
+    msp = doc.modelspace()
+    segmentos: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    contornos: list[list[tuple[float, float]]] = []
+
+    for entidade in msp:
+        layer = entidade.dxf.layer.upper()
+        if "PAREDE" not in layer and "ALVENARIA" not in layer:
+            continue
+
+        if entidade.dxftype() == "LINE":
+            p1 = _normalizar_ponto((entidade.dxf.start.x, entidade.dxf.start.y))
+            p2 = _normalizar_ponto((entidade.dxf.end.x, entidade.dxf.end.y))
+            if p1 != p2:
+                segmentos.append((p1, p2))
+        elif entidade.dxftype() == "LWPOLYLINE":
+            pontos = [_normalizar_ponto((x, y)) for x, y, *_ in entidade.get_points()]
+            if entidade.closed and len(pontos) >= 3:
+                contornos.append(pontos)
+
+    restantes = segmentos[:]
+    while restantes:
+        pilha = [restantes.pop(0)]
+        componente = []
+        pontos_componente = set(pilha[0])
+
+        while pilha:
+            seg = pilha.pop()
+            componente.append(seg)
+
+            mudou = True
+            while mudou:
+                mudou = False
+                for idx, candidato in list(enumerate(restantes)):
+                    if candidato[0] in pontos_componente or candidato[1] in pontos_componente:
+                        restantes.pop(idx)
+                        pilha.append(candidato)
+                        pontos_componente.update(candidato)
+                        mudou = True
+                        break
+
+        vertices = _ordenar_componente_fechado(componente)
+        if vertices:
+            contornos.append(vertices)
+
+    contornos_validos = []
+    for vertices in contornos:
+        area = _area_poligono(vertices)
+        perimetro = sum(
+            _distancia(vertices[i], vertices[(i + 1) % len(vertices)])
+            for i in range(len(vertices))
+        )
+        if area > 0 and perimetro > 0:
+            contornos_validos.append((area, perimetro, vertices))
+
+    contornos_validos.sort(key=lambda item: item[0], reverse=True)
+    return contornos_validos
+
+
+def _criar_ambientes_por_contornos(dxf_file: str, quantitativos: dict[str, Any] | None):
+    contornos = _extrair_contornos_fechados_dxf(dxf_file)
+    if len(contornos) < 2:
+        return []
+
+    paredes = (quantitativos or {}).get("paredes", [])
+    pe_direito = _media_valores_parede(paredes, "altura_m", 2.8)
+    espessura = _media_valores_parede(paredes, "espessura_m", 0.15)
+
+    ambientes = []
+    for idx, (area, perimetro, vertices) in enumerate(contornos, start=1):
+        area_bruta = perimetro * pe_direito
+        cx = sum(p[0] for p in vertices) / len(vertices)
+        cy = sum(p[1] for p in vertices) / len(vertices)
+        ambientes.append(
+            Ambiente(
+                nome=f"AMBIENTE {idx}",
+                subtitulo="Gerado por contorno fechado do DXF",
+                area=round(area, 2),
+                perimetro=round(perimetro, 2),
+                pe_direito=round(pe_direito, 2),
+                espessura_parede=round(espessura, 3),
+                comprimento_paredes=round(perimetro, 2),
+                area_bruta_parede=round(area_bruta, 2),
+                area_vaos=0,
+                area_liquida_parede=round(area_bruta, 2),
+                cx=cx,
+                cy=cy,
+            )
+        )
+
+    return ambientes
 
 
 # ---------------------------------------------------------------------------
@@ -696,6 +858,10 @@ def run_integration(
 
     extractor = CADExtractor(dxf_file)
     ambientes = extractor.extrair_dados_reais()
+    if not ambientes:
+        ambientes = _criar_ambientes_por_contornos(dxf_file, quantitativos_dxf)
+        if ambientes:
+            logger.info("Ambientes criados a partir de contornos fechados do DXF.")
     if not ambientes:
         ambientes = _criar_ambiente_por_quantitativos(quantitativos_dxf)
         if ambientes:

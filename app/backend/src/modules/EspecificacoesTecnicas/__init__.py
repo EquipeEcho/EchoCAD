@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from src.config import settings
+
 from .dxf_context_extractor import DXFContextExtractor, ContextoDXF
 from .spec_generator import SpecGenerator
 from .docx_builder import build_docx
@@ -46,7 +48,7 @@ def gerar_especificacoes(
     )
 
     # 2. Gerar especificações via IA
-    key = api_key or os.getenv("GROQ_API_KEY")
+    key = api_key or os.getenv("GROQ_API_KEY") or settings.GROQ_API_KEY
     generator = SpecGenerator(api_key=key)
     specs = generator.gerar(ctx)
 
