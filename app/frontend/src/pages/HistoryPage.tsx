@@ -4,9 +4,11 @@ import { Button } from "../components/Button";
 import { ConfirmationModal } from "../components/ConfirmationModal";
 import { EmptyState } from "../components/EmptyState";
 import {
+  CloseIcon,
   DownloadIcon,
   EyeIcon,
   InfoCircleIcon,
+  SearchIcon,
   TrashIcon,
 } from "../components/Icons";
 import { FileList } from "../components/FileList";
@@ -38,6 +40,29 @@ async function downloadFile(url: string, fileName: string) {
   window.URL.revokeObjectURL(objectUrl);
 }
 
+function normalizeSearchValue(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function getHistorySearchText(document: HistoryDocument) {
+  return [
+    document.id,
+    document.name,
+    document.kind,
+    document.date,
+    document.projectInfo?.cliente,
+    document.projectInfo?.descricao,
+    document.document.reference,
+    document.document.summary,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export function HistoryPage() {
   const navigate = useNavigate();
   const {
@@ -49,10 +74,29 @@ export function HistoryPage() {
   } = usePrototype();
   const [pendingRemoval, setPendingRemoval] = useState<HistoryDocument | null>(null);
   const [downloadingProjectId, setDownloadingProjectId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isDownloading = useMemo(() => {
     return (projectId: string) => downloadingProjectId === projectId;
   }, [downloadingProjectId]);
+
+  const filteredHistoryDocuments = useMemo(() => {
+    const normalizedQuery = normalizeSearchValue(searchQuery);
+
+    if (!normalizedQuery) {
+      return historyDocuments;
+    }
+
+    return historyDocuments.filter((document) =>
+      normalizeSearchValue(getHistorySearchText(document)).includes(normalizedQuery),
+    );
+  }, [historyDocuments, searchQuery]);
+
+  const hasSearchQuery = searchQuery.trim().length > 0;
+  const searchResultLabel =
+    filteredHistoryDocuments.length === 1
+      ? "1 projeto encontrado"
+      : `${filteredHistoryDocuments.length} projetos encontrados`;
 
   const handleOpenPreview = (documentId: string) => {
     openHistoryPreview(documentId);
@@ -141,12 +185,41 @@ export function HistoryPage() {
               framed={false}
               icon={<InfoCircleIcon />}
               title="Nenhum projeto cadastrado até o momento"
-              description="Crie um projeto no backend para que ele apareça nesta lista."
-              actionLabel="Adicionar dados"
+              description="Envie uma planta CAD e salve o projeto para acompanhar os arquivos gerados por aqui."
+              actionLabel="Criar projeto"
               onAction={() => navigate("/")}
             />
           ) : (
             <>
+              <div className="history-toolbar">
+                <label className="history-search">
+                  <span className="history-search__icon" aria-hidden="true">
+                    <SearchIcon />
+                  </span>
+                  <span className="sr-only">Buscar projetos no histórico</span>
+                  <input
+                    className="history-search__input"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Buscar por projeto, cliente, data ou ID"
+                  />
+                  {hasSearchQuery ? (
+                    <button
+                      className="history-search__clear"
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      aria-label="Limpar busca"
+                    >
+                      <CloseIcon />
+                    </button>
+                  ) : null}
+                </label>
+                <span className="history-toolbar__count">
+                  {hasSearchQuery ? searchResultLabel : `${historyDocuments.length} projetos`}
+                </span>
+              </div>
+
               <FileList
                 className="history-list"
                 header={
@@ -158,43 +231,50 @@ export function HistoryPage() {
                   </div>
                 }
               >
-                <div className="stack">
-                  {historyDocuments.map((document) => (
-                    <FileRow
-                      key={document.id}
-                      variant="history"
-                      name={document.name}
-                      kind={document.kind}
-                      date={document.date}
-                      size={document.size}
-                      actions={[
-                        {
-                          label: isDownloading(document.id)
-                            ? `Baixando arquivos de ${document.name}`
-                            : `Baixar arquivos de ${document.name}`,
-                          icon: <DownloadIcon />,
-                          onClick: () => handleDownloadProjectFiles(document),
-                        },
-                        {
-                          label: `Visualizar ${document.name}`,
-                          icon: <EyeIcon />,
-                          onClick: () => handleOpenPreview(document.id),
-                        },
-                        {
-                          label: `Remover ${document.name}`,
-                          icon: <TrashIcon />,
-                          onClick: () => setPendingRemoval(document),
-                          tone: "danger",
-                        },
-                      ]}
-                    />
-                  ))}
-                </div>
+                {filteredHistoryDocuments.length > 0 ? (
+                  <div className="stack">
+                    {filteredHistoryDocuments.map((document) => (
+                      <FileRow
+                        key={document.id}
+                        variant="history"
+                        name={document.name}
+                        kind={document.kind}
+                        date={document.date}
+                        size={document.size}
+                        actions={[
+                          {
+                            label: isDownloading(document.id)
+                              ? `Baixando arquivos de ${document.name}`
+                              : `Baixar arquivos de ${document.name}`,
+                            icon: <DownloadIcon />,
+                            onClick: () => handleDownloadProjectFiles(document),
+                          },
+                          {
+                            label: `Visualizar ${document.name}`,
+                            icon: <EyeIcon />,
+                            onClick: () => handleOpenPreview(document.id),
+                          },
+                          {
+                            label: `Remover ${document.name}`,
+                            icon: <TrashIcon />,
+                            onClick: () => setPendingRemoval(document),
+                            tone: "danger",
+                          },
+                        ]}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="history-search-empty" role="status">
+                    <InfoCircleIcon />
+                    <p>Nenhum projeto encontrado para esta busca.</p>
+                  </div>
+                )}
               </FileList>
 
               <div className="history-surface__footer">
                 <Button variant="success" onClick={() => navigate("/")}>
-                  Adicionar dados
+                  Criar projeto
                 </Button>
               </div>
             </>

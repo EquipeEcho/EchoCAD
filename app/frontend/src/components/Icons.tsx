@@ -199,6 +199,29 @@ export function InfoCircleIcon() {
   );
 }
 
+// Renderiza o icone de busca.
+export function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <circle
+        cx="10.8"
+        cy="10.8"
+        r="5.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="m15.2 15.2 4.1 4.1"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
 // Renderiza o icone de fechar.
 export function CloseIcon() {
   return (
