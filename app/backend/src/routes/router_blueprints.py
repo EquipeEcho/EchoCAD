@@ -63,17 +63,17 @@ async def extrair_dxf(
         # 1. Verifica se o arquivo realmente existe e barra a execução se não existir
         if not Path(caminho).exists():
             raise HTTPException(
-                status_code=404, 
-                detail="Arquivo .DXF não encontrado no caminho especificado."
+                status_code=404,
+                detail="Arquivo .DXF não encontrado no caminho especificado.",
             )
-            
+
         # 2. Roda o motor passando as configurações dinâmicas
         relatorio_json = processar_dxf(caminho)
         return relatorio_json
-        
+
     except HTTPException:
         # Repassa o erro 404 sem mascarar ele no except de baixo
-        raise 
+        raise
     except Exception as e:
         msg = "Erro ao extrair dados do .DXF"
         raise HTTPException(status_code=500, detail=f"{msg}: {str(e)}")

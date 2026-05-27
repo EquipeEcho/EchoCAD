@@ -5,6 +5,7 @@ from loguru import logger
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "mysql+pymysql://echocad_admin:echocad_admin_password@localhost:3306/echocad_db?charset=utf8mb4"
+    DATABASE_ASYNC_URL: str = "mysql+asyncmy://echocad_admin:echocad_admin_password@localhost:3306/echocad_db?charset=utf8mb4"
     LOG_LEVEL: str = "INFO"
     jwt_secret_key: str = Field(
         alias="JWT_TOKEN", default="super_secret_jwt_key_change_me"

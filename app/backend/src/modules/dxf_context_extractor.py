@@ -159,7 +159,9 @@ class DXFContextExtractor:
             return self._ctx
 
         try:
-            with open(self.filepath, "r", encoding="windows-1252", errors="replace") as f:
+            with open(
+                self.filepath, "r", encoding="windows-1252", errors="replace"
+            ) as f:
                 lines = f.readlines()
         except Exception as e:
             logger.error(f"Erro ao ler DXF: {e}")
@@ -188,7 +190,7 @@ class DXFContextExtractor:
                 current_type = lines[i + 1].strip()
                 current_layer = None
                 current_text = None
-                is_mtext = (current_type == "MTEXT")
+                is_mtext = current_type == "MTEXT"
                 i += 2
                 continue
 
@@ -203,7 +205,7 @@ class DXFContextExtractor:
                 else:
                     current_text = val
                     self._processar_entidade(current_type, current_layer, current_text)
-            elif code == "3": # Parte de MTEXT longo
+            elif code == "3":  # Parte de MTEXT longo
                 if is_mtext:
                     mtext_buffer.append(val)
 
@@ -232,12 +234,18 @@ class DXFContextExtractor:
 
         # 3. Identificar Presença de Macros
         l_low = layer.lower()
-        if "spda" in l_low or "descida" in l_low: self._ctx.tem_spda = True
-        if "gerador" in l_low: self._ctx.tem_gerador = True
-        if "reservatório" in l_low or "caixa d" in l_low: self._ctx.tem_reservatorio = True
-        if "cobertura" in l_low or "telhado" in l_low: self._ctx.tem_cobertura = True
-        if "metálica" in l_low or "perfis" in l_low: self._ctx.tem_estrutura_metalica = True
-        if "dry-wall" in l_low or "drywall" in l_low: self._ctx.tem_drywall = True
+        if "spda" in l_low or "descida" in l_low:
+            self._ctx.tem_spda = True
+        if "gerador" in l_low:
+            self._ctx.tem_gerador = True
+        if "reservatório" in l_low or "caixa d" in l_low:
+            self._ctx.tem_reservatorio = True
+        if "cobertura" in l_low or "telhado" in l_low:
+            self._ctx.tem_cobertura = True
+        if "metálica" in l_low or "perfis" in l_low:
+            self._ctx.tem_estrutura_metalica = True
+        if "dry-wall" in l_low or "drywall" in l_low:
+            self._ctx.tem_drywall = True
 
     def _limpar_texto(self, raw: str) -> str:
         # Remove formatações de MTEXT do CAD (\P, \fArial|b0...)
@@ -251,22 +259,23 @@ class DXFContextExtractor:
         """Tenta inferir ambientes e área total a partir dos textos livres."""
         # 1. Agrupar textos que parecem ser de ambientes
         # Padrão: Nome \n Área m² \n P=... \n PD=...
-        
+
         # Como o parser é linear e simples, vamos procurar sequências
         # ou textos que contenham "m²"
-        
+
         possiveis_ambientes = []
-        
+
         for i, txt in enumerate(self._ctx.textos_livres):
             if "m²" in txt.lower():
                 # Tenta pegar o nome (geralmente o texto anterior ou a linha anterior)
                 area = self._extrair_valor(txt, r"([\d,.]+)\s*m²")
-                if area is None: continue
-                
+                if area is None:
+                    continue
+
                 nome = "Ambiente"
                 perimetro = 0.0
                 pd = 3.0
-                
+
                 # Se o texto for multiline (limpo), tenta quebrar
                 parts = txt.split()
                 if len(parts) > 0 and not parts[0][0].isdigit():
@@ -275,23 +284,27 @@ class DXFContextExtractor:
                 # Tenta buscar P e PD no mesmo texto ou nos vizinhos
                 p_val = self._extrair_valor(txt, r"P\s*=\s*([\d,.]+)")
                 pd_val = self._extrair_valor(txt, r"PD\s*=\s*([\d,.]+)")
-                
-                if p_val: perimetro = p_val
-                if pd_val: pd = pd_val
-                
-                self._ctx.ambientes.append(AmbienteDXF(
-                    nome=nome.upper(),
-                    area=area,
-                    perimetro=perimetro,
-                    pe_direito=pd
-                ))
+
+                if p_val:
+                    perimetro = p_val
+                if pd_val:
+                    pd = pd_val
+
+                self._ctx.ambientes.append(
+                    AmbienteDXF(
+                        nome=nome.upper(), area=area, perimetro=perimetro, pe_direito=pd
+                    )
+                )
                 self._ctx.area_total += area
 
         # 2. Dedução de flags por sistemas
-        if "climatização" in self._ctx.sistemas: self._ctx.tem_climatizacao = True
-        if "combate_incêndio" in self._ctx.sistemas: self._ctx.tem_combate_incendio = True
-        if "rede_lógica_cftv" in self._ctx.disciplinas: self._ctx.tem_rede_dados = True
-        
+        if "climatização" in self._ctx.sistemas:
+            self._ctx.tem_climatizacao = True
+        if "combate_incêndio" in self._ctx.sistemas:
+            self._ctx.tem_combate_incendio = True
+        if "rede_lógica_cftv" in self._ctx.disciplinas:
+            self._ctx.tem_rede_dados = True
+
         # Limpeza
         self._ctx.disciplinas.discard(None)
         self._ctx.sistemas.discard(None)

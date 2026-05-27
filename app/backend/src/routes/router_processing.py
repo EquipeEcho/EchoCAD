@@ -26,7 +26,9 @@ TEMPLATE_FILE = BACKEND_ROOT / "src" / "templates" / "memorial_model.xlsx"
 
 
 def _get_project(db: Session, project_id: int) -> Project:
-    project = db.execute(select(Project).where(Project.id == project_id)).scalar_one_or_none()
+    project = db.execute(
+        select(Project).where(Project.id == project_id)
+    ).scalar_one_or_none()
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -61,9 +63,11 @@ def _resolve_upload_path(relative_path: str | None) -> Path | None:
 
 
 def _get_project_dxf_files(db: Session, project_id: int) -> list[Path]:
-    blueprints = db.execute(
-        select(Blueprint).where(Blueprint.id_project == project_id)
-    ).scalars().all()
+    blueprints = (
+        db.execute(select(Blueprint).where(Blueprint.id_project == project_id))
+        .scalars()
+        .all()
+    )
 
     dxf_files: list[Path] = []
     for blueprint in blueprints:
@@ -82,19 +86,27 @@ def _get_project_dxf_files(db: Session, project_id: int) -> list[Path]:
 
 
 def _latest_report(db: Session, project_id: int) -> Report | None:
-    return db.execute(
-        select(Report)
-        .where(Report.id_project == project_id)
-        .order_by(Report.id.desc())
-    ).scalars().first()
+    return (
+        db.execute(
+            select(Report)
+            .where(Report.id_project == project_id)
+            .order_by(Report.id.desc())
+        )
+        .scalars()
+        .first()
+    )
 
 
 def _latest_specification(db: Session, project_id: int) -> Specification | None:
-    return db.execute(
-        select(Specification)
-        .where(Specification.id_project == project_id)
-        .order_by(Specification.id.desc())
-    ).scalars().first()
+    return (
+        db.execute(
+            select(Specification)
+            .where(Specification.id_project == project_id)
+            .order_by(Specification.id.desc())
+        )
+        .scalars()
+        .first()
+    )
 
 
 def _save_report_path(db: Session, project_id: int, relative_path: str) -> Report:
@@ -111,7 +123,9 @@ def _save_report_path(db: Session, project_id: int, relative_path: str) -> Repor
     return report
 
 
-def _save_specification_path(db: Session, project_id: int, relative_path: str) -> Specification:
+def _save_specification_path(
+    db: Session, project_id: int, relative_path: str
+) -> Specification:
     specification = _latest_specification(db, project_id)
 
     if specification:
@@ -143,7 +157,9 @@ def _extract_drill_data(dxf_file: Path) -> dict[str, Any]:
     return extracted_data
 
 
-def _save_drill_json(project_id: int, generated_dir: Path, extracted_data: dict[str, Any]) -> str:
+def _save_drill_json(
+    project_id: int, generated_dir: Path, extracted_data: dict[str, Any]
+) -> str:
     output_file = generated_dir / f"projeto_{project_id}_drill.json"
 
     with output_file.open("w", encoding="utf-8") as file:
@@ -157,7 +173,9 @@ def _get_drill_json_path(report: Report) -> Path | None:
     if not report_path:
         return None
 
-    drill_path = report_path.with_name(report_path.name.replace("_memorial_calculo.xlsx", "_drill.json"))
+    drill_path = report_path.with_name(
+        report_path.name.replace("_memorial_calculo.xlsx", "_drill.json")
+    )
     return drill_path if drill_path.exists() else None
 
 
@@ -211,16 +229,26 @@ def _build_result_summary(
             "Especificacoes tecnicas": (
                 specification_path.name
                 if specification_path
-                else "Nao geradas" if specification_error else "Indisponivel"
+                else "Nao geradas"
+                if specification_error
+                else "Indisponivel"
             ),
             "Portas": resumo_global.get("quantidade_total_portas", 0),
             "Janelas": resumo_global.get("quantidade_total_janelas", 0),
-            "Volume liquido de alvenaria (m3)": resumo_global.get("volume_final_liquido_alvenaria_m3", 0),
+            "Volume liquido de alvenaria (m3)": resumo_global.get(
+                "volume_final_liquido_alvenaria_m3", 0
+            ),
             "Volume total de vigas (m3)": resumo_global.get("volume_total_vigas_m3", 0),
-            "Volume total de colunas (m3)": resumo_global.get("volume_total_colunas_m3", 0),
+            "Volume total de colunas (m3)": resumo_global.get(
+                "volume_total_colunas_m3", 0
+            ),
             "Area total de laje (m2)": resumo_global.get("area_total_laje_m2", 0),
-            "Comprimento total de fios (m)": resumo_global.get("comprimento_total_fios_m", 0),
-            "Comprimento total de canos (m)": resumo_global.get("comprimento_total_canos_m", 0),
+            "Comprimento total de fios (m)": resumo_global.get(
+                "comprimento_total_fios_m", 0
+            ),
+            "Comprimento total de canos (m)": resumo_global.get(
+                "comprimento_total_canos_m", 0
+            ),
         },
         "erro_especificacoes_tecnicas": specification_error,
         "dados_extraidos_drill": extracted_data or {},
@@ -246,7 +274,9 @@ def _report_to_payload(
             request.url_for("download_memorial_calculo", project_id=project.id)
         ),
         "path": report.path,
-        "extraction_path": str(drill_path.relative_to(UPLOADS_DIR)) if drill_path else None,
+        "extraction_path": str(drill_path.relative_to(UPLOADS_DIR))
+        if drill_path
+        else None,
         "resultado": json.dumps(
             _build_result_summary(
                 project,
@@ -307,7 +337,9 @@ def _generate_specification(
     return arquivo_gerado
 
 
-def _generate_project_documents(db: Session, project_id: int, request: Request) -> list[dict[str, Any]]:
+def _generate_project_documents(
+    db: Session, project_id: int, request: Request
+) -> list[dict[str, Any]]:
     project = _get_project(db, project_id)
     dxf_files = _get_project_dxf_files(db, project_id)
 
@@ -337,7 +369,9 @@ def _generate_project_documents(db: Session, project_id: int, request: Request) 
     specification_path: Path | None = None
     specification_error: str | None = None
     try:
-        specification_path = _generate_specification(db, project, dxf_file, generated_dir)
+        specification_path = _generate_specification(
+            db, project, dxf_file, generated_dir
+        )
     except Exception as exc:
         db.rollback()
         specification_error = str(exc)
@@ -408,7 +442,11 @@ async def get_processing_result(
         )
 
     specification_path = _get_specification_path(db, project_id)
-    payloads = [_report_to_payload(request, report, project, specification_path=specification_path)]
+    payloads = [
+        _report_to_payload(
+            request, report, project, specification_path=specification_path
+        )
+    ]
     if specification_path:
         payloads.append(_specification_to_payload(request, project, specification_path))
 

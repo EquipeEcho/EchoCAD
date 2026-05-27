@@ -29,6 +29,7 @@ try:
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
     from docx.shared import Cm, Pt, RGBColor
+
     HAS_DOCX = True
     WD_ALIGN_PARAGRAPH = WD_ALIGN
 except (ImportError, AttributeError):
@@ -168,7 +169,7 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
     """Implementação real usando python-docx."""
     from docx import Document
     from docx.shared import Pt, Cm, RGBColor
-    
+
     doc = Document()
 
     # ---- Configurar página ----
@@ -314,7 +315,7 @@ def _build_with_xml(specs: EspecificacoesTecnicas, output_path: str) -> Path:
         "",
         "OBJETO",
         specs.objeto,
-        ""
+        "",
     ]
 
     for secao in specs.secoes:
@@ -342,7 +343,7 @@ def build_docx(specs: EspecificacoesTecnicas, output_path: str) -> Path:
             return _build_with_python_docx(specs, output_path)
         except Exception as e:
             logger.error(f"Erro ao gerar DOCX: {e}. Usando fallback TXT.")
-    
+
     return _build_with_xml(specs, output_path)
 
 

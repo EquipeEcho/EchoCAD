@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
 # Estágio Final: Runtime
-FROM python:3.13-slim as runtime
+FROM python:3.13-slim AS runtime
 
 WORKDIR /app
 

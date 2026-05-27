@@ -91,7 +91,9 @@ def _criar_ambiente_por_quantitativos(quantitativos: dict[str, Any] | None):
     return [ambiente]
 
 
-def _media_valores_parede(paredes: list[dict[str, Any]], chave: str, padrao: float) -> float:
+def _media_valores_parede(
+    paredes: list[dict[str, Any]], chave: str, padrao: float
+) -> float:
     valores = [p.get(chave) for p in paredes if p.get(chave)]
     return sum(valores) / len(valores) if valores else padrao
 
@@ -117,7 +119,9 @@ def _area_poligono(vertices: list[tuple[float, float]]) -> float:
     )
 
 
-def _ordenar_componente_fechado(segmentos: list[tuple[tuple[float, float], tuple[float, float]]]):
+def _ordenar_componente_fechado(
+    segmentos: list[tuple[tuple[float, float], tuple[float, float]]],
+):
     if len(segmentos) < 3:
         return []
 
@@ -151,7 +155,9 @@ def _extrair_contornos_fechados_dxf(dxf_file: str):
     try:
         import ezdxf
     except Exception as exc:
-        logger.warning(f"Nao foi possivel importar ezdxf para fallback geometrico: {exc}")
+        logger.warning(
+            f"Nao foi possivel importar ezdxf para fallback geometrico: {exc}"
+        )
         return []
 
     try:
@@ -193,7 +199,10 @@ def _extrair_contornos_fechados_dxf(dxf_file: str):
             while mudou:
                 mudou = False
                 for idx, candidato in list(enumerate(restantes)):
-                    if candidato[0] in pontos_componente or candidato[1] in pontos_componente:
+                    if (
+                        candidato[0] in pontos_componente
+                        or candidato[1] in pontos_componente
+                    ):
                         restantes.pop(idx)
                         pilha.append(candidato)
                         pontos_componente.update(candidato)
@@ -388,7 +397,9 @@ class MemorialGenerator:
 
     @staticmethod
     def _escrever_titulo(ws, row: int, col_ini: int, col_fim: int, titulo: str):
-        ws.merge_cells(start_row=row, start_column=col_ini, end_row=row, end_column=col_fim)
+        ws.merge_cells(
+            start_row=row, start_column=col_ini, end_row=row, end_column=col_fim
+        )
         cell = ws.cell(row=row, column=col_ini, value=titulo)
         cell.font = FONTE_TITULO
         cell.fill = FILL_AZUL
@@ -396,7 +407,9 @@ class MemorialGenerator:
         cell.border = BORDA_MEDIA
 
     @staticmethod
-    def _escrever_tabela(ws, row: int, headers: list[str], rows: list[list[Any]]) -> int:
+    def _escrever_tabela(
+        ws, row: int, headers: list[str], rows: list[list[Any]]
+    ) -> int:
         for col, header in enumerate(headers, start=1):
             cell = ws.cell(row=row, column=col, value=header)
             cell.font = FONTE_HEADER
@@ -502,7 +515,15 @@ class MemorialGenerator:
             row = self._escrever_tabela(
                 ws,
                 row,
-                ["Tipo", "Origem", "Layer", "Comprimento (m)", "Base (m)", "Altura (m)", "Volume (m3)"],
+                [
+                    "Tipo",
+                    "Origem",
+                    "Layer",
+                    "Comprimento (m)",
+                    "Base (m)",
+                    "Altura (m)",
+                    "Volume (m3)",
+                ],
                 [
                     [
                         v.get("tipo") or v.get("layer"),
@@ -522,7 +543,15 @@ class MemorialGenerator:
             row = self._escrever_tabela(
                 ws,
                 row,
-                ["Tipo", "X", "Y", "Largura (m)", "Profundidade (m)", "Altura (m)", "Volume (m3)"],
+                [
+                    "Tipo",
+                    "X",
+                    "Y",
+                    "Largura (m)",
+                    "Profundidade (m)",
+                    "Altura (m)",
+                    "Volume (m3)",
+                ],
                 [
                     [
                         c.get("tipo"),
@@ -557,10 +586,20 @@ class MemorialGenerator:
 
         self._ajustar_larguras_por_headers(
             ws,
-            ["Tipo", "Origem", "Layer", "Comprimento (m)", "Base (m)", "Altura (m)", "Volume (m3)"],
+            [
+                "Tipo",
+                "Origem",
+                "Layer",
+                "Comprimento (m)",
+                "Base (m)",
+                "Altura (m)",
+                "Volume (m3)",
+            ],
         )
 
-    def _preencher_aba_infraestrutura(self, wb: Workbook, quantitativos: dict[str, Any]):
+    def _preencher_aba_infraestrutura(
+        self, wb: Workbook, quantitativos: dict[str, Any]
+    ):
         infra = quantitativos.get("infraestrutura", {})
         eletrica = infra.get("eletrica", [])
         hidraulica = infra.get("hidraulica", [])
@@ -781,7 +820,9 @@ class MemorialGenerator:
 # ---------------------------------------------------------------------------
 # Função de integração (mantém assinatura original)
 # ---------------------------------------------------------------------------
-def _sincronizar_ambientes_com_quantitativos(ambientes, quantitativos: dict[str, Any] | None):
+def _sincronizar_ambientes_com_quantitativos(
+    ambientes, quantitativos: dict[str, Any] | None
+):
     if not ambientes or not quantitativos:
         return
 
@@ -851,10 +892,14 @@ def run_integration(
 
             quantitativos_dxf = processar_dxf(dxf_file)
             if quantitativos_dxf.get("erro"):
-                logger.warning(f"Quantitativos DXF indisponiveis: {quantitativos_dxf['erro']}")
+                logger.warning(
+                    f"Quantitativos DXF indisponiveis: {quantitativos_dxf['erro']}"
+                )
                 quantitativos_dxf = None
         except Exception as exc:
-            logger.warning(f"Nao foi possivel extrair quantitativos detalhados do DXF: {exc}")
+            logger.warning(
+                f"Nao foi possivel extrair quantitativos detalhados do DXF: {exc}"
+            )
 
     extractor = CADExtractor(dxf_file)
     ambientes = extractor.extrair_dados_reais()
@@ -865,7 +910,9 @@ def run_integration(
     if not ambientes:
         ambientes = _criar_ambiente_por_quantitativos(quantitativos_dxf)
         if ambientes:
-            logger.info("Ambiente tecnico criado a partir dos quantitativos do drill.py.")
+            logger.info(
+                "Ambiente tecnico criado a partir dos quantitativos do drill.py."
+            )
     logger.info(f"Ambientes encontrados: {len(ambientes)}")
     if not ambientes:
         raise ValueError(
