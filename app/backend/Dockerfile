@@ -33,7 +33,7 @@ COPY src ./src
 COPY alembic.ini .
 COPY alembic ./alembic
 COPY start.sh .
-RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
+RUN mkdir -p logs && sed -i 's/\r$//' start.sh && chmod +x start.sh
 
 EXPOSE 8000
 

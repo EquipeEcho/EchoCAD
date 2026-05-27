@@ -29,6 +29,7 @@ services:
     container_name: echocad_server
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      DATABASE_ASYNC_URL: ${DATABASE_ASYNC_URL}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       JWT_TOKEN: ${JWT_TOKEN:-super_secret_jwt_key_change_me}
       ECHO_DATABASE: ${ECHO_DATABASE:-true}
