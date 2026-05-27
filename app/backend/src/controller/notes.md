@@ -14,3 +14,4 @@ em modelos sqlalchemy. Para acessar o banco de dados ele deve estar devidamente 
 - crud_blueprints: crud para manipulação dos registros de plantas de cad.
 - crud_standards: manipulação de normas técnicas do sistema.
 - crud_users: manipulação do registro de usuários.
+- crud_specifications: manipulação dos registros de especificações técnicas.

@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import get_current_user
-from src.database import get_session
+from src.database import get_async_session
 from src.models.projeto_db import Blueprint, Project, Report, Specification
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 from src.modules.drill import processar_dxf
@@ -25,10 +26,10 @@ UPLOADS_DIR = BACKEND_ROOT / "uploads"
 TEMPLATE_FILE = BACKEND_ROOT / "src" / "templates" / "memorial_model.xlsx"
 
 
-def _get_project(db: Session, project_id: int) -> Project:
-    project = db.execute(
+async def _get_project(db: AsyncSession, project_id: int) -> Project:
+    project = (await db.execute(
         select(Project).where(Project.id == project_id)
-    ).scalar_one_or_none()
+    )).scalar_one_or_none()
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -62,12 +63,10 @@ def _resolve_upload_path(relative_path: str | None) -> Path | None:
     return file_path
 
 
-def _get_project_dxf_files(db: Session, project_id: int) -> list[Path]:
+async def _get_project_dxf_files(db: AsyncSession, project_id: int) -> list[Path]:
     blueprints = (
-        db.execute(select(Blueprint).where(Blueprint.id_project == project_id))
-        .scalars()
-        .all()
-    )
+        await db.execute(select(Blueprint).where(Blueprint.id_project == project_id))
+    ).scalars().all()
 
     dxf_files: list[Path] = []
     for blueprint in blueprints:
@@ -85,32 +84,28 @@ def _get_project_dxf_files(db: Session, project_id: int) -> list[Path]:
     return existing_files
 
 
-def _latest_report(db: Session, project_id: int) -> Report | None:
+async def _latest_report(db: AsyncSession, project_id: int) -> Report | None:
     return (
-        db.execute(
+        await db.execute(
             select(Report)
             .where(Report.id_project == project_id)
             .order_by(Report.id.desc())
         )
-        .scalars()
-        .first()
-    )
+    ).scalars().first()
 
 
-def _latest_specification(db: Session, project_id: int) -> Specification | None:
+async def _latest_specification(db: AsyncSession, project_id: int) -> Specification | None:
     return (
-        db.execute(
+        await db.execute(
             select(Specification)
             .where(Specification.id_project == project_id)
             .order_by(Specification.id.desc())
         )
-        .scalars()
-        .first()
-    )
+    ).scalars().first()
 
 
-def _save_report_path(db: Session, project_id: int, relative_path: str) -> Report:
-    report = _latest_report(db, project_id)
+async def _save_report_path(db: AsyncSession, project_id: int, relative_path: str) -> Report:
+    report = await _latest_report(db, project_id)
 
     if report:
         report.path = relative_path
@@ -118,15 +113,15 @@ def _save_report_path(db: Session, project_id: int, relative_path: str) -> Repor
         report = Report(path=relative_path, id_project=project_id)
         db.add(report)
 
-    db.commit()
-    db.refresh(report)
+    await db.commit()
+    await db.refresh(report)
     return report
 
 
-def _save_specification_path(
-    db: Session, project_id: int, relative_path: str
+async def _save_specification_path(
+    db: AsyncSession, project_id: int, relative_path: str
 ) -> Specification:
-    specification = _latest_specification(db, project_id)
+    specification = await _latest_specification(db, project_id)
 
     if specification:
         specification.path = relative_path
@@ -134,8 +129,8 @@ def _save_specification_path(
         specification = Specification(path=relative_path, id_project=project_id)
         db.add(specification)
 
-    db.commit()
-    db.refresh(specification)
+    await db.commit()
+    await db.refresh(specification)
     return specification
 
 
@@ -200,8 +195,8 @@ def _specification_output_path(project_id: int) -> Path:
     return UPLOADS_DIR / _specification_relative_path(project_id)
 
 
-def _get_specification_path(db: Session, project_id: int) -> Path | None:
-    specification = _latest_specification(db, project_id)
+async def _get_specification_path(db: AsyncSession, project_id: int) -> Path | None:
+    specification = await _latest_specification(db, project_id)
 
     if specification:
         specification_path = _resolve_upload_path(specification.path)
@@ -315,8 +310,8 @@ def _specification_to_payload(
     }
 
 
-def _generate_specification(
-    db: Session,
+async def _generate_specification(
+    db: AsyncSession,
     project: Project,
     dxf_file: Path,
     generated_dir: Path,
@@ -331,17 +326,17 @@ def _generate_specification(
 
     relative_output = str(arquivo_gerado.relative_to(UPLOADS_DIR))
     try:
-        _save_specification_path(db, project.id, relative_output)
+        await _save_specification_path(db, project.id, relative_output)
     except Exception:
-        db.rollback()
+        await db.rollback()
     return arquivo_gerado
 
 
-def _generate_project_documents(
-    db: Session, project_id: int, request: Request
+async def _generate_project_documents(
+    db: AsyncSession, project_id: int, request: Request
 ) -> list[dict[str, Any]]:
-    project = _get_project(db, project_id)
-    dxf_files = _get_project_dxf_files(db, project_id)
+    project = await _get_project(db, project_id)
+    dxf_files = await _get_project_dxf_files(db, project_id)
 
     project_dir = UPLOADS_DIR / str(project_id)
     generated_dir = project_dir / "generated"
@@ -369,14 +364,14 @@ def _generate_project_documents(
     specification_path: Path | None = None
     specification_error: str | None = None
     try:
-        specification_path = _generate_specification(
+        specification_path = await _generate_specification(
             db, project, dxf_file, generated_dir
         )
     except Exception as exc:
-        db.rollback()
+        await db.rollback()
         specification_error = str(exc)
 
-    report = _save_report_path(db, project_id, relative_output)
+    report = await _save_report_path(db, project_id, relative_output)
     payloads = [
         _report_to_payload(
             request,
@@ -400,15 +395,15 @@ async def process_project(
     request: Request,
     stream: bool = False,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
     if not stream:
-        return _generate_project_documents(db, project_id, request)
+        return await _generate_project_documents(db, project_id, request)
 
-    def event_stream():
+    async def event_stream():
         yield "data: Iniciando processamento do projeto...\n\n"
         try:
-            result = _generate_project_documents(db, project_id, request)
+            result = await _generate_project_documents(db, project_id, request)
             yield "data: Memorial de calculo gerado com sucesso.\n\n"
             if any(item.get("tipo") == "especificacoes_tecnicas" for item in result):
                 yield "data: Especificacoes tecnicas geradas com sucesso.\n\n"
@@ -418,7 +413,7 @@ async def process_project(
             yield f"data: ERRO: {exc.detail}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as exc:
-            db.rollback()
+            await db.rollback()
             yield f"data: ERRO: Falha ao processar projeto: {exc}\n\n"
             yield "data: [DONE]\n\n"
 
@@ -430,10 +425,10 @@ async def get_processing_result(
     project_id: int,
     request: Request,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
-    project = _get_project(db, project_id)
-    report = _latest_report(db, project_id)
+    project = await _get_project(db, project_id)
+    report = await _latest_report(db, project_id)
 
     if not report:
         raise HTTPException(
@@ -441,7 +436,7 @@ async def get_processing_result(
             detail="Resultado de processamento nao encontrado.",
         )
 
-    specification_path = _get_specification_path(db, project_id)
+    specification_path = await _get_specification_path(db, project_id)
     payloads = [
         _report_to_payload(
             request, report, project, specification_path=specification_path
@@ -461,10 +456,10 @@ async def get_processing_result(
 async def download_memorial_calculo(
     project_id: int,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
-    _get_project(db, project_id)
-    report = _latest_report(db, project_id)
+    project = await _get_project(db, project_id)
+    report = await _latest_report(db, project_id)
 
     if not report:
         raise HTTPException(
@@ -494,10 +489,10 @@ async def download_memorial_calculo(
 async def download_especificacoes_tecnicas(
     project_id: int,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
-    _get_project(db, project_id)
-    file_path = _get_specification_path(db, project_id)
+    project = await _get_project(db, project_id)
+    file_path = await _get_specification_path(db, project_id)
 
     if not file_path or not file_path.exists():
         raise HTTPException(
