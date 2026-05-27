@@ -251,7 +251,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
           return {
             id: projectId,
             name: projectName,
-            kind: "pdf" as const,
+            kind: "project" as const,
             date: createdAt.toLocaleDateString("pt-BR"),
             size: "N/A",
             document: {

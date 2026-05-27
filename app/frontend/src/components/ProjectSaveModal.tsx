@@ -120,6 +120,7 @@ export function ProjectSaveModal({
               <InfoCircleIcon />
             </span>
             <div>
+              <p className="project-save-modal__eyebrow">Cadastro</p>
               <h2 className="modal-card__title" id={titleId}>
                 Informações do projeto
               </h2>
@@ -142,7 +143,7 @@ export function ProjectSaveModal({
         <form className="project-form" onSubmit={handleSubmit}>
           <div className="project-form__body">
             <fieldset className="project-form__section">
-              <legend className="project-form__section-label">Informações do Projeto</legend>
+              <legend className="project-form__section-label">Dados principais</legend>
 
               <label className="form-field">
                 <span className="form-field__label">Nome do projeto</span>

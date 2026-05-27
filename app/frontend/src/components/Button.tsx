@@ -3,6 +3,7 @@ import { ButtonHTMLAttributes, ReactNode } from "react";
 type ButtonVariant =
   | "primary"
   | "success"
+  | "danger"
   | "secondary"
   | "ghost"
   | "icon"

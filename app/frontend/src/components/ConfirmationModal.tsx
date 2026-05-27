@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./Button";
-import { CloseIcon } from "./Icons";
+import { CheckCircleIcon, CloseIcon, InfoCircleIcon, TrashIcon } from "./Icons";
 import { SurfaceCard } from "./SurfaceCard";
 
 type ConfirmationModalProps = {
@@ -10,7 +10,7 @@ type ConfirmationModalProps = {
   description: ReactNode;
   confirmLabel: string;
   cancelLabel?: string;
-  confirmTone?: "primary" | "success";
+  confirmTone?: "primary" | "success" | "danger";
   onClose: () => void;
   onConfirm: () => void | Promise<void>;
 };
@@ -29,6 +29,14 @@ export function ConfirmationModal({
   const titleId = useId();
   const descriptionId = useId();
   const [isLoading, setIsLoading] = useState(false);
+  const toneIcon =
+    confirmTone === "danger" ? (
+      <TrashIcon />
+    ) : confirmTone === "success" ? (
+      <CheckCircleIcon />
+    ) : (
+      <InfoCircleIcon />
+    );
 
   const handleConfirm = async () => {
     setIsLoading(true);
@@ -69,7 +77,7 @@ export function ConfirmationModal({
     <div className="modal-backdrop" onClick={onClose} role="presentation">
       <SurfaceCard
         as="div"
-        className="modal-card"
+        className={`modal-card confirmation-modal confirmation-modal--${confirmTone}`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -77,9 +85,14 @@ export function ConfirmationModal({
         aria-describedby={descriptionId}
       >
         <div className="modal-card__header">
-          <h2 className="modal-card__title" id={titleId}>
-            {title}
-          </h2>
+          <div className="confirmation-modal__heading">
+            <span className="confirmation-modal__icon" aria-hidden="true">
+              {toneIcon}
+            </span>
+            <h2 className="modal-card__title" id={titleId}>
+              {title}
+            </h2>
+          </div>
 
           <button
             className="modal-card__close"

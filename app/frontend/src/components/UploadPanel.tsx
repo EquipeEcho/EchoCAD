@@ -421,6 +421,7 @@ export function UploadPanel() {
           </p>
         }
         confirmLabel="Remover"
+        confirmTone="danger"
         onClose={() => setFilePendingRemoval(null)}
         onConfirm={handleRemoveConfirm}
       />

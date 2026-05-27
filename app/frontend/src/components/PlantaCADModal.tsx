@@ -78,7 +78,7 @@ export function PlantaCADModal({
     <div className="modal-backdrop" onClick={onClose} role="presentation">
       <SurfaceCard
         as="div"
-        className="modal-card project-save-modal"
+        className="modal-card project-save-modal plant-cad-modal"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -91,6 +91,7 @@ export function PlantaCADModal({
               <InfoCircleIcon />
             </span>
             <div>
+              <p className="project-save-modal__eyebrow">Cadastro CAD</p>
               <h2 className="modal-card__title" id={titleId}>
                 Informações da Planta CAD
               </h2>
@@ -113,23 +114,25 @@ export function PlantaCADModal({
         <form className="project-form" onSubmit={handleSubmit}>
           <div className="project-form__body">
             <fieldset className="project-form__section">
-              <legend className="project-form__section-label">Detalhes da Planta</legend>
+              <legend className="project-form__section-label">Classificação</legend>
 
-              <label className="form-field">
+              <div className="form-field">
                 <span className="form-field__label">Tipo de planta</span>
-                <select
-                  className="form-field__control"
-                  value={tipo}
-                  onChange={(event) => setTipo(event.target.value)}
-                  required
-                >
+                <div className="plant-type-grid" role="radiogroup" aria-label="Tipo de planta">
                   {PLANT_TYPE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
+                    <button
+                      className={`plant-type-option${option === tipo ? " is-selected" : ""}`}
+                      key={option}
+                      type="button"
+                      role="radio"
+                      aria-checked={option === tipo}
+                      onClick={() => setTipo(option)}
+                    >
                       {option}
-                    </option>
+                    </button>
                   ))}
-                </select>
-              </label>
+                </div>
+              </div>
             </fieldset>
           </div>
 

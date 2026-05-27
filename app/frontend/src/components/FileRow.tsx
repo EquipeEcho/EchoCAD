@@ -28,6 +28,10 @@ type FileRowProps = {
 };
 
 // Exibe uma linha com dados e ações de um arquivo.
+function getKindLabel(kind: FileKind) {
+  return kind === "project" ? "PROJ" : kind.toUpperCase();
+}
+
 export function FileRow({
   name,
   kind,
@@ -68,7 +72,7 @@ export function FileRow({
         <div className="file-row__content">
           <p className="file-row__name">{name}</p>
           <div className="file-row__subline">
-            <span className="file-row__kind">{kind.toUpperCase()}</span>
+            <span className="file-row__kind">{getKindLabel(kind)}</span>
             <span className="file-row__hint">{resolvedHint}</span>
           </div>
         </div>

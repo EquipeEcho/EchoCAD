@@ -24,12 +24,37 @@ type ResultDownloadAsset = {
   fileName: string;
   kind: FileKind;
   url?: string;
+  status: "ready" | "pending" | "unavailable";
+  statusLabel: string;
+  meta: string;
 };
 
 type ResultRouteState = {
   refresh?: boolean;
   projectId?: number;
 };
+
+function getTableValue(rows: { label: string; value: string }[], label: string) {
+  return rows.find((row) => row.label === label)?.value;
+}
+
+function toNumber(value: string | undefined) {
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function hasGeneratedSpec(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  const normalized = value.toLowerCase();
+  return !normalized.includes("nao gerad") && !normalized.includes("indisponivel");
+}
 
 export function ResultPage() {
   const navigate = useNavigate();
@@ -64,8 +89,20 @@ export function ResultPage() {
     return Number.isFinite(parsedId) ? parsedId : undefined;
   }, [activeProjectData?.projectId, currentDocument?.id, routeState?.projectId]);
 
+  const isPending =
+    !currentDocument ||
+    (currentDocument.file_urls.length === 0 && currentDocument.tableRows.length === 0);
+
   const downloadAssets = useMemo<ResultDownloadAsset[]>(() => {
     const projectId = resolvedProjectId;
+    const fileUrls = currentDocument?.file_urls ?? [];
+    const tableRows = currentDocument?.tableRows ?? [];
+    const hasMemorial = fileUrls.some((url) => url.includes("memorial_calculo"));
+    const hasSpecFile =
+      fileUrls.some((url) => url.includes("especificacoes_tecnicas")) ||
+      hasGeneratedSpec(getTableValue(tableRows, "Especificacoes tecnicas"));
+    const memorialStatus = isPending ? "pending" : hasMemorial || projectId ? "ready" : "unavailable";
+    const specStatus = isPending ? "pending" : hasSpecFile ? "ready" : "unavailable";
 
     return [
       {
@@ -80,6 +117,19 @@ export function ResultPage() {
         url: projectId
           ? `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`
           : undefined,
+        status: memorialStatus,
+        statusLabel:
+          memorialStatus === "ready"
+            ? "Gerado"
+            : memorialStatus === "pending"
+              ? "Aguardando"
+              : "Indisponível",
+        meta:
+          memorialStatus === "ready"
+            ? "XLSX pronto para download"
+            : memorialStatus === "pending"
+              ? "Disponível após o processamento"
+              : "Processamento ainda não gerou este arquivo",
       },
       {
         id: "especificacoes-tecnicas",
@@ -93,9 +143,80 @@ export function ResultPage() {
         url: projectId
           ? `${API_BASE_URL}/especificacoes_tecnicas/projeto/${projectId}/download`
           : undefined,
+        status: specStatus,
+        statusLabel:
+          specStatus === "ready"
+            ? "Gerado"
+            : specStatus === "pending"
+              ? "Aguardando"
+              : "Indisponível",
+        meta:
+          specStatus === "ready"
+            ? "DOCX gerado pela IA"
+            : specStatus === "pending"
+              ? "Disponível após o processamento"
+              : "Não foi gerado para este processamento",
       },
     ];
-  }, [resolvedProjectId]);
+  }, [currentDocument?.file_urls, currentDocument?.tableRows, isPending, resolvedProjectId]);
+
+  const technicalChips = useMemo(() => {
+    const rows = currentDocument?.tableRows ?? [];
+    const chips: string[] = [];
+
+    if (toNumber(getTableValue(rows, "Volume liquido de alvenaria (m3)")) > 0) {
+      chips.push("Alvenaria");
+    }
+    if (
+      toNumber(getTableValue(rows, "Volume total de vigas (m3)")) > 0 ||
+      toNumber(getTableValue(rows, "Volume total de colunas (m3)")) > 0
+    ) {
+      chips.push("Estrutura");
+    }
+    if (toNumber(getTableValue(rows, "Area total de laje (m2)")) > 0) {
+      chips.push("Laje");
+    }
+    if (toNumber(getTableValue(rows, "Comprimento total de fios (m)")) > 0) {
+      chips.push("Elétrica");
+    }
+    if (toNumber(getTableValue(rows, "Comprimento total de canos (m)")) > 0) {
+      chips.push("Hidráulica");
+    }
+    if (
+      toNumber(getTableValue(rows, "Portas")) > 0 ||
+      toNumber(getTableValue(rows, "Janelas")) > 0
+    ) {
+      chips.push("Esquadrias");
+    }
+    if (hasGeneratedSpec(getTableValue(rows, "Especificacoes tecnicas"))) {
+      chips.push("Especificações técnicas");
+    }
+
+    return chips;
+  }, [currentDocument?.tableRows]);
+
+  const resultNotices = useMemo(() => {
+    if (!currentDocument) {
+      return [];
+    }
+
+    const notices: string[] = [];
+    const specAsset = downloadAssets.find((asset) => asset.id === "especificacoes-tecnicas");
+
+    if (isPending) {
+      notices.push("Este projeto ainda precisa ser processado para liberar os arquivos finais.");
+    }
+
+    if (!isPending && specAsset?.status === "unavailable") {
+      notices.push("As especificações técnicas não foram geradas neste processamento. O memorial continua disponível.");
+    }
+
+    if (!isPending && technicalChips.length === 0) {
+      notices.push("Nenhuma disciplina técnica foi identificada no resumo extraído do projeto.");
+    }
+
+    return notices;
+  }, [currentDocument, downloadAssets, isPending, technicalChips.length]);
 
   useEffect(() => {
     const handleInitialLoad = async () => {
@@ -204,9 +325,6 @@ export function ResultPage() {
     );
   }
 
-  const isPending =
-    currentDocument.file_urls.length === 0 && currentDocument.tableRows.length === 0;
-
   if (isRefreshing) {
     return (
       <main className="page">
@@ -249,6 +367,35 @@ export function ResultPage() {
           />
         </section>
 
+        <section className="result-insights" aria-label="Resumo técnico detectado">
+          <div className="result-insights__group">
+            <p className="result-insights__label">Disciplinas detectadas</p>
+            {technicalChips.length > 0 ? (
+              <div className="result-chip-list">
+                {technicalChips.map((chip) => (
+                  <span key={chip} className="result-chip">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="result-insights__empty">
+                As disciplinas aparecem aqui depois que o processamento extrai dados do DXF.
+              </p>
+            )}
+          </div>
+
+          {resultNotices.length > 0 ? (
+            <div className="result-notices" role="status" aria-live="polite">
+              {resultNotices.map((notice) => (
+                <p key={notice} className="result-notice">
+                  {notice}
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
         <SurfaceCard
           as="section"
           className="result-downloads"
@@ -262,7 +409,15 @@ export function ResultPage() {
               </h2>
             </div>
             {resolvedProjectId ? (
-              <span className="result-downloads__badge">Projeto #{resolvedProjectId}</span>
+              <span
+                className="result-downloads__badge"
+                aria-label={`Projeto ${resolvedProjectId}`}
+              >
+                <span className="result-downloads__badge-label">Projeto</span>
+                <strong className="result-downloads__badge-value">
+                  {resolvedProjectId}
+                </strong>
+              </span>
             ) : null}
           </div>
 
@@ -281,16 +436,21 @@ export function ResultPage() {
                       {asset.description}
                     </p>
                     <p className="result-download-card__meta">
-                      {isPending ? "Disponível após o processamento" : asset.fileHint}
+                      {asset.meta}
                     </p>
                   </div>
+                  <span
+                    className={`result-download-card__status result-download-card__status--${asset.status}`}
+                  >
+                    {asset.statusLabel}
+                  </span>
                   <Button
                     variant="primary"
                     leadingIcon={
                       isDownloading ? <SpinnerIcon className="spin" /> : <DownloadIcon />
                     }
                     onClick={() => handleDownloadAsset(asset)}
-                    disabled={isPending || isDownloading || !asset.url}
+                    disabled={asset.status !== "ready" || isDownloading || !asset.url}
                   >
                     {isDownloading ? "Baixando..." : "Baixar"}
                   </Button>

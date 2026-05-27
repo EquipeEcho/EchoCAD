@@ -317,6 +317,28 @@ export function LogOutIcon() {
 
 // Escolhe o icone conforme o tipo do arquivo.
 export function FileTypeIcon({ kind }: { kind: FileKind }) {
+  if (kind === "project") {
+    return (
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path
+          d="M6.5 5.5h11v13h-11v-13Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M9 9h6M9 12h6M9 15h3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+      </svg>
+    );
+  }
+
   if (kind === "pdf") {
     return (
       <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">

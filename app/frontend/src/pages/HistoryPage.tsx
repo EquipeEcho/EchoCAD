@@ -209,6 +209,7 @@ export function HistoryPage() {
             </p>
           }
           confirmLabel="Remover"
+          confirmTone="danger"
           onClose={() => setPendingRemoval(null)}
           onConfirm={handleRemove}
         />
