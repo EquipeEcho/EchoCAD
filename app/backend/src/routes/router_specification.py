@@ -3,12 +3,12 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse, JSONResponse
-from sqlalchemy.orm import Session
+from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database import get_session
+from src.database import get_async_session
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
-from src.controller.specification_controller import criar_especificacao
+from src.controller.crud_specification import criar_especificacao
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +17,13 @@ router = APIRouter(
     tags=["especificacoes"],
 )
 
-UPLOAD_DIR  = Path("uploads")
-OUTPUT_DIR  = Path("outputs/especificacoes")
+UPLOAD_DIR = Path("uploads")
+OUTPUT_DIR = Path("outputs/especificacoes")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 EXTENSOES_VALIDAS = {".dxf", ".dwg"}
+
 
 @router.post(
     "/",
@@ -32,7 +33,7 @@ EXTENSOES_VALIDAS = {".dxf", ".dwg"}
 async def gerar_especificacoes_route(
     file: UploadFile = File(...),
     id_project: int = Form(...),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
     # ---- Validação ----
     if not file.filename:
@@ -57,7 +58,7 @@ async def gerar_especificacoes_route(
         # ---- Gerar especificações ----
         stem = Path(file.filename).stem
         nome_projeto = stem.replace("_", " ").replace("-", " ").title()
-        output_path  = OUTPUT_DIR / f"especificacoes_{stem}.docx"
+        output_path = OUTPUT_DIR / f"especificacoes_{stem}.docx"
 
         logger.info(f"Gerando especificações para: {nome_projeto}")
 
@@ -69,14 +70,14 @@ async def gerar_especificacoes_route(
 
         # ---- Salvar no banco de dados ----
         try:
-            criar_especificacao(
-                db=db, 
-                path=str(arquivo_gerado), 
-                id_project=id_project
+            await criar_especificacao(db=db, path=str(arquivo_gerado), id_project=id_project)
+            logger.info(
+                f"Especificação gerada e vinculada ao projeto {id_project} com sucesso."
             )
-            logger.info(f"Especificação gerada e vinculada ao projeto {id_project} com sucesso.")
         except Exception as db_err:
-            logger.error(f"Erro ao salvar a instância da especificação no banco: {db_err}")
+            logger.error(
+                f"Erro ao salvar a instância da especificação no banco: {db_err}"
+            )
 
         # ---- Retornar o arquivo gerado ----
         media_type = (

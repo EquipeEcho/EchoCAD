@@ -37,7 +37,9 @@ def gerar_especificacoes(
     logger.info(f"[EspecificacoesTecnicas] Iniciando: {os.path.basename(dxf_file)}")
 
     # 1. Extrair contexto do DXF
-    nome = nome_projeto or Path(dxf_file).stem.replace('_', ' ').replace('-', ' ').title()
+    nome = (
+        nome_projeto or Path(dxf_file).stem.replace("_", " ").replace("-", " ").title()
+    )
     extractor = DXFContextExtractor(dxf_file, nome_projeto=nome)
     ctx: ContextoDXF = extractor.extrair()
 

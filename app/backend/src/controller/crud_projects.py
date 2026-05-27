@@ -1,7 +1,7 @@
 from loguru import logger
 from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.projeto_db import (
     Blueprint,
@@ -13,12 +13,12 @@ from src.models.projeto_db import (
 from src.schemas.user_schema import CreateProjectSchema, UpdateProjectSchema
 
 
-def create_projeto(db: Session, project_schema: CreateProjectSchema) -> Project:
+async def create_projeto(db: AsyncSession, project_schema: CreateProjectSchema) -> Project:
     """
     Instancia e persiste um novo projeto no banco de dados.
 
     Args:
-        db (Session): Sessão ativa do SQLAlchemy.
+        db (AsyncSession): Sessão ativa do SQLAlchemy.
         project_schema (ProjetoCreate): Dados validados do projeto via Pydantic.
 
     Returns:
@@ -30,8 +30,8 @@ def create_projeto(db: Session, project_schema: CreateProjectSchema) -> Project:
     try:
         new_project = Project(**project_schema.model_dump())
         db.add(new_project)
-        db.commit()
-        db.refresh(new_project)
+        await db.commit()
+        await db.refresh(new_project)
         logger.debug(f"Created new project {project_schema.model_dump()}")
         return new_project
     except IntegrityError as e:
@@ -42,12 +42,12 @@ def create_projeto(db: Session, project_schema: CreateProjectSchema) -> Project:
         ) from e
 
 
-def read_projeto(db: Session, projeto_id: int) -> Project | None:
+async def read_projeto(db: AsyncSession, projeto_id: int) -> Project | None:
     """
     Busca um projeto no banco de dados através do seu identificador único.
 
     Args:
-        db (Session): Sessão ativa do SQLAlchemy.
+        db (AsyncSession): Sessão ativa do SQLAlchemy.
         projeto_id (int): O ID primário do projeto a ser recuperado.
 
     Returns:
@@ -55,10 +55,10 @@ def read_projeto(db: Session, projeto_id: int) -> Project | None:
                            ou None caso o ID não exista.
     """
     query = select(Project).where(Project.id == projeto_id)
-    return db.execute(query).scalar_one_or_none()
+    return (await db.execute(query)).scalar_one_or_none()
 
 
-def read_all_projetos(db: Session) -> list[Project]:
+async def read_all_projetos(db: AsyncSession) -> list[Project]:
     """
     Recupera todos os registros de projetos armazenados no banco de dados.
 
@@ -70,10 +70,10 @@ def read_all_projetos(db: Session) -> list[Project]:
                        Retorna uma lista vazia [] se não houver registros.
     """
     query = select(Project)
-    return list(db.execute(query).scalars().all())
+    return list((await db.execute(query)).scalars().all())
 
 
-def update_project(db: Session, project_schema: UpdateProjectSchema) -> Project:
+async def update_project(db: AsyncSession, project_schema: UpdateProjectSchema) -> Project:
     """
     Atualiza os dados de um projeto existente no banco de dados.
 
@@ -89,7 +89,7 @@ def update_project(db: Session, project_schema: UpdateProjectSchema) -> Project:
     """
 
     stmt = select(Project).where(Project.id == project_schema.id)
-    existing_project = db.execute(stmt).scalar_one_or_none()
+    existing_project = (await db.execute(stmt)).scalar_one_or_none()
 
     if not existing_project:
         raise ValueError(f"Projeto com ID {project_schema.id} não encontrado.")
@@ -99,33 +99,31 @@ def update_project(db: Session, project_schema: UpdateProjectSchema) -> Project:
     ).items():
         setattr(existing_project, key, value)
 
-    db.commit()
-    db.refresh(existing_project)
+    await db.commit()
+    await db.refresh(existing_project)
     return existing_project
 
 
-def remove_project(db: Session, projeto_id: int) -> None:
+async def remove_project(db: AsyncSession, projeto_id: int) -> None:
     """
     Remove um projeto do banco de dados com base no seu ID.
 
     Args:
-        db (Session): Sessão ativa do SQLAlchemy.
+        db (AsyncSession): Sessão ativa do SQLAlchemy.
         projeto_id (int): O ID do projeto a ser deletado.
 
     Raises:
         ValueError: Se o projeto com o ID fornecido não existir.
     """
     stmt = select(Project).where(Project.id == projeto_id)
-    existing_project = db.execute(stmt).scalar_one_or_none()
+    existing_project = (await db.execute(stmt)).scalar_one_or_none()
 
     if not existing_project:
         raise ValueError(f"Projeto com ID {projeto_id} não encontrado.")
 
-    db.execute(
-        delete(ProjectStandard).where(ProjectStandard.id_project == projeto_id)
-    )
-    db.execute(delete(Report).where(Report.id_project == projeto_id))
-    db.execute(delete(Blueprint).where(Blueprint.id_project == projeto_id))
-    db.execute(delete(Specification).where(Specification.id_project == projeto_id))
-    db.delete(existing_project)
-    db.commit()
+    await db.execute(delete(ProjectStandard).where(ProjectStandard.id_project == projeto_id))
+    await db.execute(delete(Report).where(Report.id_project == projeto_id))
+    await db.execute(delete(Blueprint).where(Blueprint.id_project == projeto_id))
+    await db.execute(delete(Specification).where(Specification.id_project == projeto_id))
+    await db.delete(existing_project)
+    await db.commit()

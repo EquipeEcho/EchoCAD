@@ -13,10 +13,11 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --frozen --no-install-project
+# --no-dev
 
 # Estágio Final: Runtime
-FROM python:3.13-slim as runtime
+FROM python:3.13-slim AS runtime
 
 WORKDIR /app
 
@@ -32,7 +33,7 @@ COPY src ./src
 COPY alembic.ini .
 COPY alembic ./alembic
 COPY start.sh .
-RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
+RUN mkdir -p logs && sed -i 's/\r$//' start.sh && chmod +x start.sh
 
 EXPOSE 8000
 

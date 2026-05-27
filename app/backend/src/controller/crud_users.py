@@ -2,18 +2,18 @@ import bcrypt
 
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.projeto_db import User
 from src.schemas.user_schema import CreateUserSchema, UpdateUserSchema
 
 
-def create_user(db: Session, user_schema: CreateUserSchema) -> User:
+async def create_user(db: AsyncSession, user_schema: CreateUserSchema) -> User:
     """
     Cria um novo usuário no banco de dados.
     Args:
-        db (Session): Sessão do banco de dados.
+        db (AsyncSession): Sessão do banco de dados.
         user_schema (CreateUser): Esquema de criação de usuário contendo os dados necessários.
     Returns:
         User: O objeto do usuário persistido, incluindo IDs e timestamps gerados.
@@ -27,15 +27,15 @@ def create_user(db: Session, user_schema: CreateUserSchema) -> User:
             new_user.password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
         db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
+        await db.commit()
+        await db.refresh(new_user)
         return new_user
     except IntegrityError as e:
-        db.rollback()
+        await db.rollback()
         logger.error("Error creating user: {}", e)
         raise ValueError("Já existe um usuário com este email") from e
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         logger.error("Unexpected error occurred: {}", e)
         raise SystemError(
             "Ocorreu um erro inesperado ao criar o usuário, "
@@ -43,11 +43,11 @@ def create_user(db: Session, user_schema: CreateUserSchema) -> User:
         ) from e
 
 
-def get_user_by_email(db: Session, email: str, password: str) -> User | None:
+async def get_user_by_email(db: AsyncSession, email: str, password: str) -> User | None:
     """
     Recupera um usuário do banco de dados com base no email e senha.
     Args:
-        db (Session): Sessão do banco de dados.
+        db (AsyncSession): Sessão do banco de dados.
         email (str): O email do usuário a ser recuperado.
         password (str): A senha do usuário.
     Returns:
@@ -58,34 +58,36 @@ def get_user_by_email(db: Session, email: str, password: str) -> User | None:
     """
     try:
         stmt = select(User).where(User.email == email)
-        result = db.execute(stmt).scalar_one_or_none()
-        if result and bcrypt.checkpw(
-            password.encode("utf-8"), result.password.encode("utf-8")
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user and bcrypt.checkpw(
+            password.encode("utf-8"), user.password.encode("utf-8")
         ):
-            return result
+            return user
         return None
     except Exception as e:
         logger.error("Unexpected error occurred: {}", e)
         raise SystemError("Ocorreu um erro inesperado ao recuperar o usuário") from e
 
 
-def get_user_by_id(db: Session, user_id: int) -> User | None:
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     """
     Recupera um usuário do banco de dados pelo seu ID.
     """
     try:
         stmt = select(User).where(User.id == user_id)
-        return db.execute(stmt).scalar_one_or_none()
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
     except Exception as e:
         logger.error("Unexpected error occurred: {}", e)
         raise SystemError("Ocorreu um erro inesperado ao recuperar o usuário") from e
 
 
-def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
+async def update_user(db: AsyncSession, user_schema: UpdateUserSchema) -> User | None:
     """
     Atualiza um usuário existente no banco de dados.
     Args:
-        db (Session): Sessão do banco de dados.
+        db (AsyncSession): Sessão do banco de dados.
         user_schema (UpdateUserSchema): Esquema de atualização de usuário contendo os dados atualizados.
     Returns:
         User: O objeto do usuário atualizado, ou None se o usuário não for encontrado.
@@ -95,7 +97,8 @@ def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
     """
     try:
         stmt = select(User).where(User.id == user_schema.id)
-        user = db.execute(stmt).scalar_one_or_none()
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
 
         if not user:
             return None
@@ -116,17 +119,17 @@ def update_user(db: Session, user_schema: UpdateUserSchema) -> User | None:
                 continue
             setattr(user, key, value)
 
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
 
         return user
 
     except ValueError as e:
-        db.rollback()
+        await db.rollback()
         logger.error("Error updating user: {}", e)
         raise ValueError(str(e)) from e
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         logger.error("Unexpected error occurred: {}", e)
         raise SystemError(
             "Ocorreu um erro inesperado ao atualizar o usuário, "

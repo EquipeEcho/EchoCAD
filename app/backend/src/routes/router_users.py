@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import create_access_token, get_current_user
-from src.database import get_session
+from src.database import get_async_session
 from src.schemas.user_schema import (
     CreateUserSchema,
-    LoginUserSchema,
     TokenResponseSchema,
     UpdateUserSchema,
     UserPublicSchema,
@@ -18,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.post(
     "/login", status_code=status.HTTP_200_OK, response_model=TokenResponseSchema
 )
-async def route_login(request: Request, session: Session = Depends(get_session)):
+async def route_login(request: Request, session: AsyncSession = Depends(get_async_session)):
     """
     Endpoint para autenticação de usuários.
     Aceita tanto JSON quanto form-encoded data.
@@ -30,20 +29,20 @@ async def route_login(request: Request, session: Session = Depends(get_session))
     try:
         if "application/json" in content_type:
             body = await request.json()
-            email = body.get("email")
-            password = body.get("password")
+            email = str(body.get("email"))
+            password = str(body.get("password"))
         elif (
             "application/x-www-form-urlencoded" in content_type
             or "multipart/form-data" in content_type
         ):
             body = await request.form()
-            email = body.get("email") or body.get("username")
-            password = body.get("password")
+            email = str(body.get("email")) if body.get("email") else str(body.get("username"))
+            password = str(body.get("password"))
         else:
             # Tenta JSON por padrão
             body = await request.json()
-            email = body.get("email")
-            password = body.get("password")
+            email = str(body.get("email"))
+            password = str(body.get("password"))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -56,7 +55,7 @@ async def route_login(request: Request, session: Session = Depends(get_session))
             detail="Email/username e password são obrigatórios",
         )
 
-    user = get_user_by_email(session, email, password)
+    user = await get_user_by_email(session, email, password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -84,18 +83,18 @@ async def route_login(request: Request, session: Session = Depends(get_session))
     "/", status_code=status.HTTP_201_CREATED, response_model=TokenResponseSchema
 )
 async def route_create_user(
-    user: CreateUserSchema, session: Session = Depends(get_session)
+    user: CreateUserSchema, session: AsyncSession = Depends(get_async_session)
 ):
     """
     Endpoint para criação de um novo usuário.
     Args:
         user (CreateUserSchema): Dados do usuário a ser criado.
-        session (Session): Sessão do banco de dados, injetada automaticamente pelo FastAPI.
+        session (AsyncSession): Sessão do banco de dados, injetada automaticamente pelo FastAPI.
     Returns:
         UserPublicSchema: O usuário criado com sucesso.
     """
     try:
-        new_user = create_user(session, user)
+        new_user = await create_user(session, user)
         access_token = create_access_token(subject=str(new_user.id))
         return TokenResponseSchema(
             access_token=access_token,
@@ -125,18 +124,18 @@ async def route_create_user(
 async def route_update_user(
     user_data: UpdateUserSchema,
     current_user=Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Endpoint para atualização dos dados de um usuário existente.
     Args:
         user_data (UpdateUserSchema): Os dados atualizados do usuário.
-        session (Session): Sessão do banco de dados, injetada automaticamente pelo FastAPI.
+        session (AsyncSession): Sessão do banco de dados, injetada automaticamente pelo FastAPI.
     Returns:
         UserPublicSchema: O usuário atualizado com sucesso.
     """
     try:
-        updated_user = update_user(session, user_data)
+        updated_user = await update_user(session, user_data)
         if not updated_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"

@@ -23,6 +23,7 @@ def _build_docx(specs: EspecificacoesTecnicas, output_path: str) -> Path:
         from docx.enum.text import WD_ALIGN_PARAGRAPH
         from docx.oxml.ns import qn
         from docx.oxml import OxmlElement
+
         return _build_with_python_docx(specs, output_path)
     except ImportError:
         logger.warning("python-docx não encontrado. Tentando alternativa...")
@@ -59,17 +60,17 @@ def _set_cell_color(cell, fill_hex: str):
     from docx.oxml.ns import qn
     from lxml import etree
 
-    tc   = cell._tc
+    tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
 
     # Remover shading anterior se existir
-    for old in tcPr.findall(qn('w:shd')):
+    for old in tcPr.findall(qn("w:shd")):
         tcPr.remove(old)
 
-    shd = etree.SubElement(tcPr, qn('w:shd'))
-    shd.set(qn('w:val'),   'clear')
-    shd.set(qn('w:color'), 'auto')
-    shd.set(qn('w:fill'),  fill_hex)
+    shd = etree.SubElement(tcPr, qn("w:shd"))
+    shd.set(qn("w:val"), "clear")
+    shd.set(qn("w:color"), "auto")
+    shd.set(qn("w:fill"), fill_hex)
 
 
 def _add_table(doc, headers: List[str], rows: List[List[str]]):
@@ -77,27 +78,27 @@ def _add_table(doc, headers: List[str], rows: List[List[str]]):
     from docx.shared import Pt, RGBColor
 
     table = doc.add_table(rows=1 + len(rows), cols=len(headers))
-    table.style = 'Table Grid'
+    table.style = "Table Grid"
 
     # Cabeçalho
     hdr_cells = table.rows[0].cells
     for i, h in enumerate(headers):
-        hdr_cells[i].text = ''
+        hdr_cells[i].text = ""
         run = hdr_cells[i].paragraphs[0].add_run(h)
         run.font.bold = True
         run.font.size = Pt(9)
         run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-        _set_cell_color(hdr_cells[i], '003366')
+        _set_cell_color(hdr_cells[i], "003366")
 
     # Linhas de dados
     for i, row in enumerate(rows):
         row_cells = table.rows[i + 1].cells
         for j, cell_text in enumerate(row):
-            row_cells[j].text = ''
+            row_cells[j].text = ""
             run = row_cells[j].paragraphs[0].add_run(str(cell_text))
             run.font.size = Pt(9)
             if i % 2 == 0:
-                _set_cell_color(row_cells[j], 'F5F5F5')
+                _set_cell_color(row_cells[j], "F5F5F5")
 
 
 def _add_conteudo_formatado(doc, conteudo: str):
@@ -105,19 +106,19 @@ def _add_conteudo_formatado(doc, conteudo: str):
     from docx.shared import Pt
     import re
 
-    for linha in conteudo.split('\n'):
+    for linha in conteudo.split("\n"):
         linha = linha.rstrip()
         if not linha:
             doc.add_paragraph()
             continue
 
         # Detectar marcadores de lista
-        if linha.startswith('- ') or linha.startswith('• '):
-            p = doc.add_paragraph(style='List Bullet')
+        if linha.startswith("- ") or linha.startswith("• "):
+            p = doc.add_paragraph(style="List Bullet")
             _add_run_formatado(p, linha[2:])
-        elif re.match(r'^\d+\. ', linha):
-            p = doc.add_paragraph(style='List Number')
-            _add_run_formatado(p, re.sub(r'^\d+\. ', '', linha))
+        elif re.match(r"^\d+\. ", linha):
+            p = doc.add_paragraph(style="List Number")
+            _add_run_formatado(p, re.sub(r"^\d+\. ", "", linha))
         else:
             p = doc.add_paragraph()
             _add_run_formatado(p, linha)
@@ -131,12 +132,12 @@ def _add_run_formatado(paragraph, texto: str):
     import re
     from docx.shared import Pt
 
-    partes = re.split(r'\*\*(.+?)\*\*', texto)
+    partes = re.split(r"\*\*(.+?)\*\*", texto)
     for i, parte in enumerate(partes):
         if not parte:
             continue
         run = paragraph.add_run(parte)
-        run.font.bold = (i % 2 == 1)
+        run.font.bold = i % 2 == 1
         run.font.size = Pt(10)
 
 
@@ -150,11 +151,11 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
     # ---- Configurar página ----
     section = doc.sections[0]
-    section.page_width  = Cm(21)
+    section.page_width = Cm(21)
     section.page_height = Cm(29.7)
-    section.left_margin   = Cm(3)
-    section.right_margin  = Cm(2)
-    section.top_margin    = Cm(2.5)
+    section.left_margin = Cm(3)
+    section.right_margin = Cm(2)
+    section.top_margin = Cm(2.5)
     section.bottom_margin = Cm(2)
 
     # ---- Página de capa ----
@@ -203,21 +204,22 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
     # ---- Acrônimos ----
     h = doc.add_heading("ACRÔNIMOS E SÍMBOLOS", level=1)
     _set_heading_style(h, 1, doc)
-    _add_table(doc,
+    _add_table(
+        doc,
         ["Sigla", "Significado"],
         [
             ["ABNT", "Associação Brasileira de Normas Técnicas"],
-            ["ART",  "Anotação de Responsabilidade Técnica"],
-            ["CAU",  "Conselho de Arquitetura e Urbanismo"],
+            ["ART", "Anotação de Responsabilidade Técnica"],
+            ["CAU", "Conselho de Arquitetura e Urbanismo"],
             ["CREA", "Conselho Regional de Engenharia e Agronomia"],
-            ["DRT",  "Delegacia Regional do Trabalho"],
+            ["DRT", "Delegacia Regional do Trabalho"],
             ["INMETRO", "Instituto Nacional de Metrologia, Qualidade e Tecnologia"],
-            ["NBR",  "Normas da ABNT"],
-            ["NR",   "Normas Regulamentadoras do Ministério do Trabalho"],
-            ["PCMAT","Programa de Condições e Meio Ambiente de Trabalho"],
-            ["RRT",  "Registro de Responsabilidade Técnica"],
+            ["NBR", "Normas da ABNT"],
+            ["NR", "Normas Regulamentadoras do Ministério do Trabalho"],
+            ["PCMAT", "Programa de Condições e Meio Ambiente de Trabalho"],
+            ["RRT", "Registro de Responsabilidade Técnica"],
             ["SPDA", "Sistema de Proteção Contra Descargas Atmosféricas"],
-        ]
+        ],
     )
     doc.add_paragraph()
 
@@ -225,7 +227,7 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
     h = doc.add_heading("REFERÊNCIAS NORMATIVAS", level=1)
     _set_heading_style(h, 1, doc)
     for ref in specs.referencias_normativas:
-        p = doc.add_paragraph(style='List Bullet')
+        p = doc.add_paragraph(style="List Bullet")
         run = p.add_run(ref)
         run.font.size = Pt(10)
 
@@ -234,8 +236,12 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
         h = doc.add_heading("VIDA ÚTIL E GARANTIAS", level=1)
         _set_heading_style(h, 1, doc)
         rows_vu = [
-            [item.get('item',''), item.get('vida_util_anos',''),
-             item.get('garantia_anos',''), item.get('nbr','')]
+            [
+                item.get("item", ""),
+                item.get("vida_util_anos", ""),
+                item.get("garantia_anos", ""),
+                item.get("nbr", ""),
+            ]
             for item in specs.vida_util
         ]
         _add_table(doc, ["Item", "Vida Útil [anos]", "Garantia [anos]", "NBR"], rows_vu)
@@ -276,7 +282,7 @@ def _build_with_python_docx(specs: EspecificacoesTecnicas, output_path: str) -> 
 
 def _build_with_xml(specs: EspecificacoesTecnicas, output_path: str) -> Path:
     """Fallback: gera um arquivo .txt estruturado se python-docx não estiver disponível."""
-    out_p = Path(output_path).with_suffix('.txt')
+    out_p = Path(output_path).with_suffix(".txt")
     out_p.parent.mkdir(parents=True, exist_ok=True)
 
     lines = []
@@ -290,19 +296,19 @@ def _build_with_xml(specs: EspecificacoesTecnicas, output_path: str) -> Path:
     lines.append("")
 
     for secao in specs.secoes:
-        lines.append(f"\n{'='*70}")
+        lines.append(f"\n{'=' * 70}")
         lines.append(f"{secao.numero}. {secao.titulo.upper()}")
-        lines.append('='*70)
+        lines.append("=" * 70)
         if secao.conteudo:
             lines.append(secao.conteudo)
         for sub in secao.subsecoes:
             lines.append(f"\n  {sub.numero} {sub.titulo}")
             lines.append("  " + "-" * 60)
             if sub.conteudo:
-                for l in sub.conteudo.split('\n'):
+                for l in sub.conteudo.split("\n"):
                     lines.append("  " + l)
 
-    out_p.write_text('\n'.join(lines), encoding='utf-8')
+    out_p.write_text("\n".join(lines), encoding="utf-8")
     logger.info(f"Documento (txt fallback) gerado: {out_p}")
     return out_p
 

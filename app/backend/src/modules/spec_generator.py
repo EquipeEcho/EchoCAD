@@ -70,7 +70,7 @@ class SpecGenerator:
         """Inicializa o gerador com a configuração de IA via Groq."""
         # Definindo o modelo diretamente aqui conforme instrução do usuário
         high_model = Groq(id="llama-3.3-70b-versatile", api_key=settings.GROQ_API_KEY)
-        
+
         logger.info(f"Inicializando SpecGenerator com modelo Groq: {high_model.id}")
         self.agent = Agent(
             name="spec-generator",

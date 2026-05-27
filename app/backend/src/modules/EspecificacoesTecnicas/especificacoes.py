@@ -6,12 +6,21 @@ import logging
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from src.database import get_session
-#from src.controller.file_controller import save_file_metadata
+
+# from src.controller.file_controller import save_file_metadata
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 
 logger = logging.getLogger(__name__)
@@ -21,8 +30,8 @@ router = APIRouter(
     tags=["especificacoes"],
 )
 
-UPLOAD_DIR  = Path("uploads")
-OUTPUT_DIR  = Path("outputs/especificacoes")
+UPLOAD_DIR = Path("uploads")
+OUTPUT_DIR = Path("outputs/especificacoes")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -80,7 +89,7 @@ async def gerar_especificacoes_route(
         # ---- Gerar especificações ----
         stem = Path(file.filename).stem
         nome_projeto = stem.replace("_", " ").replace("-", " ").title()
-        output_path  = OUTPUT_DIR / f"especificacoes_{stem}.docx"
+        output_path = OUTPUT_DIR / f"especificacoes_{stem}.docx"
 
         logger.info(f"Gerando especificações para: {nome_projeto}")
 

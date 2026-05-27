@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 # Configuração da API Groq
 # ---------------------------------------------------------------------------
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL   = "llama-3.3-70b-versatile"
-MAX_TOKENS   = 4096   # limite do modelo por chamada
+GROQ_MODEL = "llama-3.3-70b-versatile"
+MAX_TOKENS = 4096  # limite do modelo por chamada
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ class SecaoEspec:
     numero: str
     titulo: str
     conteudo: str
-    subsecoes: List['SecaoEspec'] = field(default_factory=list)
+    subsecoes: List["SecaoEspec"] = field(default_factory=list)
 
 
 @dataclass
@@ -74,14 +74,15 @@ class EspecificacoesTecnicas:
 # Gerador principal
 # ---------------------------------------------------------------------------
 class SpecGenerator:
-
     def __init__(self, api_key: Optional[str] = None):
         self._api_key = api_key
 
     # ------------------------------------------------------------------
     # Chamada à API Groq com backoff automático para rate limit (429)
     # ------------------------------------------------------------------
-    def _chamar_api(self, prompt_usuario: str, max_tokens: int = MAX_TOKENS) -> Optional[str]:
+    def _chamar_api(
+        self, prompt_usuario: str, max_tokens: int = MAX_TOKENS
+    ) -> Optional[str]:
         if not self._api_key:
             logger.error("GROQ_API_KEY nao definida.")
             return None
@@ -96,22 +97,27 @@ class SpecGenerator:
             "temperature": 0.2,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": prompt_usuario},
+                {"role": "user", "content": prompt_usuario},
             ],
         }
 
         for tentativa in range(6):
             try:
-                resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=120)
+                resp = requests.post(
+                    GROQ_API_URL, headers=headers, json=payload, timeout=120
+                )
 
                 # Rate limit: ler o tempo indicado na resposta e aguardar
                 if resp.status_code == 429:
                     import re as _re
+
                     msg = resp.json().get("error", {}).get("message", "")
                     m = _re.search(r"try again in ([\d.]+)s", msg)
-                    espera = float(m.group(1)) + 2.0 if m else min(5 * (2 ** tentativa), 60)
+                    espera = (
+                        float(m.group(1)) + 2.0 if m else min(5 * (2**tentativa), 60)
+                    )
                     logger.warning(
-                        f"Rate limit atingido (tentativa {tentativa+1}/6). "
+                        f"Rate limit atingido (tentativa {tentativa + 1}/6). "
                         f"Aguardando {espera:.1f}s..."
                     )
                     time.sleep(espera)
@@ -124,9 +130,9 @@ class SpecGenerator:
                 logger.error(f"Erro HTTP Groq {resp.status_code}: {resp.text[:200]}")
                 return None
             except requests.RequestException as e:
-                espera = min(5 * (2 ** tentativa), 60)
+                espera = min(5 * (2**tentativa), 60)
                 logger.warning(
-                    f"Falha temporaria na API Groq (tentativa {tentativa+1}/6): {e}. "
+                    f"Falha temporaria na API Groq (tentativa {tentativa + 1}/6): {e}. "
                     f"Aguardando {espera:.1f}s..."
                 )
                 time.sleep(espera)
@@ -146,6 +152,7 @@ class SpecGenerator:
         if not texto:
             return None
         import re as _re
+
         limpo = _re.sub(r"```(?:json)?", "", texto).replace("```", "").strip()
         try:
             return json.loads(limpo)
@@ -160,7 +167,9 @@ class SpecGenerator:
         logger.warning("Nao foi possivel extrair JSON da resposta.")
         return None
 
-    def _chamar_com_retry(self, prompt: str, max_tokens: int = MAX_TOKENS, tentativas: int = 3) -> Optional[dict]:
+    def _chamar_com_retry(
+        self, prompt: str, max_tokens: int = MAX_TOKENS, tentativas: int = 3
+    ) -> Optional[dict]:
         """O backoff de rate limit ja esta em _chamar_api. Aqui so retentar se JSON vier invalido."""
         for i in range(tentativas):
             resposta = self._chamar_api(prompt, max_tokens=max_tokens)
@@ -169,10 +178,11 @@ class SpecGenerator:
             dados = self._extrair_json(resposta)
             if dados:
                 return dados
-            logger.warning(f"Tentativa {i+1}/{tentativas}: JSON invalido. Repetindo...")
+            logger.warning(
+                f"Tentativa {i + 1}/{tentativas}: JSON invalido. Repetindo..."
+            )
         logger.error("Nao foi possivel obter JSON valido da API.")
         return None
-
 
     # ------------------------------------------------------------------
     # Gerar objeto e contexto geral
@@ -191,10 +201,10 @@ abertura do caderno de especificações técnicas.
 CONTEXTO DO PROJETO:
 - Nome: {ctx.nome_projeto}
 - Área total: {ctx.area_total}m²
-- Disciplinas identificadas: {', '.join(sorted(ctx.disciplinas))}
-- Sistemas identificados: {', '.join(sorted(ctx.sistemas))}
+- Disciplinas identificadas: {", ".join(sorted(ctx.disciplinas))}
+- Sistemas identificados: {", ".join(sorted(ctx.sistemas))}
 - Ambientes principais:
-{chr(10).join('  - ' + a for a in ambientes_resumo)}
+{chr(10).join("  - " + a for a in ambientes_resumo)}
 
 Retorne APENAS um JSON com esta estrutura:
 {{
@@ -223,25 +233,33 @@ Retorne APENAS um JSON com esta estrutura:
         numero: str,
         titulo: str,
         disciplina: str,
-        instrucoes_extra: str = '',
+        instrucoes_extra: str = "",
     ) -> Optional[SecaoEspec]:
 
         # Selecionar ambientes relevantes para a disciplina
-        if disciplina == 'alvenaria':
-            ambientes_rel = [a for a in ctx.ambientes if a.uso not in ('área_externa', 'cobertura')][:15]
-        elif disciplina in ('hidráulica', 'hidráulica_esgoto'):
-            ambientes_rel = [a for a in ctx.ambientes if a.uso in ('sanitário', 'área_alimentação')][:10]
-        elif disciplina == 'esquadrias':
+        if disciplina == "alvenaria":
+            ambientes_rel = [
+                a for a in ctx.ambientes if a.uso not in ("área_externa", "cobertura")
+            ][:15]
+        elif disciplina in ("hidráulica", "hidráulica_esgoto"):
+            ambientes_rel = [
+                a for a in ctx.ambientes if a.uso in ("sanitário", "área_alimentação")
+            ][:10]
+        elif disciplina == "esquadrias":
             ambientes_rel = ctx.ambientes[:10]
         else:
             ambientes_rel = ctx.ambientes[:8]
 
-        amb_texto = '\n'.join(f"  - {a.nome}: {a.area}m², PD={a.pe_direito}m" for a in ambientes_rel) \
-                    or "  - Conforme projeto"
+        amb_texto = (
+            "\n".join(
+                f"  - {a.nome}: {a.area}m², PD={a.pe_direito}m" for a in ambientes_rel
+            )
+            or "  - Conforme projeto"
+        )
 
-        esquadrias_texto = ''
-        if ctx.esquadrias and disciplina == 'esquadrias':
-            esquadrias_texto = '\nEsquadrias identificadas:\n' + '\n'.join(
+        esquadrias_texto = ""
+        if ctx.esquadrias and disciplina == "esquadrias":
+            esquadrias_texto = "\nEsquadrias identificadas:\n" + "\n".join(
                 f"  - {k}: {v.tipo} ({v.quantidade} un.)"
                 for k, v in list(ctx.esquadrias.items())[:10]
             )
@@ -285,28 +303,32 @@ Retorne APENAS JSON:
             return None
 
         subsecoes = []
-        for sub in dados.get('subsecoes', []):
+        for sub in dados.get("subsecoes", []):
             partes = []
-            if sub.get('referencias_normativas'):
-                partes.append("**Referências Normativas:**\n" +
-                              '\n'.join(f"- {r}" for r in sub['referencias_normativas']))
-            if sub.get('materiais'):
+            if sub.get("referencias_normativas"):
+                partes.append(
+                    "**Referências Normativas:**\n"
+                    + "\n".join(f"- {r}" for r in sub["referencias_normativas"])
+                )
+            if sub.get("materiais"):
                 partes.append(f"**Materiais:**\n{sub['materiais']}")
-            if sub.get('execucao'):
+            if sub.get("execucao"):
                 partes.append(f"**Execução:**\n{sub['execucao']}")
-            if sub.get('criterios'):
+            if sub.get("criterios"):
                 partes.append(f"**Critérios de Aceitação:**\n{sub['criterios']}")
 
-            subsecoes.append(SecaoEspec(
-                numero=sub.get('numero', ''),
-                titulo=sub.get('titulo', ''),
-                conteudo='\n\n'.join(partes),
-            ))
+            subsecoes.append(
+                SecaoEspec(
+                    numero=sub.get("numero", ""),
+                    titulo=sub.get("titulo", ""),
+                    conteudo="\n\n".join(partes),
+                )
+            )
 
         return SecaoEspec(
             numero=numero,
             titulo=titulo,
-            conteudo=dados.get('introducao', ''),
+            conteudo=dados.get("introducao", ""),
             subsecoes=subsecoes,
         )
 
@@ -316,8 +338,8 @@ Retorne APENAS JSON:
     def _gerar_referencias_e_vida_util(self, ctx: ContextoDXF) -> Dict:
         prompt = f"""
 Para um projeto de construção civil com as seguintes disciplinas e sistemas:
-- Disciplinas: {', '.join(sorted(ctx.disciplinas))}
-- Sistemas: {', '.join(sorted(ctx.sistemas))}
+- Disciplinas: {", ".join(sorted(ctx.disciplinas))}
+- Sistemas: {", ".join(sorted(ctx.sistemas))}
 
 Gere a lista de referências normativas ABNT e a tabela de vida útil.
 
@@ -363,7 +385,7 @@ Retorne APENAS JSON:
     def _orquestrar(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
         logger.info(f"Iniciando geração de specs para: {ctx.nome_projeto}")
 
-        abertura  = self._gerar_objeto_e_contexto(ctx)
+        abertura = self._gerar_objeto_e_contexto(ctx)
         refs_vida = self._gerar_referencias_e_vida_util(ctx)
         secoes_map = self._mapear_secoes(ctx)
 
@@ -376,11 +398,11 @@ Retorne APENAS JSON:
 
         return EspecificacoesTecnicas(
             nome_projeto=ctx.nome_projeto,
-            numero_protocolo=abertura.get('numero_protocolo', 'A DEFINIR'),
-            objeto=abertura.get('objeto', ''),
+            numero_protocolo=abertura.get("numero_protocolo", "A DEFINIR"),
+            objeto=abertura.get("objeto", ""),
             secoes=secoes,
-            referencias_normativas=refs_vida.get('referencias_normativas', []),
-            vida_util=refs_vida.get('vida_util', []),
+            referencias_normativas=refs_vida.get("referencias_normativas", []),
+            vida_util=refs_vida.get("vida_util", []),
         )
 
     # ------------------------------------------------------------------
@@ -390,98 +412,192 @@ Retorne APENAS JSON:
         secoes = []
         num = 1
 
-        secoes.append((str(num), "SERVIÇOS TÉCNICOS", "tecnico",
-                       "Inclua: Elaboração de Projetos Executivos, ART, mão de obra especializada."))
+        secoes.append(
+            (
+                str(num),
+                "SERVIÇOS TÉCNICOS",
+                "tecnico",
+                "Inclua: Elaboração de Projetos Executivos, ART, mão de obra especializada.",
+            )
+        )
         num += 1
 
-        secoes.append((str(num), "SERVIÇOS PRELIMINARES", "preliminar",
-                       "Inclua: limpeza inicial, topografia, sondagem, canteiro de obras, demolições."))
+        secoes.append(
+            (
+                str(num),
+                "SERVIÇOS PRELIMINARES",
+                "preliminar",
+                "Inclua: limpeza inicial, topografia, sondagem, canteiro de obras, demolições.",
+            )
+        )
         num += 1
 
-        if any('fundações' in d or 'escavação' in d.lower() for d in ctx.disciplinas):
-            secoes.append((str(num), "MOVIMENTO DE SOLO", "movimento_solo",
-                           "Inclua: escavações, aterros, nivelamentos e compactações."))
+        if any("fundações" in d or "escavação" in d.lower() for d in ctx.disciplinas):
+            secoes.append(
+                (
+                    str(num),
+                    "MOVIMENTO DE SOLO",
+                    "movimento_solo",
+                    "Inclua: escavações, aterros, nivelamentos e compactações.",
+                )
+            )
             num += 1
 
-        tem_estrutura = any(d in ctx.disciplinas for d in
-                            ['estrutura_concreto', 'fundações', 'estrutura_cobertura'])
+        tem_estrutura = any(
+            d in ctx.disciplinas
+            for d in ["estrutura_concreto", "fundações", "estrutura_cobertura"]
+        )
         if tem_estrutura or ctx.tem_estrutura_metalica:
             extra = ""
             if ctx.tem_estrutura_metalica:
-                extra += " O projeto possui estruturas metálicas identificadas nas plantas."
-            if 'estrutura_cobertura' in ctx.disciplinas:
+                extra += (
+                    " O projeto possui estruturas metálicas identificadas nas plantas."
+                )
+            if "estrutura_cobertura" in ctx.disciplinas:
                 extra += " Há estrutura de cobertura a ser executada."
             secoes.append((str(num), "SISTEMAS ESTRUTURAIS", "estrutura", extra))
             num += 1
 
-        secoes.append((str(num), "ALVENARIAS", "alvenaria",
-                       f"O projeto tem drywall: {ctx.tem_drywall}. "
-                       "Inclua alvenaria, drywall, vergas/contravergas."))
+        secoes.append(
+            (
+                str(num),
+                "ALVENARIAS",
+                "alvenaria",
+                f"O projeto tem drywall: {ctx.tem_drywall}. "
+                "Inclua alvenaria, drywall, vergas/contravergas.",
+            )
+        )
         num += 1
 
         if ctx.tem_cobertura:
-            secoes.append((str(num), "COBERTURA E TELHAMENTOS", "cobertura",
-                           "Inclua: estrutura de cobertura, telhamento, calhas, rufos, impermeabilização."))
+            secoes.append(
+                (
+                    str(num),
+                    "COBERTURA E TELHAMENTOS",
+                    "cobertura",
+                    "Inclua: estrutura de cobertura, telhamento, calhas, rufos, impermeabilização.",
+                )
+            )
             num += 1
 
-        tem_hidro = any(d in ctx.disciplinas for d in
-                        ['hidráulica_água_fria', 'hidráulica_esgoto', 'drenagem_pluvial'])
+        tem_hidro = any(
+            d in ctx.disciplinas
+            for d in ["hidráulica_água_fria", "hidráulica_esgoto", "drenagem_pluvial"]
+        )
         if tem_hidro:
             extra = ""
             if ctx.tem_reservatorio:
                 extra += " Há reservatório d'água identificado."
-            if 'hidráulica_água_quente' in ctx.sistemas:
+            if "hidráulica_água_quente" in ctx.sistemas:
                 extra += " Há instalações de água quente (chuveiros)."
-            secoes.append((str(num), "INSTALAÇÕES HIDROSSANITÁRIAS", "hidráulica", extra))
+            secoes.append(
+                (str(num), "INSTALAÇÕES HIDROSSANITÁRIAS", "hidráulica", extra)
+            )
             num += 1
 
-        if 'instalações_elétricas' in ctx.disciplinas:
+        if "instalações_elétricas" in ctx.disciplinas:
             extra = ""
-            if ctx.tem_gerador:   extra += " Há gerador de energia identificado."
-            if ctx.tem_spda:      extra += " Há sistema SPDA identificado."
-            if 'iluminação' in ctx.sistemas: extra += " Há projeto de iluminação."
-            if 'quadro_distribuição' in ctx.sistemas: extra += " Há QDG/QD identificados."
+            if ctx.tem_gerador:
+                extra += " Há gerador de energia identificado."
+            if ctx.tem_spda:
+                extra += " Há sistema SPDA identificado."
+            if "iluminação" in ctx.sistemas:
+                extra += " Há projeto de iluminação."
+            if "quadro_distribuição" in ctx.sistemas:
+                extra += " Há QDG/QD identificados."
             secoes.append((str(num), "INSTALAÇÕES ELÉTRICAS", "elétrica", extra))
             num += 1
 
         if ctx.tem_spda:
-            secoes.append((str(num), "SPDA - SISTEMA DE PROTEÇÃO CONTRA DESCARGAS ATMOSFÉRICAS",
-                           "spda", "Detalhe captação, descida, equalização e aterramento."))
+            secoes.append(
+                (
+                    str(num),
+                    "SPDA - SISTEMA DE PROTEÇÃO CONTRA DESCARGAS ATMOSFÉRICAS",
+                    "spda",
+                    "Detalhe captação, descida, equalização e aterramento.",
+                )
+            )
             num += 1
 
         if ctx.tem_rede_dados:
-            secoes.append((str(num), "INSTALAÇÕES DE REDE LÓGICA, TELEFONIA E CFTV",
-                           "rede_dados", "Inclua circuitos, equipamentos e identificação."))
+            secoes.append(
+                (
+                    str(num),
+                    "INSTALAÇÕES DE REDE LÓGICA, TELEFONIA E CFTV",
+                    "rede_dados",
+                    "Inclua circuitos, equipamentos e identificação.",
+                )
+            )
             num += 1
 
         if ctx.tem_climatizacao:
-            qtd_ar = sum(1 for t in ctx.textos_livres if 'ar cond' in t.lower() or 'btu' in t.lower())
-            secoes.append((str(num), "INSTALAÇÕES MECÂNICAS (CLIMATIZAÇÃO)", "climatização",
-                           f"Aproximadamente {qtd_ar} unidades identificadas. "
-                           "Inclua capacidade, instalação e manutenção."))
+            qtd_ar = sum(
+                1
+                for t in ctx.textos_livres
+                if "ar cond" in t.lower() or "btu" in t.lower()
+            )
+            secoes.append(
+                (
+                    str(num),
+                    "INSTALAÇÕES MECÂNICAS (CLIMATIZAÇÃO)",
+                    "climatização",
+                    f"Aproximadamente {qtd_ar} unidades identificadas. "
+                    "Inclua capacidade, instalação e manutenção.",
+                )
+            )
             num += 1
 
         if ctx.tem_combate_incendio:
-            secoes.append((str(num), "INSTALAÇÕES DE SEGURANÇA E COMBATE A INCÊNDIO",
-                           "combate_incêndio", "Inclua: extintores, sinalização, hidrantes."))
+            secoes.append(
+                (
+                    str(num),
+                    "INSTALAÇÕES DE SEGURANÇA E COMBATE A INCÊNDIO",
+                    "combate_incêndio",
+                    "Inclua: extintores, sinalização, hidrantes.",
+                )
+            )
             num += 1
 
         if ctx.esquadrias:
             tipos = set(v.tipo for v in ctx.esquadrias.values())
-            secoes.append((str(num), "ESQUADRIAS, VIDROS E FERRAGENS", "esquadrias",
-                           f"Tipos identificados: {', '.join(tipos)}. "
-                           "Inclua portas, janelas, vidros e ferragens."))
+            secoes.append(
+                (
+                    str(num),
+                    "ESQUADRIAS, VIDROS E FERRAGENS",
+                    "esquadrias",
+                    f"Tipos identificados: {', '.join(tipos)}. "
+                    "Inclua portas, janelas, vidros e ferragens.",
+                )
+            )
             num += 1
 
-        secoes.append((str(num), "ACABAMENTOS", "acabamentos",
-                       "Inclua: pisos, revestimentos, pinturas, forros, louças e metais."))
+        secoes.append(
+            (
+                str(num),
+                "ACABAMENTOS",
+                "acabamentos",
+                "Inclua: pisos, revestimentos, pinturas, forros, louças e metais.",
+            )
+        )
         num += 1
 
-        secoes.append((str(num), "COMUNICAÇÕES AMBIENTAIS E SINALIZAÇÃO", "sinalização",
-                       "Inclua: placa de obra, sinalização de trânsito, segurança e piso tátil."))
+        secoes.append(
+            (
+                str(num),
+                "COMUNICAÇÕES AMBIENTAIS E SINALIZAÇÃO",
+                "sinalização",
+                "Inclua: placa de obra, sinalização de trânsito, segurança e piso tátil.",
+            )
+        )
         num += 1
 
-        secoes.append((str(num), "ENTREGA DA OBRA", "entrega",
-                       "Inclua: ligações definitivas, testes, limpeza final, as-built e licenças."))
+        secoes.append(
+            (
+                str(num),
+                "ENTREGA DA OBRA",
+                "entrega",
+                "Inclua: ligações definitivas, testes, limpeza final, as-built e licenças.",
+            )
+        )
 
         return secoes

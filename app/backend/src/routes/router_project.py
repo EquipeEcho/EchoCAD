@@ -4,7 +4,7 @@ import shutil
 
 from fastapi import APIRouter, Depends
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth import get_current_user
 from src.controller.crud_projects import (
     create_projeto,
@@ -13,7 +13,7 @@ from src.controller.crud_projects import (
     remove_project,
     update_project,
 )
-from src.database import get_session
+from src.database import get_async_session
 from src.schemas.user_schema import (
     CreateProjectSchema,
     ProjectPublicSchema,
@@ -32,14 +32,14 @@ router = APIRouter(prefix="/project", tags=["projeto"])
 async def post_create_project(
     project_schema: CreateProjectSchema,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
     """
     Rota para criação de um novo projeto.
     """
 
     try:
-        result = create_projeto(db, project_schema)
+        result = await create_projeto(db, project_schema)
         logger.info(f"Projeto criado: {result}")
         return result
     except ValueError as e:
@@ -62,13 +62,13 @@ async def post_create_project(
 )
 async def get_list_projects(
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
     """
     Rota para listar todos os projetos existentes.
     """
     try:
-        result = read_all_projetos(db)
+        result = await read_all_projetos(db)
         logger.info(f"Projetos encontrados: {len(result)}")
         return result
 
@@ -88,13 +88,13 @@ async def get_list_projects(
 async def get_project(
     projeto_id: int,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
     """
     Rota para buscar um projeto específico pelo seu ID.
     """
     try:
-        result = read_projeto(db, projeto_id)
+        result = await read_projeto(db, projeto_id)
         if not result:
             raise HTTPException(status_code=404, detail="Projeto não encontrado")
         logger.info(f"Projeto encontrado: {result}")
@@ -116,7 +116,7 @@ async def get_project(
 async def patch_update_project(
     project_schema: UpdateProjectSchema,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
     """
     Rota para atualizar um projeto existente.
@@ -126,14 +126,14 @@ async def patch_update_project(
         logger.info(
             f"Atualizando projeto ID {project_schema.id} com dados: {project_schema}"
         )
-        return update_project(db, project_schema)
+        return await update_project(db, project_schema)
 
     except HTTPException:
-        db.rollback()
+        await db.rollback()
         raise
     except Exception as e:
         logger.error(f"Erro ao atualizar o projeto: {e}")
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail="Erro ao atualizar o projeto")
 
 
@@ -142,7 +142,7 @@ async def patch_update_project(
 async def delete_project(
     projeto_id: int,
     current_user=Depends(get_current_user),
-    db: Session = Depends(get_session),
+    db: AsyncSession = Depends(get_async_session),
 ):
     """
     Rota para deletar um projeto e seus arquivos associados.
@@ -154,7 +154,7 @@ async def delete_project(
     - Renomeia a pasta de uploads para {project_id}.deleted
     """
     try:
-        remove_project(db, projeto_id)
+        await remove_project(db, projeto_id)
         logger.info(f"Projeto ID {projeto_id} deletado com sucesso.")
         # Renomeia a pasta de uploads de {project_id} para {project_id}.deleted
         backend_root = Path(__file__).parent.parent.parent
@@ -170,12 +170,12 @@ async def delete_project(
             project_folder.rename(deleted_folder)
 
     except HTTPException:
-        db.rollback()
+        await db.rollback()
         raise
     except ValueError as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Erro ao deletar o projeto: {e}")
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail="Erro ao deletar o projeto")
