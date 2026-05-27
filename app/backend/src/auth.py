@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -14,7 +14,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
 
 
 def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:
-    expires = datetime.utcnow() + (
+    expires = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.jwt_expire_minutes)
     )
     payload = {"sub": str(subject), "exp": expires}

@@ -53,7 +53,7 @@ async def list_standards(
 
 
 @router.patch(
-    "/{norma_id}/toggle",
+    "/toggle",
     summary="Ativar/Desativar norma",
     status_code=status.HTTP_200_OK,
 )

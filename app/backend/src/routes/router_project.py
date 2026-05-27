@@ -39,7 +39,7 @@ async def post_create_project(
     """
 
     try:
-        result = create_projeto(db, project_schema)
+        result = await create_projeto(db, project_schema)
         logger.info(f"Projeto criado: {result}")
         return result
     except ValueError as e:
@@ -126,7 +126,7 @@ async def patch_update_project(
         logger.info(
             f"Atualizando projeto ID {project_schema.id} com dados: {project_schema}"
         )
-        return update_project(db, project_schema)
+        return await update_project(db, project_schema)
 
     except HTTPException:
         await db.rollback()

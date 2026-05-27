@@ -42,7 +42,7 @@ class Blueprint(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, init=False)
     discipline: Mapped[str] = mapped_column(String(100), nullable=False)
-    path: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    path: Mapped[str] = mapped_column(String(255), nullable=False)
 
     id_project: Mapped[int] = mapped_column(
         ForeignKey("projects.id"), nullable=False)
