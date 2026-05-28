@@ -4,9 +4,9 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from .dxf_context_extractor import DXFContextExtractor, ContextoDXF
-from .spec_generator import SpecGenerator
-from .docx_builder import build_docx
+from .EspecificacoesTecnicas.dxf_context_extractor import DXFContextExtractor, ContextoDXF
+from .EspecificacoesTecnicas.spec_generator import SpecGenerator
+from .EspecificacoesTecnicas.docx_builder import build_docx
 
 logger = logging.getLogger(__name__)
 

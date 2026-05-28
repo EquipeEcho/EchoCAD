@@ -17,7 +17,8 @@ Este documento lista os problemas identificados no código que ainda precisam de
         *   Processamento CPU-bound de DXF (`processar_dxf` e `run_integration`) no `router_processing.py`.
         *   Chamadas de rede síncronas via biblioteca `requests` no `SpecGenerator`.
 *   **Duplicação de Lógica de Parsing DXF:**
-    *   Os arquivos `src/modules/Memorial/dxf_extractor.py` e `src/modules/EspecificacoesTecnicas/dxf_context_extractor.py` implementam essencialmente o mesmo parser manual de DXF (`DXFParser`), dificultando a manutenção.
+    *   (Parcialmente Resolvido) Arquivos redundantes na raiz de `src/modules` foram removidos.
+    *   No entanto, `src/modules/Memorial/dxf_extractor.py` e `src/modules/EspecificacoesTecnicas/dxf_context_extractor.py` ainda implementam o seu próprio `DXFParser` manual, o que deve ser consolidado em um utilitário comum.
 
 ## 3. Configurações e Observações Menores
 
@@ -25,4 +26,4 @@ Este documento lista os problemas identificados no código que ainda precisam de
     *   O `settings.GROQ_API_KEY` em `src/config.py` está configurado com o valor de placeholder `"gsk_REPLACE_ME"`.
 
 ---
-*Última atualização: 27 de maio de 2026*
+*Última atualização: 27 de maio de 2026 (Limpeza de arquivos redundantes realizada)*
