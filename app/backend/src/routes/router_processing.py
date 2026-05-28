@@ -332,7 +332,7 @@ async def _generate_specification(
 ) -> Path:
     output_file = generated_dir / f"projeto_{project.id}_especificacoes_tecnicas.docx"
 
-    arquivo_gerado = gerar_especificacoes(
+    arquivo_gerado = await gerar_especificacoes(
         dxf_file=str(dxf_file),
         output_path=str(output_file),
         nome_projeto=project.name,

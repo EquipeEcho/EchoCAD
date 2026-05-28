@@ -16,7 +16,7 @@ from .docx_builder import build_docx
 logger = logging.getLogger(__name__)
 
 
-def gerar_especificacoes(
+async def gerar_especificacoes(
     dxf_file: str,
     output_path: str,
     nome_projeto: Optional[str] = None,
@@ -52,7 +52,7 @@ def gerar_especificacoes(
     # 2. Gerar especificações via IA
     key = api_key or os.getenv("GROQ_API_KEY") or settings.GROQ_API_KEY
     generator = SpecGenerator(api_key=key)
-    specs = generator.gerar(ctx)
+    specs = await generator.gerar(ctx)
 
     logger.info(f"  Especificações: {len(specs.secoes)} seções geradas")
 

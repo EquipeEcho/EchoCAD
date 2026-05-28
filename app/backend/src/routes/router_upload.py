@@ -1,4 +1,5 @@
 # Standard Library (Bibliotecas nativas)
+import aiofiles
 import logging
 import shutil
 from pathlib import Path
@@ -19,7 +20,6 @@ DEFAULT_PATH = BACKEND_ROOT / "uploads"
 DEFAULT_PATH.mkdir(parents=True, exist_ok=True)
 
 
-# TODO: implementar inteligência de separação do tipo de arquivo.
 @router.post(
     "/{project_id}", status_code=status.HTTP_201_CREATED, response_model=UploadResponse
 )
@@ -51,18 +51,13 @@ async def upload(
 
         file_path = project_path.joinpath(file.filename)
 
+        content = await file.read()
         # Salvar arquivo no disco
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        async with aiofiles.open(file_path, "wb") as buffer:
+            await buffer.write(content)
 
         # Retornamos o caminho relativo para ser salvo no banco
         relative_path = f"{project_id}/{file.filename}"
-
-        return {
-            "message": "Upload realizado com sucesso",
-            "filename": file.filename,
-            "path": relative_path,
-        }
 
     except Exception as e:
         logger.error(f"Erro no processamento: {e}")
@@ -70,3 +65,11 @@ async def upload(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao processar arquivo: {str(e)}",
         )
+    finally:
+        await file.close()
+
+    return {
+            "message": "Upload realizado com sucesso",
+            "filename": file.filename,
+            "path": relative_path,
+        }
