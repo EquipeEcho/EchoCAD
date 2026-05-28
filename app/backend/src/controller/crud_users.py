@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.projeto_db import User
 from src.schemas.user_schema import CreateUserSchema, UpdateUserSchema
+from src.security.secrets import decrypt_secret, encrypt_secret, mask_secret
 
 
 async def create_user(db: AsyncSession, user_schema: CreateUserSchema) -> User:
@@ -41,6 +42,84 @@ async def create_user(db: AsyncSession, user_schema: CreateUserSchema) -> User:
             "Ocorreu um erro inesperado ao criar o usuário, "
             "para mais informações consulte o log"
         ) from e
+
+
+async def change_user_password(
+    db: AsyncSession, user_id: int, current_password: str, new_password: str
+) -> User | None:
+    try:
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        if not bcrypt.checkpw(
+            current_password.encode("utf-8"), user.password.encode("utf-8")
+        ):
+            raise ValueError("Senha atual incorreta")
+
+        user.password = bcrypt.hashpw(
+            new_password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except ValueError as e:
+        await db.rollback()
+        raise ValueError(str(e)) from e
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao alterar a senha") from e
+
+
+async def set_user_groq_api_key(db: AsyncSession, user_id: int, api_key: str) -> User | None:
+    try:
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        user.groq_api_key_encrypted = encrypt_secret(api_key.strip())
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao salvar a chave Groq") from e
+
+
+async def clear_user_groq_api_key(db: AsyncSession, user_id: int) -> User | None:
+    try:
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        user.groq_api_key_encrypted = None
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao remover a chave Groq") from e
+
+
+def get_user_groq_api_key(user: User) -> str | None:
+    return decrypt_secret(user.groq_api_key_encrypted)
+
+
+def get_masked_user_groq_api_key(user: User) -> str | None:
+    return mask_secret(get_user_groq_api_key(user))
 
 
 async def get_user_by_email(db: AsyncSession, email: str, password: str) -> User | None:

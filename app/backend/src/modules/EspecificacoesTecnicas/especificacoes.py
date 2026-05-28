@@ -93,7 +93,7 @@ async def gerar_especificacoes_route(
 
         logger.info(f"Gerando especificações para: {nome_projeto}")
 
-        arquivo_gerado = gerar_especificacoes(
+        arquivo_gerado = await gerar_especificacoes(
             dxf_file=str(file_path),
             output_path=str(output_path),
             nome_projeto=nome_projeto,

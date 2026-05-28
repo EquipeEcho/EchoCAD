@@ -13,9 +13,7 @@ Este documento lista os problemas identificados no código que ainda precisam de
 
 *   **Chamadas Bloqueantes em Rotas Assíncronas:**
     *   Diversas rotas `async` executam operações síncronas pesadas que bloqueiam o *event loop* do FastAPI, prejudicando a escalabilidade:
-        *   `shutil.copyfileobj` no `router_upload.py`.
         *   Processamento CPU-bound de DXF (`processar_dxf` e `run_integration`) no `router_processing.py`.
-        *   Chamadas de rede síncronas via biblioteca `requests` no `SpecGenerator`.
 *   **Duplicação de Lógica de Parsing DXF:**
     *   (Parcialmente Resolvido) Arquivos redundantes na raiz de `src/modules` foram removidos.
     *   No entanto, `src/modules/Memorial/dxf_extractor.py` e `src/modules/EspecificacoesTecnicas/dxf_context_extractor.py` ainda implementam o seu próprio `DXFParser` manual, o que deve ser consolidado em um utilitário comum.

@@ -10,9 +10,8 @@ import textwrap
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-import time
-
-import requests
+import asyncio
+import httpx
 
 from .dxf_context_extractor import ContextoDXF
 
@@ -80,7 +79,7 @@ class SpecGenerator:
     # ------------------------------------------------------------------
     # Chamada à API Groq com backoff automático para rate limit (429)
     # ------------------------------------------------------------------
-    def _chamar_api(
+    async def _chamar_api(
         self, prompt_usuario: str, max_tokens: int = MAX_TOKENS
     ) -> Optional[str]:
         if not self._api_key:
@@ -101,45 +100,46 @@ class SpecGenerator:
             ],
         }
 
-        for tentativa in range(6):
-            try:
-                resp = requests.post(
-                    GROQ_API_URL, headers=headers, json=payload, timeout=120
-                )
-
-                # Rate limit: ler o tempo indicado na resposta e aguardar
-                if resp.status_code == 429:
-                    import re as _re
-
-                    msg = resp.json().get("error", {}).get("message", "")
-                    m = _re.search(r"try again in ([\d.]+)s", msg)
-                    espera = (
-                        float(m.group(1)) + 2.0 if m else min(5 * (2**tentativa), 60)
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            for tentativa in range(6):
+                try:
+                    resp = await client.post(
+                        GROQ_API_URL, headers=headers, json=payload
                     )
+
+                    # Rate limit: ler o tempo indicado na resposta e aguardar
+                    if resp.status_code == 429:
+                        import re as _re
+
+                        msg = resp.json().get("error", {}).get("message", "")
+                        m = _re.search(r"try again in ([\d.]+)s", msg)
+                        espera = (
+                            float(m.group(1)) + 2.0 if m else min(5 * (2**tentativa), 60)
+                        )
+                        logger.warning(
+                            f"Rate limit atingido (tentativa {tentativa + 1}/6). "
+                            f"Aguardando {espera:.1f}s..."
+                        )
+                        await asyncio.sleep(espera)
+                        continue
+
+                    resp.raise_for_status()
+                    return resp.json()["choices"][0]["message"]["content"]
+
+                except httpx.HTTPStatusError as e:
+                    logger.error(f"Erro HTTP Groq {e.response.status_code}: {e.response.text[:200]}")
+                    return None
+                except httpx.RequestError as e:
+                    espera = min(5 * (2**tentativa), 60)
                     logger.warning(
-                        f"Rate limit atingido (tentativa {tentativa + 1}/6). "
+                        f"Falha temporaria na API Groq (tentativa {tentativa + 1}/6): {e}. "
                         f"Aguardando {espera:.1f}s..."
                     )
-                    time.sleep(espera)
+                    await asyncio.sleep(espera)
                     continue
-
-                resp.raise_for_status()
-                return resp.json()["choices"][0]["message"]["content"]
-
-            except requests.HTTPError:
-                logger.error(f"Erro HTTP Groq {resp.status_code}: {resp.text[:200]}")
-                return None
-            except requests.RequestException as e:
-                espera = min(5 * (2**tentativa), 60)
-                logger.warning(
-                    f"Falha temporaria na API Groq (tentativa {tentativa + 1}/6): {e}. "
-                    f"Aguardando {espera:.1f}s..."
-                )
-                time.sleep(espera)
-                continue
-            except Exception as e:
-                logger.error(f"Erro na API Groq: {e}")
-                return None
+                except Exception as e:
+                    logger.error(f"Erro na API Groq: {e}")
+                    return None
 
         logger.error("Rate limit nao resolvido apos 6 tentativas.")
         return None
@@ -167,12 +167,12 @@ class SpecGenerator:
         logger.warning("Nao foi possivel extrair JSON da resposta.")
         return None
 
-    def _chamar_com_retry(
+    async def _chamar_com_retry(
         self, prompt: str, max_tokens: int = MAX_TOKENS, tentativas: int = 3
     ) -> Optional[dict]:
-        """O backoff de rate limit ja esta em _chamar_api. Aqui so retentar se JSON vier invalido."""
+        """O backoff de rate limit ja esta em _chamar_api. Aqui so retentar se JSON vira invalido."""
         for i in range(tentativas):
-            resposta = self._chamar_api(prompt, max_tokens=max_tokens)
+            resposta = await self._chamar_api(prompt, max_tokens=max_tokens)
             if resposta is None:
                 break  # erro de rede/auth — nao adianta repetir
             dados = self._extrair_json(resposta)
@@ -187,7 +187,7 @@ class SpecGenerator:
     # ------------------------------------------------------------------
     # Gerar objeto e contexto geral
     # ------------------------------------------------------------------
-    def _gerar_objeto_e_contexto(self, ctx: ContextoDXF) -> Dict:
+    async def _gerar_objeto_e_contexto(self, ctx: ContextoDXF) -> Dict:
         ambientes_resumo = [
             f"{a.nome}{' (' + a.subtitulo + ')' if a.subtitulo else ''}: "
             f"{a.area}m² | P={a.perimetro}m | PD={a.pe_direito}m"
@@ -214,7 +214,7 @@ Retorne APENAS um JSON com esta estrutura:
   "concepcao": "texto descrevendo a concepção do projeto (3-5 frases)"
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=1000)
+        dados = await self._chamar_com_retry(prompt, max_tokens=1000)
         if not dados:
             return {
                 "numero_protocolo": "A DEFINIR",
@@ -227,7 +227,7 @@ Retorne APENAS um JSON com esta estrutura:
     # ------------------------------------------------------------------
     # Gerar seção por disciplina
     # ------------------------------------------------------------------
-    def _gerar_secao_disciplina(
+    async def _gerar_secao_disciplina(
         self,
         ctx: ContextoDXF,
         numero: str,
@@ -297,7 +297,7 @@ Retorne APENAS JSON:
   ]
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=MAX_TOKENS)
+        dados = await self._chamar_com_retry(prompt, max_tokens=MAX_TOKENS)
         if not dados:
             logger.warning(f"Falha ao gerar seção {numero} - {titulo}")
             return None
@@ -335,7 +335,7 @@ Retorne APENAS JSON:
     # ------------------------------------------------------------------
     # Gerar referências normativas e vida útil
     # ------------------------------------------------------------------
-    def _gerar_referencias_e_vida_util(self, ctx: ContextoDXF) -> Dict:
+    async def _gerar_referencias_e_vida_util(self, ctx: ContextoDXF) -> Dict:
         prompt = f"""
 Para um projeto de construção civil com as seguintes disciplinas e sistemas:
 - Disciplinas: {", ".join(sorted(ctx.disciplinas))}
@@ -359,7 +359,7 @@ Retorne APENAS JSON:
   ]
 }}
 """
-        dados = self._chamar_com_retry(prompt, max_tokens=2000)
+        dados = await self._chamar_com_retry(prompt, max_tokens=2000)
         if not dados:
             return {
                 "referencias_normativas": [
@@ -374,25 +374,25 @@ Retorne APENAS JSON:
     # ------------------------------------------------------------------
     # Orquestrador principal
     # ------------------------------------------------------------------
-    def gerar(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
+    async def gerar(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
         """Chamado pelo __init__.py — gera todas as seções."""
-        return self._orquestrar(ctx)
+        return await self._orquestrar(ctx)
 
-    def gerar_especificacao(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
+    async def gerar_especificacao(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
         """Alias para compatibilidade com versões anteriores do test_especificacoes.py."""
-        return self._orquestrar(ctx)
+        return await self._orquestrar(ctx)
 
-    def _orquestrar(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
+    async def _orquestrar(self, ctx: ContextoDXF) -> EspecificacoesTecnicas:
         logger.info(f"Iniciando geração de specs para: {ctx.nome_projeto}")
 
-        abertura = self._gerar_objeto_e_contexto(ctx)
-        refs_vida = self._gerar_referencias_e_vida_util(ctx)
+        abertura = await self._gerar_objeto_e_contexto(ctx)
+        refs_vida = await self._gerar_referencias_e_vida_util(ctx)
         secoes_map = self._mapear_secoes(ctx)
 
         secoes: List[SecaoEspec] = []
         for num, titulo, disciplina, extra in secoes_map:
             logger.info(f"  Gerando seção {num}: {titulo}...")
-            secao = self._gerar_secao_disciplina(ctx, num, titulo, disciplina, extra)
+            secao = await self._gerar_secao_disciplina(ctx, num, titulo, disciplina, extra)
             if secao:
                 secoes.append(secao)
 

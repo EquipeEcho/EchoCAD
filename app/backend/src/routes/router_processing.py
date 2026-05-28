@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import get_current_user
+from src.controller.crud_users import get_user_groq_api_key
 from src.database import get_async_session
 from src.models.projeto_db import Blueprint, Project, Report, Specification
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
@@ -329,13 +330,15 @@ async def _generate_specification(
     project: Project,
     dxf_file: Path,
     generated_dir: Path,
+    api_key: str | None = None,
 ) -> Path:
     output_file = generated_dir / f"projeto_{project.id}_especificacoes_tecnicas.docx"
 
-    arquivo_gerado = gerar_especificacoes(
+    arquivo_gerado = await gerar_especificacoes(
         dxf_file=str(dxf_file),
         output_path=str(output_file),
         nome_projeto=project.name,
+        api_key=api_key,
     )
 
     relative_output = str(arquivo_gerado.relative_to(UPLOADS_DIR))
@@ -347,7 +350,7 @@ async def _generate_specification(
 
 
 async def _generate_project_documents(
-    db: AsyncSession, project_id: int, request: Request
+    db: AsyncSession, project_id: int, request: Request, groq_api_key: str | None = None
 ) -> list[dict[str, Any]]:
     project = await _get_project(db, project_id)
     dxf_files = await _get_project_dxf_files(db, project_id)
@@ -379,7 +382,7 @@ async def _generate_project_documents(
     specification_error: str | None = None
     try:
         specification_path = await _generate_specification(
-            db, project, dxf_file, generated_dir
+            db, project, dxf_file, generated_dir, api_key=groq_api_key
         )
     except Exception as exc:
         await db.rollback()
@@ -411,13 +414,16 @@ async def process_project(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
+    groq_api_key = get_user_groq_api_key(current_user)
     if not stream:
-        return await _generate_project_documents(db, project_id, request)
+        return await _generate_project_documents(db, project_id, request, groq_api_key)
 
     async def event_stream():
         yield "data: Iniciando processamento do projeto...\n\n"
         try:
-            result = await _generate_project_documents(db, project_id, request)
+            result = await _generate_project_documents(
+                db, project_id, request, groq_api_key
+            )
             yield "data: Memorial de calculo gerado com sucesso.\n\n"
             if any(item.get("tipo") == "especificacoes_tecnicas" for item in result):
                 yield "data: Especificacoes tecnicas geradas com sucesso.\n\n"

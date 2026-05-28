@@ -5,7 +5,6 @@ import { ConfirmationModal } from "../components/ConfirmationModal";
 import { EmptyState } from "../components/EmptyState";
 import {
   CloseIcon,
-  DownloadIcon,
   EyeIcon,
   InfoCircleIcon,
   SearchIcon,
@@ -16,29 +15,7 @@ import { FileRow } from "../components/FileRow";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { usePrototype } from "../hooks/usePrototype";
-import { API_BASE_URL, getAuthHeaders } from "../services/api";
 import { HistoryDocument } from "../types/documents";
-
-async function downloadFile(url: string, fileName: string) {
-  const response = await fetch(url, {
-    headers: {
-      ...(getAuthHeaders() ?? {}),
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`Erro ao baixar ${fileName}`);
-  }
-
-  const blob = await response.blob();
-  const objectUrl = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(objectUrl);
-}
 
 function normalizeSearchValue(value: string) {
   return value
@@ -48,19 +25,29 @@ function normalizeSearchValue(value: string) {
     .trim();
 }
 
-function getHistorySearchText(document: HistoryDocument) {
+function getHistorySearchFields(document: HistoryDocument) {
   return [
-    document.id,
     document.name,
-    document.kind,
-    document.date,
     document.projectInfo?.cliente,
-    document.projectInfo?.descricao,
-    document.document.reference,
-    document.document.summary,
-  ]
-    .filter(Boolean)
-    .join(" ");
+    document.date,
+    document.id,
+  ].filter(Boolean);
+}
+
+function matchesHistorySearch(document: HistoryDocument, normalizedQuery: string) {
+  const queryTerms = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  if (queryTerms.length === 0) {
+    return true;
+  }
+
+  const searchableFields = getHistorySearchFields(document).map((value) =>
+    normalizeSearchValue(String(value)),
+  );
+
+  return queryTerms.every((term) =>
+    searchableFields.some((field) => field.includes(term)),
+  );
 }
 
 export function HistoryPage() {
@@ -73,12 +60,7 @@ export function HistoryPage() {
     removeHistoryDocument,
   } = usePrototype();
   const [pendingRemoval, setPendingRemoval] = useState<HistoryDocument | null>(null);
-  const [downloadingProjectId, setDownloadingProjectId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const isDownloading = useMemo(() => {
-    return (projectId: string) => downloadingProjectId === projectId;
-  }, [downloadingProjectId]);
 
   const filteredHistoryDocuments = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(searchQuery);
@@ -88,7 +70,7 @@ export function HistoryPage() {
     }
 
     return historyDocuments.filter((document) =>
-      normalizeSearchValue(getHistorySearchText(document)).includes(normalizedQuery),
+      matchesHistorySearch(document, normalizedQuery),
     );
   }, [historyDocuments, searchQuery]);
 
@@ -110,41 +92,6 @@ export function HistoryPage() {
 
     await removeHistoryDocument(pendingRemoval.id);
     setPendingRemoval(null);
-  };
-
-  const handleDownloadProjectFiles = async (document: HistoryDocument) => {
-    const projectId = Number(document.id);
-    if (!Number.isFinite(projectId)) {
-      window.alert("ID do projeto inválido para download.");
-      return;
-    }
-
-    if (downloadingProjectId !== null) {
-      return;
-    }
-
-    setDownloadingProjectId(document.id);
-    try {
-      await downloadFile(
-        `${API_BASE_URL}/memorial_calculo/projeto/${projectId}/download`,
-        `projeto_${projectId}_memorial_calculo.xlsx`,
-      );
-      try {
-        await downloadFile(
-          `${API_BASE_URL}/especificacoes_tecnicas/projeto/${projectId}/download`,
-          `projeto_${projectId}_especificacoes_tecnicas.docx`,
-        );
-      } catch (specError) {
-        console.warn("Especificacoes tecnicas indisponiveis para este projeto.", specError);
-      }
-    } catch (error) {
-      console.error(error);
-      window.alert(
-        "Não foi possível baixar os arquivos do projeto. Verifique se o backend está online.",
-      );
-    } finally {
-      setDownloadingProjectId(null);
-    }
   };
 
   return (
@@ -242,13 +189,6 @@ export function HistoryPage() {
                         date={document.date}
                         size={document.size}
                         actions={[
-                          {
-                            label: isDownloading(document.id)
-                              ? `Baixando arquivos de ${document.name}`
-                              : `Baixar arquivos de ${document.name}`,
-                            icon: <DownloadIcon />,
-                            onClick: () => handleDownloadProjectFiles(document),
-                          },
                           {
                             label: `Visualizar ${document.name}`,
                             icon: <EyeIcon />,
