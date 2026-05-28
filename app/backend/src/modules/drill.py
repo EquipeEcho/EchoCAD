@@ -269,7 +269,7 @@ def processar_dxf(caminho_arquivo):
 
             if entidade.dxftype() == "LINE":
                 p1 = (entidade.dxf.start.x, entidade.dxf.start.y)
-                p2 = (entidade.dxf.end.x, entity_end_y := entidade.dxf.end.y)
+                p2 = (entidade.dxf.end.x, entidade.dxf.end.y)
                 segmentos = [(p1, p2)]
             else:
                 vertices = extrair_vertices_xy(entidade)

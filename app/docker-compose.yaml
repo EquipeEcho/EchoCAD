@@ -29,16 +29,19 @@ services:
       dockerfile: Dockerfile
     container_name: echocad_server
     environment:
-      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://user:echocad_password@mariadb:3306/echocad_db}
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_ASYNC_URL: ${DATABASE_ASYNC_URL}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      JWT_TOKEN: ${JWT_TOKEN:-super_secret_jwt_key_change_me}
+      JWT_TOKEN: ${JWT_TOKEN}
       ECHO_DATABASE: ${ECHO_DATABASE:-true}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      DEBUG: ${DEBUG:-False}
     networks:
       - echocad_network
     ports:
-      - 8000:8000
+      - "${API_PORT:-8000}:8000"
     depends_on:
       mariadb:
         condition: service_healthy

@@ -17,8 +17,9 @@ router = APIRouter(
     tags=["especificacoes"],
 )
 
-UPLOAD_DIR = Path("uploads")
-OUTPUT_DIR = Path("outputs/especificacoes")
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+UPLOAD_DIR = BACKEND_ROOT / "uploads"
+OUTPUT_DIR = BACKEND_ROOT / "outputs" / "especificacoes"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
