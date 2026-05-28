@@ -19,7 +19,11 @@ def carregar_configuracao(nome_arquivo):
         with open(caminho_absoluto, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"⚠️⚠️⚠️ Erro crítico: Arquivo não encontrado em: {caminho_absoluto} ⚠️⚠️⚠️")
+        print(f"Erro crítico: Arquivo não encontrado em: {caminho_absoluto}")
+        return {}
+    except Exception as e:
+        print(f"Erro ao carregar configuração: {e}")
+        return {}
 
 
 # ==============================================================================

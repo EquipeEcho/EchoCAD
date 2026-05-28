@@ -7,7 +7,7 @@ Este documento lista os problemas identificados no código que ainda precisam de
 *   **Vulnerabilidade de Path Traversal (`src/routes/router_blueprints.py`):**
     *   A rota `extrair_dxf` (linha 63) recebe um parâmetro `caminho` (string) do usuário e o utiliza diretamente para verificar a existência do arquivo e processá-lo. Um usuário mal-intencionado poderia acessar arquivos sensíveis do sistema fora da pasta de uploads.
 *   **Tratamento de Erros Deficiente em `drill.py`:**
-    *   A função `carregar_configuracao` em `src/modules/drill.py` apenas imprime um aviso se o arquivo `zconfig_sistema.json` não for encontrado, retornando `None`. O código subsequente tenta acessar chaves nesse retorno, o que causará um `TypeError`.
+    *   (Resolvido) A função `carregar_configuracao` agora retorna um dicionário vazio em caso de erro, evitando `TypeError`.
 
 ## 2. Qualidade de Código e Performance
 
@@ -23,7 +23,7 @@ Este documento lista os problemas identificados no código que ainda precisam de
 ## 3. Configurações e Observações Menores
 
 *   **Configuração de API com Placeholder:**
-    *   O `settings.GROQ_API_KEY` em `src/config.py` está configurado com o valor de placeholder `"gsk_REPLACE_ME"`.
+    *   (Resolvido) Chave da API do Groq atualizada nos arquivos `.env` e placeholder removido de `src/config.py`.
 
 ---
-*Última atualização: 27 de maio de 2026 (Limpeza de arquivos redundantes realizada)*
+*Última atualização: 27 de maio de 2026 (Correção de bugs e atualização de API Key)*
