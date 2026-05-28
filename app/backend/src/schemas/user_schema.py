@@ -43,6 +43,27 @@ class UpdateUserSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ChangePasswordSchema(BaseModel):
+    current_password: Password = Field(..., description="Senha atual do usuario")
+    new_password: Password = Field(..., description="Nova senha do usuario")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GroqApiKeyUpdateSchema(BaseModel):
+    api_key: str = Field(..., min_length=8, max_length=255, description="Chave da API Groq")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GroqApiKeyStatusSchema(BaseModel):
+    configured: bool = Field(..., description="Indica se o usuario possui chave Groq")
+    masked_key: str | None = Field(None, description="Chave mascarada para exibicao")
+    message: str = Field(..., description="Mensagem de resposta da API")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class LoginUserSchema(BaseModel):
     email: EmailStd = Field(..., description="E-mail do usuario")
     password: Password = Field(..., description="Senha do usuario")

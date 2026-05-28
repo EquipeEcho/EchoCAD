@@ -30,6 +30,17 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+}
+
+export interface GroqApiKeyStatus {
+  configured: boolean;
+  masked_key?: string | null;
+  message: string;
+}
+
 interface ProjetoCreatePayload {
   name: string;
   description?: string;
@@ -234,6 +245,71 @@ export async function loginUser(credentials: LoginPayload): Promise<AuthResponse
   });
   
   return data;
+}
+
+export async function changePassword(
+  payload: ChangePasswordPayload,
+): Promise<AuthUser> {
+  const response = await fetch(`${API_BASE_URL}/users/me/password`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(getAuthHeaders() ?? {}),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    await throwAuthenticatedApiError(response, "Erro ao alterar senha");
+  }
+
+  return response.json();
+}
+
+export async function getGroqApiKeyStatus(): Promise<GroqApiKeyStatus> {
+  const response = await fetch(`${API_BASE_URL}/users/me/groq-key`, {
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    await throwAuthenticatedApiError(response, "Erro ao buscar chave Groq");
+  }
+
+  return response.json();
+}
+
+export async function saveGroqApiKey(apiKey: string): Promise<GroqApiKeyStatus> {
+  const response = await fetch(`${API_BASE_URL}/users/me/groq-key`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(getAuthHeaders() ?? {}),
+    },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+
+  if (!response.ok) {
+    await throwAuthenticatedApiError(response, "Erro ao salvar chave Groq");
+  }
+
+  return response.json();
+}
+
+export async function removeGroqApiKey(): Promise<GroqApiKeyStatus> {
+  const response = await fetch(`${API_BASE_URL}/users/me/groq-key`, {
+    method: "DELETE",
+    headers: {
+      ...(getAuthHeaders() ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    await throwAuthenticatedApiError(response, "Erro ao remover chave Groq");
+  }
+
+  return response.json();
 }
 
 /**

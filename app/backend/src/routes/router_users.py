@@ -4,12 +4,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth import create_access_token, get_current_user
 from src.database import get_async_session
 from src.schemas.user_schema import (
+    ChangePasswordSchema,
     CreateUserSchema,
+    GroqApiKeyStatusSchema,
+    GroqApiKeyUpdateSchema,
     TokenResponseSchema,
     UpdateUserSchema,
     UserPublicSchema,
 )
-from src.controller.crud_users import get_user_by_email, create_user, update_user
+from src.controller.crud_users import (
+    change_user_password,
+    clear_user_groq_api_key,
+    create_user,
+    get_masked_user_groq_api_key,
+    get_user_by_email,
+    set_user_groq_api_key,
+    update_user,
+)
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -163,4 +174,108 @@ async def route_update_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating user: {str(e)}",
+        )
+
+
+@router.patch(
+    "/me/password", status_code=status.HTTP_200_OK, response_model=UserPublicSchema
+)
+async def route_change_password(
+    password_data: ChangePasswordSchema,
+    current_user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    try:
+        updated_user = await change_user_password(
+            session,
+            current_user.id,
+            password_data.current_password,
+            password_data.new_password,
+        )
+        if not updated_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+
+        return UserPublicSchema(
+            id=updated_user.id,
+            name=updated_user.name,
+            email=updated_user.email,
+            role=updated_user.role,
+            created_at=updated_user.created_at,
+            message="Senha alterada com sucesso",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except SystemError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+@router.get(
+    "/me/groq-key", status_code=status.HTTP_200_OK, response_model=GroqApiKeyStatusSchema
+)
+async def route_get_groq_key_status(current_user=Depends(get_current_user)):
+    masked_key = get_masked_user_groq_api_key(current_user)
+    return GroqApiKeyStatusSchema(
+        configured=bool(masked_key),
+        masked_key=masked_key,
+        message="Chave Groq configurada" if masked_key else "Chave Groq nao configurada",
+    )
+
+
+@router.put(
+    "/me/groq-key", status_code=status.HTTP_200_OK, response_model=GroqApiKeyStatusSchema
+)
+async def route_set_groq_key(
+    key_data: GroqApiKeyUpdateSchema,
+    current_user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    try:
+        updated_user = await set_user_groq_api_key(
+            session, current_user.id, key_data.api_key
+        )
+        if not updated_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+
+        return GroqApiKeyStatusSchema(
+            configured=True,
+            masked_key=get_masked_user_groq_api_key(updated_user),
+            message="Chave Groq salva com sucesso",
+        )
+    except SystemError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+
+@router.delete(
+    "/me/groq-key", status_code=status.HTTP_200_OK, response_model=GroqApiKeyStatusSchema
+)
+async def route_clear_groq_key(
+    current_user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    try:
+        updated_user = await clear_user_groq_api_key(session, current_user.id)
+        if not updated_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+
+        return GroqApiKeyStatusSchema(
+            configured=False,
+            masked_key=None,
+            message="Chave Groq removida com sucesso",
+        )
+    except SystemError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
         )
