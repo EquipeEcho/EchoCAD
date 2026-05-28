@@ -13,7 +13,9 @@ from src.models.projeto_db import (
 from src.schemas.user_schema import CreateProjectSchema, UpdateProjectSchema
 
 
-async def create_projeto(db: AsyncSession, project_schema: CreateProjectSchema) -> Project:
+async def create_projeto(
+    db: AsyncSession, project_schema: CreateProjectSchema
+) -> Project:
     """
     Instancia e persiste um novo projeto no banco de dados.
 
@@ -73,7 +75,9 @@ async def read_all_projetos(db: AsyncSession) -> list[Project]:
     return list((await db.execute(query)).scalars().all())
 
 
-async def update_project(db: AsyncSession, project_schema: UpdateProjectSchema) -> Project:
+async def update_project(
+    db: AsyncSession, project_schema: UpdateProjectSchema
+) -> Project:
     """
     Atualiza os dados de um projeto existente no banco de dados.
 
@@ -121,9 +125,13 @@ async def remove_project(db: AsyncSession, projeto_id: int) -> None:
     if not existing_project:
         raise ValueError(f"Projeto com ID {projeto_id} não encontrado.")
 
-    await db.execute(delete(ProjectStandard).where(ProjectStandard.id_project == projeto_id))
+    await db.execute(
+        delete(ProjectStandard).where(ProjectStandard.id_project == projeto_id)
+    )
     await db.execute(delete(Report).where(Report.id_project == projeto_id))
     await db.execute(delete(Blueprint).where(Blueprint.id_project == projeto_id))
-    await db.execute(delete(Specification).where(Specification.id_project == projeto_id))
+    await db.execute(
+        delete(Specification).where(Specification.id_project == projeto_id)
+    )
     await db.delete(existing_project)
     await db.commit()

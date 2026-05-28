@@ -29,6 +29,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "groq>=1.2.0",
+    "ruff>=0.15.14",
 ]
 
 [tool.pytest.ini_options]

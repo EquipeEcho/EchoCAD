@@ -27,9 +27,9 @@ TEMPLATE_FILE = BACKEND_ROOT / "src" / "templates" / "memorial_model.xlsx"
 
 
 async def _get_project(db: AsyncSession, project_id: int) -> Project:
-    project = (await db.execute(
-        select(Project).where(Project.id == project_id)
-    )).scalar_one_or_none()
+    project = (
+        await db.execute(select(Project).where(Project.id == project_id))
+    ).scalar_one_or_none()
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -65,8 +65,10 @@ def _resolve_upload_path(relative_path: str | None) -> Path | None:
 
 async def _get_project_dxf_files(db: AsyncSession, project_id: int) -> list[Path]:
     blueprints = (
-        await db.execute(select(Blueprint).where(Blueprint.id_project == project_id))
-    ).scalars().all()
+        (await db.execute(select(Blueprint).where(Blueprint.id_project == project_id)))
+        .scalars()
+        .all()
+    )
 
     dxf_files: list[Path] = []
     for blueprint in blueprints:
@@ -86,25 +88,37 @@ async def _get_project_dxf_files(db: AsyncSession, project_id: int) -> list[Path
 
 async def _latest_report(db: AsyncSession, project_id: int) -> Report | None:
     return (
-        await db.execute(
-            select(Report)
-            .where(Report.id_project == project_id)
-            .order_by(Report.id.desc())
+        (
+            await db.execute(
+                select(Report)
+                .where(Report.id_project == project_id)
+                .order_by(Report.id.desc())
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
 
 
-async def _latest_specification(db: AsyncSession, project_id: int) -> Specification | None:
+async def _latest_specification(
+    db: AsyncSession, project_id: int
+) -> Specification | None:
     return (
-        await db.execute(
-            select(Specification)
-            .where(Specification.id_project == project_id)
-            .order_by(Specification.id.desc())
+        (
+            await db.execute(
+                select(Specification)
+                .where(Specification.id_project == project_id)
+                .order_by(Specification.id.desc())
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
 
 
-async def _save_report_path(db: AsyncSession, project_id: int, relative_path: str) -> Report:
+async def _save_report_path(
+    db: AsyncSession, project_id: int, relative_path: str
+) -> Report:
     report = await _latest_report(db, project_id)
 
     if report:

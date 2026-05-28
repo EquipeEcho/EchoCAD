@@ -2,7 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.projeto_db import Specification
 
 
-async def criar_especificacao(db: AsyncSession, path: str, id_project: int) -> Specification:
+async def criar_especificacao(
+    db: AsyncSession, path: str, id_project: int
+) -> Specification:
     """
     Cria e salva uma nova instância da Especificação Técnica no banco de dados.
     """

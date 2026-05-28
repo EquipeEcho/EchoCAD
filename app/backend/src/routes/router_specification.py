@@ -70,7 +70,9 @@ async def gerar_especificacoes_route(
 
         # ---- Salvar no banco de dados ----
         try:
-            await criar_especificacao(db=db, path=str(arquivo_gerado), id_project=id_project)
+            await criar_especificacao(
+                db=db, path=str(arquivo_gerado), id_project=id_project
+            )
             logger.info(
                 f"Especificação gerada e vinculada ao projeto {id_project} com sucesso."
             )

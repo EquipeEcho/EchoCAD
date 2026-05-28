@@ -17,7 +17,9 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.post(
     "/login", status_code=status.HTTP_200_OK, response_model=TokenResponseSchema
 )
-async def route_login(request: Request, session: AsyncSession = Depends(get_async_session)):
+async def route_login(
+    request: Request, session: AsyncSession = Depends(get_async_session)
+):
     """
     Endpoint para autenticação de usuários.
     Aceita tanto JSON quanto form-encoded data.
@@ -36,7 +38,11 @@ async def route_login(request: Request, session: AsyncSession = Depends(get_asyn
             or "multipart/form-data" in content_type
         ):
             body = await request.form()
-            email = str(body.get("email")) if body.get("email") else str(body.get("username"))
+            email = (
+                str(body.get("email"))
+                if body.get("email")
+                else str(body.get("username"))
+            )
             password = str(body.get("password"))
         else:
             # Tenta JSON por padrão
