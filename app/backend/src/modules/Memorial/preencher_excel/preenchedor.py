@@ -538,7 +538,25 @@ def main():
     caminho_json = base / 'dados_levantamento_teste.json'
 
     # procurar template na pasta atual, na pasta pai e na raiz do workspace
-    candidates = [base / 'model_memorial.xlsx', base.parent / 'model_memorial.xlsx', base.parent.parent / 'model_memorial.xlsx']
+    # suportar variações de nome como 'memorial_model.xlsx' e procura recursiva por arquivos contendo 'memorial'
+    candidates = [
+        base / 'model_memorial.xlsx',
+        base / 'memorial_model.xlsx',
+        base.parent / 'model_memorial.xlsx',
+        base.parent / 'memorial_model.xlsx',
+        base.parent.parent / 'model_memorial.xlsx',
+        base.parent.parent / 'memorial_model.xlsx',
+    ]
+
+    # acrescenta resultados de busca recursiva (rglob) nas pastas próximas
+    for root in (base, base.parent, base.parent.parent):
+        try:
+            for p in root.rglob('*memorial*.xlsx'):
+                candidates.append(p)
+        except Exception:
+            # em casos raros root pode ser None ou inacessível
+            pass
+
     caminho_template = next((p for p in candidates if p.exists()), None)
 
     if caminho_template is None:
