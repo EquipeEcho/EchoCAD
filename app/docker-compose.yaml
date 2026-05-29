@@ -61,9 +61,44 @@ services:
     depends_on:
       - backend
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    profiles:
+      - ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - echocad_network
+
+  ollama-model-puller:
+    image: curlimages/curl:latest
+    container_name: ollama_puller
+    profiles:
+      - ollama
+    depends_on:
+      - ollama
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: |
+      until curl -s http://ollama:11434/api/tags > /dev/null; do
+        echo 'Aguardando Ollama iniciar...'
+        sleep 5
+      done
+      echo 'Baixando modelo qwen2.5:7b...'
+      curl -X POST http://ollama:11434/api/pull -d '{"name": "qwen2.5:7b"}' && echo 'qwen2.5:7b OK'
+      echo 'Modelo qwen2.5:7b baixado com sucesso.'
+    restart: on-failure
+    networks:
+      - echocad_network
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: echocad_cloudflared
+    profiles:
+      - cloudflared
     restart: unless-stopped
     depends_on:
       - frontend
@@ -73,6 +108,7 @@ services:
 
 volumes:
   mariadb_data:
+  ollama_data:
 
 networks:
   echocad_network:
