@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -43,7 +44,7 @@ def _resolve_upload_path(relative_path: str | None) -> Path | None:
     if not relative_path:
         return None
 
-    safe_path = Path(relative_path)
+    safe_path = Path(relative_path.replace("\\", "/"))
     if safe_path.is_absolute() or ".." in safe_path.parts:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -284,7 +285,7 @@ def _report_to_payload(
             request.url_for("download_memorial_calculo", project_id=project.id)
         ),
         "path": report.path,
-        "extraction_path": str(drill_path.relative_to(UPLOADS_DIR))
+        "extraction_path": drill_path.relative_to(UPLOADS_DIR).as_posix()
         if drill_path
         else None,
         "resultado": json.dumps(
@@ -305,7 +306,7 @@ def _specification_to_payload(
     project: Project,
     specification_path: Path,
 ) -> dict[str, Any]:
-    relative_path = str(specification_path.relative_to(UPLOADS_DIR))
+    relative_path = specification_path.relative_to(UPLOADS_DIR).as_posix()
     return {
         "tipo": "especificacoes_tecnicas",
         "file_url": str(
@@ -330,6 +331,7 @@ async def _generate_specification(
     project: Project,
     dxf_file: Path,
     generated_dir: Path,
+    extracted_data: dict[str, Any] | None = None,
     api_key: str | None = None,
 ) -> Path:
     output_file = generated_dir / f"projeto_{project.id}_especificacoes_tecnicas.docx"
@@ -339,9 +341,10 @@ async def _generate_specification(
         output_path=str(output_file),
         nome_projeto=project.name,
         api_key=api_key,
+        drill_data=extracted_data,
     )
 
-    relative_output = str(arquivo_gerado.relative_to(UPLOADS_DIR))
+    relative_output = arquivo_gerado.relative_to(UPLOADS_DIR).as_posix()
     try:
         await _save_specification_path(db, project.id, relative_output)
     except Exception:
@@ -382,7 +385,12 @@ async def _generate_project_documents(
     specification_error: str | None = None
     try:
         specification_path = await _generate_specification(
-            db, project, dxf_file, generated_dir, api_key=groq_api_key
+            db,
+            project,
+            dxf_file,
+            generated_dir,
+            extracted_data=extracted_data,
+            api_key=groq_api_key,
         )
     except Exception as exc:
         await db.rollback()
@@ -420,19 +428,38 @@ async def process_project(
 
     async def event_stream():
         yield "data: Iniciando processamento do projeto...\n\n"
+        task = asyncio.create_task(
+            _generate_project_documents(db, project_id, request, groq_api_key)
+        )
+        elapsed = 0
         try:
-            result = await _generate_project_documents(
-                db, project_id, request, groq_api_key
-            )
+            while not task.done():
+                await asyncio.sleep(12)
+                elapsed += 12
+                yield (
+                    "data: Gerando especificacoes tecnicas com IA. "
+                    f"Ainda trabalhando... {elapsed}s\n\n"
+                )
+
+            result = await task
             yield "data: Memorial de calculo gerado com sucesso.\n\n"
             if any(item.get("tipo") == "especificacoes_tecnicas" for item in result):
                 yield "data: Especificacoes tecnicas geradas com sucesso.\n\n"
+            else:
+                yield (
+                    "data: Memorial gerado. As especificacoes tecnicas nao foram "
+                    "concluidas pela IA neste processamento.\n\n"
+                )
             yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
         except HTTPException as exc:
+            if not task.done():
+                task.cancel()
             yield f"data: ERRO: {exc.detail}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as exc:
+            if not task.done():
+                task.cancel()
             await db.rollback()
             yield f"data: ERRO: Falha ao processar projeto: {exc}\n\n"
             yield "data: [DONE]\n\n"

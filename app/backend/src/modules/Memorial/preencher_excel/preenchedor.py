@@ -729,7 +729,10 @@ def popular_excel(caminho_excel, dados):
 
     # Levantamento Campo
     sheet_l = _criar_sheet(workbook, 'Levantamento Campo')
-    popular_levantamento_campo(sheet_l, dados.get('levantamento_campo', []))
+    levantamento_campo = dados.get('levantamento_campo', dados)
+    if not isinstance(levantamento_campo, dict):
+        levantamento_campo = dados
+    popular_levantamento_campo(sheet_l, levantamento_campo)
 
     # Serviços preliminares
     sheet_sp = _criar_sheet(workbook, 'Serviços Preliminares')
@@ -757,7 +760,7 @@ def popular_excel(caminho_excel, dados):
 
     # Salva
     workbook.save(caminho_excel)
-    print(f"✓ Planilha atualizada: {caminho_excel}")
+    print(f"Planilha atualizada: {caminho_excel}")
 
 
 def main():
@@ -836,7 +839,7 @@ def main():
     # salva diretamente no arquivo template (sobrescreve)
     try:
         workbook.save(str(caminho_template))
-        print(f"✓ Template atualizado: {caminho_template}")
+        print(f"Template atualizado: {caminho_template}")
     except PermissionError:
         # provavelmente o arquivo está aberto no Excel — salvar cópia alternativa
         alt_path = caminho_template.with_name(caminho_template.stem + '_out' + caminho_template.suffix)

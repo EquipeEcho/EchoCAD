@@ -67,6 +67,7 @@ async def gerar_especificacoes_route(
             dxf_file=str(file_path),
             output_path=str(output_path),
             nome_projeto=nome_projeto,
+            api_key=settings.GROQ_API_KEY,
         )
 
         # ---- Salvar no banco de dados ----
@@ -98,7 +99,7 @@ async def gerar_especificacoes_route(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erro ao gerar especificações: {e}", exc_info=True)
+        logger.error(f"Erro detalhado ao gerar especificações: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao processar arquivo: {str(e)}",
