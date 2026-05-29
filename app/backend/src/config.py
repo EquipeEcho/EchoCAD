@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
     GROQ_API_KEY: str = Field(default="")
+    SINAPI_UPLOAD_DIR: str = "./sinapi"
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf_8", extra="ignore"
