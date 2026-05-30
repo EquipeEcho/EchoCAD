@@ -975,6 +975,109 @@ def popular_acabamentos(sheet, acabamentos):
         rf += 1
 
 
+    def popular_alvenarias(sheet, alvenarias):
+        """Preenche a aba 'Alvenarias' conforme mapeamento fornecido."""
+        def fill_rows(start, end, items, mapping):
+            rows = list(range(start, end + 1))
+            for idx, it in enumerate(items):
+                if idx >= len(rows):
+                    break
+                r = rows[idx]
+                for key, col in mapping.items():
+                    # suporta chaves aninhadas com ponto
+                    cur = it
+                    val = None
+                    for part in key.split('.'):
+                        if isinstance(cur, dict):
+                            cur = cur.get(part)
+                        else:
+                            cur = None
+                            break
+                    val = cur
+                    set_cell(sheet, r, col, val)
+
+        # Parte 1: rows 10..29
+        part1 = alvenarias.get('parte1', [])
+        fill_rows(10, 29, part1, {
+            'ambiente': 2,
+            # Painéis em Alvenaria
+            'painel_alvenaria.peca': 5, 'painel_alvenaria.c': 6, 'painel_alvenaria.l': 7, 'painel_alvenaria.h': 8,
+            'painel_alvenaria.vaos': 9, 'painel_alvenaria.a': 10,
+            # Gesso Acartonado
+            'gesso.peca': 11, 'gesso.c': 12, 'gesso.l': 13, 'gesso.h': 14, 'gesso.vaos': 15, 'gesso.a': 16,
+            # Cobogó / Blocos de vidro
+            'cobogo.peca': 17, 'cobogo.c': 18, 'cobogo.l': 19, 'cobogo.h': 20, 'cobogo.vaos': 21,
+            'cobogo.a1': 22, 'cobogo.a2': 23, 'cobogo.a3': 24, 'cobogo.a4': 25
+        })
+
+        # Parte 2: rows 36..55
+        part2 = alvenarias.get('parte2', [])
+        fill_rows(36, 55, part2, {
+            'ambiente': 2, 'peca': 5, 'qtd.verga': 6, 'qtd.c_verga': 7,
+            'l': 8, 'c': 9, 'h': 10, 'engastamento': 11, 'concreto': 12, 'ferragem': 13
+        })
+
+        # Parte 3: rows 63..81
+        part3 = alvenarias.get('parte3', [])
+        fill_rows(63, 81, part3, {
+            'ambiente': 2,
+            'guias.local': 5, 'guias.l': 6, 'guias.h': 7, 'guias.c': 8, 'guias.concreto': 9,
+            'calcadas.local': 10, 'calcadas.l': 11, 'calcadas.h': 12, 'calcadas.e': 13, 'calcadas.c': 14, 'calcadas.a': 15, 'calcadas.concreto': 16
+        })
+
+        # Parte 4: rows 89..108
+        part4 = alvenarias.get('parte4', [])
+        fill_rows(89, 108, part4, {
+            'ambiente': 2, 'local': 5,
+            'dimensoes.c_proj': 6, 'dimensoes.c_real': 7, 'dimensoes.l': 8, 'dimensoes.h': 9, 'dimensoes.i_pct': 10,
+            'piso.e': 11, 'piso.a': 12, 'piso.concreto': 13,
+            'parede_contencao.l': 14, 'parede_contencao.h': 15, 'parede_contencao.c': 16, 'parede_contencao.a': 17, 'parede_contencao.concreto': 18,
+            'guia_balizamento.l': 19, 'guia_balizamento.h': 20,
+            'armacao.ferragem': 21, 'armacao.estribo': 22,
+            'forma_madeira.h': 23, 'forma_madeira.c': 24, 'forma_madeira.a': 25
+        })
+
+        # Parte 5: rows 140..157
+        part5 = alvenarias.get('parte5', [])
+        fill_rows(140, 157, part5, {
+            'ambiente': 2, 'local': 5, 'peca': 6,
+            'material_fechamento.c': 7, 'material_fechamento.h': 8, 'material_fechamento.a': 9,
+            'mouroes.qtd': 10, 'mouroes.c': 11, 'mouroes.h': 12,
+            'esticador.qtd': 13, 'esticador.c': 14, 'esticador.h': 15,
+            'concertina.c': 16
+        })
+
+        # Parte 6: rows 165..184
+        part6 = alvenarias.get('parte6', [])
+        fill_rows(165, 184, part6, {
+            'ambiente': 2, 'local': 5,
+            'apicoamento.h': 6, 'apicoamento.c': 7, 'apicoamento.a': 8,
+            'chapisco.h': 9, 'chapisco.c': 10, 'chapisco.a': 11,
+            'emboço_pintura.h': 12, 'emboço_pintura.c': 13, 'emboço_pintura.a': 14,
+            'emboço_revestimento.h': 15, 'emboço_revestimento.c': 16, 'emboço_revestimento.a': 17
+        })
+
+        # Parte 7: rows 192..211
+        part7 = alvenarias.get('parte7', [])
+        fill_rows(192, 211, part7, {
+            'ambiente': 2, 'local': 5,
+            'lastros.l': 6, 'lastros.c': 7, 'lastros.e': 8, 'lastros.v': 9,
+            'contrapisos.l': 10, 'contrapisos.e': 11, 'contrapisos.c': 12, 'contrapisos.v': 13, 'contrapisos.ferragem': 14,
+            'juntas_dilatacao.l': 15, 'juntas_dilatacao.h': 16, 'juntas_dilatacao.c': 17
+        })
+
+        # Parte 9: rows 245..264
+        part9 = alvenarias.get('parte9', [])
+        fill_rows(245, 264, part9, {
+            'ambiente': 2, 'local': 5,
+            'estruturas.l': 6, 'estruturas.h': 7,
+            'estruturas.secao.c': 8, 'estruturas.secao.l': 9, 'estruturas.secao.h': 10, 'estruturas.a_tot': 11,
+            'pisos.secao.c': 12, 'pisos.secao.l': 13, 'pisos.secao.h': 14, 'pisos.per': 15, 'pisos.a_tot': 16,
+            'paredes.secao.c': 17, 'paredes.secao.l': 18, 'paredes.secao.h': 19, 'paredes.per': 20, 'paredes.a_tot': 21
+        })
+
+
+
 def popular_instalacoes(sheet, instalacoes):
     # Instalações elétricas
     sheet.cell(row=1, column=2, value='Instalações Elétricas - Local')
@@ -1032,6 +1135,10 @@ def popular_excel(caminho_excel, dados):
     # Acabamentos
     sheet_a = _criar_sheet(workbook, 'Acabamentos')
     popular_acabamentos(sheet_a, dados.get('acabamentos', {}))
+
+    # Alvenarias
+    sheet_al = _criar_sheet(workbook, 'Alvenarias')
+    popular_alvenarias(sheet_al, dados.get('alvenarias', {}))
 
     # Instalações
     sheet_i = _criar_sheet(workbook, 'Instalacoes')
@@ -1110,6 +1217,10 @@ def main():
     # Acabamentos
     sheet_a = _criar_sheet(workbook, 'Acabamentos')
     popular_acabamentos(sheet_a, dados.get('acabamentos', {}))
+
+    # Alvenarias
+    sheet_al = _criar_sheet(workbook, 'Alvenarias')
+    popular_alvenarias(sheet_al, dados.get('alvenarias', {}))
 
     # Instalações
     sheet_i = _criar_sheet(workbook, 'Instalacoes')
