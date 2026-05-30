@@ -442,16 +442,299 @@ def popular_movimento_solo(sheet, lista):
 
 
 def popular_estruturas(sheet, estruturas):
-    sheet.cell(row=1, column=2, value='Sistema Viga Baldrame - Peças')
-    r = 2
-    for it in estruturas.get('sistema_viga_baldrame', []):
-        sheet.cell(row=r, column=2, value=it.get('ambiente'))
-        sheet.cell(row=r, column=3, value=it.get('peca'))
-        sheet.cell(row=r, column=4, value=it.get('secao'))
-        sheet.cell(row=r, column=5, value=it.get('lastro'))
-        sheet.cell(row=r, column=6, value=it.get('concreto'))
-        sheet.cell(row=r, column=7, value=it.get('ferragem'))
-        r += 1
+    """Preenche a aba Estruturas dividida em várias partes com ranges fixos.
+
+    O parâmetro `estruturas` deve ser um dict contendo listas para cada parte.
+    Procura chaves 'parte1'..'parte25' e cai em fallback genérico quando não existirem.
+    """
+
+    def get_nested(d, path, default=None):
+        if not d or not path:
+            return default
+        cur = d
+        for p in path.split('.'):
+            if not isinstance(cur, dict):
+                return default
+            cur = cur.get(p, default)
+        return cur
+
+    def fill_range(start_row, end_row, data_list, mapping):
+        rows = list(range(start_row, end_row + 1))
+        for idx, item in enumerate(data_list):
+            if idx >= len(rows):
+                break
+            r = rows[idx]
+            for key, col in mapping.items():
+                val = get_nested(item, key)
+                set_cell(sheet, r, col, val)
+
+    # Helper to get list for a part with fallbacks
+    def part_list(name):
+        return estruturas.get(name) or estruturas.get(name.replace('parte', 'parte_')) or estruturas.get(name.replace('parte', 'p')) or estruturas.get('itens', []) or estruturas.get('lista', []) or []
+
+    # Parte 1: B12..B31 (rows 12..31)
+    fill_range(12, 31, part_list('parte1'), {
+        'ambiente': 2,
+        'peca': 5,
+        'secao.l': 6,
+        'secao.h': 7,
+        'c': 8,
+        'lastro': 9,
+        'concreto': 10,
+        'ferragem': 11,
+        'estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 2: rows 39..58
+    fill_range(39, 58, part_list('parte2'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 3: rows 66..85
+    fill_range(66, 85, part_list('parte3'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 4: rows 93..112
+    fill_range(93, 112, part_list('parte4'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 5: rows 120..139
+    fill_range(120, 139, part_list('parte5'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 6: rows 147..166
+    fill_range(147, 166, part_list('parte6'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 7: rows 176..195 (note: janela lança/o at col O -> 15)
+    fill_range(176, 195, part_list('parte7'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 8: rows 203..222
+    fill_range(203, 222, part_list('parte8'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 9: rows 230..249
+    fill_range(230, 249, part_list('parte9'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 10: rows 257..276
+    fill_range(257, 276, part_list('parte10'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 11: rows 284..303
+    fill_range(284, 303, part_list('parte11'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 12: rows 311..330
+    fill_range(311, 330, part_list('parte12'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 13: rows 338..357
+    fill_range(338, 357, part_list('parte13'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 14: rows 375..394
+    fill_range(375, 394, part_list('parte14'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 15: rows 402..421
+    fill_range(402, 421, part_list('parte15'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 16: rows 429..448
+    fill_range(429, 448, part_list('parte16'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 17..25: estruturas com perfil/ seção/ peso e equipamento de apoio (rows vary)
+    part_defs = [
+        ('parte17', 458, 477), ('parte18', 485, 504), ('parte19', 512, 531), ('parte20', 539, 558),
+        ('parte21', 566, 585), ('parte22', 593, 612), ('parte23', 620, 639), ('parte24', 647, 666),
+        ('parte25', 675, 691)
+    ]
+    for name, start, end in part_defs:
+        fill_range(start, end, part_list(name), {
+            'ambiente': 2,
+            'peca': 5,
+            'h': 6 if name not in ('parte17',) else 6,  # h usually column F
+            'perfil': 7,
+            'secao.l': 8,
+            'secao.c': 9,
+            'peso': 10,
+            'elastometro': 11,
+            'equipamento_apoi.h': 12,
+            'equipamento_apoi.c': 13,
+            'equipamento_apoi.e': 14,
+            'equipamento_apoi.a': 15,
+            'equipamento_apoi.peso': 16,
+        })
+
 
 
 def popular_acabamentos(sheet, acabamentos):

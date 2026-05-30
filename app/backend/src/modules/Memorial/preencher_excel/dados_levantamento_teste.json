@@ -206,4 +206,153 @@
       {"ambiente": "Ambiente 3", "tipo": "Nivelamento simples", "i_pct": 0.0, "l_m": 4.5, "c_m": 3.5, "h_m": 0.1, "lastro_m": 0.0, "area_m2": 15.75, "volume_m3": 1.575}
     ]
   }
+  ,
+  "acabamentos": {
+    "tabela_a": [
+      {
+        "ambiente": "Ambiente 1",
+        "piso": {
+          "tipo": "Cerâmica",
+          "dimensoes": {"e": 0.01, "c": 0.3, "l": 0.3, "a": 9.0},
+          "placa_ceramica": {"c": 0.3, "l": 0.3}
+        },
+        "soleiras": {"tipo": "Granito", "dimensoes": {"e": 0.02, "c": 0.1, "l": 0.9}},
+        "rodapes": {"tipo": "PVC", "dimensoes": {"h": 0.08, "c": 0.01, "l": 3.0, "a": 0.24}}
+      },
+      {
+        "ambiente": "Ambiente 2",
+        "piso": {"tipo": "Porcelanato", "dimensoes": {"e": 0.01, "c": 0.6, "l": 0.6, "a": 36.0}, "placa_ceramica": {"c": 0.6, "l": 0.6}},
+        "soleiras": {"tipo": "Alvenaria", "dimensoes": {"e": 0.02, "c": 0.12, "l": 1.0}},
+        "rodapes": {"tipo": "Madeira", "dimensoes": {"h": 0.10, "c": 0.02, "l": 4.0, "a": 0.4}}
+      }
+    ],
+    "tabela_b": [
+      {
+        "ambiente": "Ambiente 1",
+        "azulejos": {"tipo": "Cerâmica", "dimensoes": {"e": 0.01, "h": 0.2, "c": 0.3, "a": 6.0}, "placa": {"l": 0.3, "c": 0.2}},
+        "peitoris": {"tipo": "Concreto", "dimensoes": {"e": 0.02, "c": 0.5, "l": 1.2}},
+        "forros": {"tipo": "Drywall", "dimensoes": {"l": 2.4, "c": 1.2, "a": 2.88}, "placa": {"l": 1.2, "c": 0.6}}
+      }
+    ],
+    "tabela_c": [
+      {
+        "ambiente": "Ambiente 1",
+        "emassamento": {"h": 0.02, "per": 15, "a": {"parede": 30.0, "teto": 20.0}},
+        "lixamento": {"h": 0.005, "per": 10, "a": {"parede": 30.0, "teto": 20.0}},
+        "selamento": {"h": 0.003, "per": 5, "a": {"parede": 30.0, "teto": 20.0}},
+        "pintura_acrilica": {"a": {"parede": 30.0, "teto": 20.0, "piso": 0.0, "pilar": 5.0}},
+        "pintura_esmalte": {"a": {"portas": 6.0, "janelas": 4.0, "grades": 2.0}}
+      }
+    ],
+    "tabela_d": [
+      {
+        "ambiente": "Ambiente 1",
+        "portas": {"pa": "P1", "qtd": 2, "l": 0.9, "h": 2.1, "e": 0.04, "a": 3.78},
+        "janelas": {"jv": "J1", "qtd": 2, "l": 1.2, "h": 1.0, "e": 0.04, "a": 2.4},
+        "telas": {"l": 1.0, "h": 1.0, "qtd": 1, "a": 1.0},
+        "vidros": {"l": 1.2, "h": 1.0, "qtd": 2, "a": 2.4},
+        "venezianas": {"peca": "V1", "l": 1.0, "h": 0.8, "qtd": 1, "a": 0.8},
+        "protetores_canto": {"l": 0.2, "e": 0.02, "c": 0.01},
+        "protetores_parede": {"l": 2.0, "e": 0.03, "c": 0.02},
+        "grades": {"tipo": "Aço", "a": 10.0, "malha": "10x10", "e": 0.02, "afastamento": {"janela": 0.15, "alvenaria": 0.10}}
+      }
+    ],
+    "tabela_e": [
+      {
+        "ambiente": "Ambiente 1",
+        "acessorios": {"bacias": 2, "mictorios": 0, "lavatórios": 2, "cubas": 1, "tanques": 1, "torneiras": 5},
+        "barras_apoio": {"qtd": 2, "c": 1.2, "diametro": 0.03, "h_piso": 0.8},
+        "corrimaos": {"qtd": 1, "c": 2.5, "diametro": 0.04, "h_piso": 0.9}
+      }
+    ],
+    "tabela_e2": [
+      {
+        "ambiente": "Ambiente 1",
+        "bancadas": {"dimensoes": {"a": 1.2, "h": 0.9}, "tampo": {"l": 1.2, "c": 0.6, "e": 0.03}, "frontao": {"l": 1.2, "c": 0.2, "e": 0.02}, "saia": {"l": 1.2, "c": 0.6, "e": 0.02}},
+        "divisoes": {"tipo": "PVC", "qtd": 2, "peca": {"c": 0.6, "h": 2.0, "a": 1.2}, "portas": {"l": 0.8, "h": 2.1, "a": 1.68}},
+        "boxes": {"tipo": "Vidro", "qtd": 1, "peca": {"l": 0.8, "c": 0.9, "e": 0.01}, "sobreposicao": 0.05, "a": 0.72}
+      }
+    ],
+    "tabela_f": [
+      {"ambiente": "Ambiente 1", "mobiliario": {"tipo": "Balcão", "dimensoes": {"h": 0.9, "l": 1.2, "c": 0.6}, "a": 0.72}}
+    ]
+  }
+  ,
+  "estruturas": {
+    "parte1": [
+      {"ambiente": "Ambiente 1", "peca": "Viga P1", "secao": {"l": 0.30, "h": 0.50}, "c": 0.20, "lastro": 0.15, "concreto": 1.2, "ferragem": 180.0, "estribo": 12.0, "forma_madeira": {"l": 2.5, "c": 0.25}}
+    ],
+    "parte2": [
+      {"ambiente": "Ambiente 1", "peca": "Pilar P1", "valores_por_peca": {"l": 0.30, "h": 3.00, "c": 0.30}, "valores_totais": {"lastro": 0.27, "concreto": 0.9, "ferragem": 60.0, "estribo": 6.0}, "forma_madeira": {"l": 2.0, "c": 0.2}}
+    ],
+    "parte3": [
+      {"ambiente": "Ambiente 2", "peca": "Viga V1", "valores_por_peca": {"l": 4.0, "h": 0.4, "c": 0.2}, "valores_totais": {"lastro": 1.6, "concreto": 0.9, "ferragem": 120.0, "estribo": 8.0}, "forma_madeira": {"l": 3.0, "c": 0.3}}
+    ],
+    "parte4": [
+      {"ambiente": "Ambiente 3", "peca": "Laje L1", "valores_por_peca": {"l": 5.0, "h": 0.12, "c": 4.0}, "valores_totais": {"lastro": 0.6, "concreto": 20.0, "ferragem": 250.0, "estribo": 0.0}, "forma_madeira": {"l": 4.5, "c": 0.5}}
+    ],
+    "parte5": [
+      {"ambiente": "Ambiente 4", "peca": "Baldrame B1", "valores_por_peca": {"l": 2.5, "h": 0.5, "c": 0.3}, "valores_totais": {"lastro": 0.4, "concreto": 1.8, "ferragem": 90.0, "estribo": 10.0}, "forma_madeira": {"l": 1.8, "c": 0.2}}
+    ],
+    "parte6": [
+      {"ambiente": "Ambiente 5", "peca": "Pilar P2", "valores_por_peca": {"l": 0.25, "h": 3.0, "c": 0.25}, "valores_totais": {"lastro": 0.16, "concreto": 0.75, "ferragem": 55.0, "estribo": 5.0}, "forma_madeira": {"l": 2.0, "c": 0.2}}
+    ],
+    "parte7": [
+      {"ambiente": "Ambiente 6", "peca": "Viga V2", "l": 4.0, "h": 0.35, "c": 0.2, "concreto": 1.4, "ferragem": 110.0, "estribo": 9.0, "forma_madeira": {"c": 0.3, "l": 3.0}, "janela_lanca": 0.5}
+    ],
+    "parte8": [
+      {"ambiente": "Ambiente 7", "peca": "Viga V3", "l": 3.5, "h": 0.3, "c": 0.18, "concreto": 1.0, "ferragem": 95.0, "estribo": 8.0, "forma_madeira": {"c": 0.28, "l": 2.8}, "janela_lanca": 0.45}
+    ],
+    "parte9": [
+      {"ambiente": "Ambiente 8", "peca": "Pilar P3", "l": 0.3, "h": 3.2, "c": 0.3, "concreto": 0.9, "ferragem": 140.0, "estribo": 12.0, "forma_madeira": {"c": 0.25, "l": 2.5}, "janela_lanca": 0.0}
+    ],
+    "parte10": [
+      {"ambiente": "Ambiente 9", "peca": "Laje L2", "l": 6.0, "h": 0.12, "c": 5.0, "concreto": 30.0, "ferragem": 360.0, "estribo": 0.0, "forma_madeira": {"c": 0.5, "l": 5.0}, "janela_lanca": 0.0}
+    ],
+    "parte11": [
+      {"ambiente": "Ambiente 10", "peca": "Viga V4", "l": 4.2, "h": 0.4, "c": 0.22, "concreto": 2.0, "ferragem": 150.0, "estribo": 11.0, "forma_madeira": {"c": 0.3, "l": 3.2}, "janela_lanca": 0.6}
+    ],
+    "parte12": [
+      {"ambiente": "Ambiente 11", "peca": "Pilar P4", "l": 0.35, "h": 3.0, "c": 0.35, "concreto": 0.4, "ferragem": 80.0, "estribo": 7.0, "forma_madeira": {"c": 0.35, "l": 2.6}, "janela_lanca": 0.0}
+    ],
+    "parte13": [
+      {"ambiente": "Ambiente 12", "peca": "Viga V5", "l": 5.0, "h": 0.45, "c": 0.25, "concreto": 2.8, "ferragem": 200.0, "estribo": 14.0, "forma_madeira": {"c": 0.4, "l": 4.0}, "janela_lanca": 0.55}
+    ],
+    "parte14": [
+      {"ambiente": "Ambiente 13", "peca": "Laje L3", "l": 5.5, "h": 0.12, "c": 4.5, "concreto": 26.0, "ferragem": 300.0, "estribo": 0.0, "forma_madeira": {"c": 0.45, "l": 4.5}, "janela_lanca": 0.0}
+    ],
+    "parte15": [
+      {"ambiente": "Ambiente 14", "peca": "Pilar P5", "l": 0.28, "h": 3.2, "c": 0.28, "concreto": 0.35, "ferragem": 70.0, "estribo": 6.5, "forma_madeira": {"c": 0.25, "l": 2.2}, "janela_lanca": 0.0}
+    ],
+    "parte16": [
+      {"ambiente": "Ambiente 15", "peca": "Viga V6", "l": 4.8, "h": 0.4, "c": 0.22, "concreto": 2.2, "ferragem": 160.0, "estribo": 12.0, "forma_madeira": {"c": 0.32, "l": 3.6}, "janela_lanca": 0.5}
+    ],
+    "parte17": [
+      {"ambiente": "Ambiente 16", "peca": "Perfil PR1", "h": 0.5, "perfil": 2.5, "secao": {"l": 0.12, "c": 0.08}, "peso": 25.0, "elastometro": 0.02, "equipamento_apoi": {"h": 0.2, "c": 0.3, "e": 0.01, "a": 0.06, "peso": 5.0}}
+    ],
+    "parte18": [
+      {"ambiente": "Ambiente 17", "peca": "Perfil PR2", "h": 0.45, "perfil": 2.0, "secao": {"l": 0.10, "c": 0.06}, "peso": 18.0, "elastometro": 0.015, "equipamento_apoi": {"h": 0.15, "c": 0.25, "e": 0.01, "a": 0.04, "peso": 3.0}}
+    ],
+    "parte19": [
+      {"ambiente": "Ambiente 18", "peca": "Perfil PR3", "h": 0.6, "perfil": 3.0, "secao": {"l": 0.14, "c": 0.09}, "peso": 30.0, "elastometro": 0.03, "equipamento_apoi": {"h": 0.25, "c": 0.35, "e": 0.02, "a": 0.08, "peso": 6.0}}
+    ],
+    "parte20": [
+      {"ambiente": "Ambiente 1", "peca": "Perfil PR4", "h": 0.4, "perfil": 1.8, "secao": {"l": 0.09, "c": 0.05}, "peso": 15.0, "elastometro": 0.012, "equipamento_apoi": {"h": 0.12, "c": 0.2, "e": 0.01, "a": 0.03, "peso": 2.5}}
+    ],
+    "parte21": [
+      {"ambiente": "Ambiente 2", "peca": "Perfil PR5", "h": 0.55, "perfil": 2.6, "secao": {"l": 0.11, "c": 0.07}, "peso": 22.0, "elastometro": 0.02, "equipamento_apoi": {"h": 0.18, "c": 0.28, "e": 0.015, "a": 0.05, "peso": 4.0}}
+    ],
+    "parte22": [
+      {"ambiente": "Ambiente 3", "peca": "Perfil PR6", "h": 0.48, "perfil": 2.2, "secao": {"l": 0.10, "c": 0.06}, "peso": 19.0, "elastometro": 0.018, "equipamento_apoi": {"h": 0.16, "c": 0.26, "e": 0.012, "a": 0.045, "peso": 3.5}}
+    ],
+    "parte23": [
+      {"ambiente": "Ambiente 4", "peca": "Perfil PR7", "h": 0.52, "perfil": 2.4, "secao": {"l": 0.105, "c": 0.065}, "peso": 21.0, "elastometro": 0.019, "equipamento_apoi": {"h": 0.17, "c": 0.27, "e": 0.013, "a": 0.048, "peso": 3.8}}
+    ],
+    "parte24": [
+      {"ambiente": "Ambiente 5", "peca": "Perfil PR8", "h": 0.46, "perfil": 2.1, "secao": {"l": 0.095, "c": 0.055}, "peso": 17.0, "elastometro": 0.014, "equipamento_apoi": {"h": 0.14, "c": 0.22, "e": 0.011, "a": 0.035, "peso": 3.0}}
+    ],
+    "parte25": [
+      {"ambiente": "Ambiente 6", "peca": "Perfil PR9", "h": 0.58, "perfil": 2.9, "secao": {"l": 0.13, "c": 0.085}, "peso": 28.0, "elastometro": 0.025, "equipamento_apoi": {"h": 0.22, "c": 0.33, "e": 0.02, "a": 0.072, "peso": 5.5}}
+    ]
+  }
 }
