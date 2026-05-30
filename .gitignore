@@ -1,5 +1,8 @@
 .env
 .vscode/
+.pytest_cache/
+.uploads/
+*.db
 .mcp.json
 output_teste/
 **/.ruff_cache/

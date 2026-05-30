@@ -134,6 +134,9 @@ export function ProcessingPage() {
               {title}
             </h1>
             <p className="processing-message__description">{description}</p>
+            {latestLog ? (
+              <p className="processing-message__log">{latestLog}</p>
+            ) : null}
           </div>
 
           {hasError || (!isAIProcessing && !isDone) ? (

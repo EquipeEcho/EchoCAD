@@ -102,6 +102,19 @@
   line-height: 1.7;
 }
 
+.processing-message__log {
+  max-width: 32rem;
+  margin: 0.35rem 0 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--color-blue) 14%);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .processing-actions {
   width: 100%;
   display: flex;

@@ -442,27 +442,640 @@ def popular_movimento_solo(sheet, lista):
 
 
 def popular_estruturas(sheet, estruturas):
-    sheet.cell(row=1, column=2, value='Sistema Viga Baldrame - Peças')
-    r = 2
-    for it in estruturas.get('sistema_viga_baldrame', []):
-        sheet.cell(row=r, column=2, value=it.get('ambiente'))
-        sheet.cell(row=r, column=3, value=it.get('peca'))
-        sheet.cell(row=r, column=4, value=it.get('secao'))
-        sheet.cell(row=r, column=5, value=it.get('lastro'))
-        sheet.cell(row=r, column=6, value=it.get('concreto'))
-        sheet.cell(row=r, column=7, value=it.get('ferragem'))
-        r += 1
+    """Preenche a aba Estruturas dividida em várias partes com ranges fixos.
+
+    O parâmetro `estruturas` deve ser um dict contendo listas para cada parte.
+    Procura chaves 'parte1'..'parte25' e cai em fallback genérico quando não existirem.
+    """
+
+    def get_nested(d, path, default=None):
+        if not d or not path:
+            return default
+        cur = d
+        for p in path.split('.'):
+            if not isinstance(cur, dict):
+                return default
+            cur = cur.get(p, default)
+        return cur
+
+    def fill_range(start_row, end_row, data_list, mapping):
+        rows = list(range(start_row, end_row + 1))
+        for idx, item in enumerate(data_list):
+            if idx >= len(rows):
+                break
+            r = rows[idx]
+            for key, col in mapping.items():
+                val = get_nested(item, key)
+                set_cell(sheet, r, col, val)
+
+    # Helper to get list for a part with fallbacks
+    def part_list(name):
+        return estruturas.get(name) or estruturas.get(name.replace('parte', 'parte_')) or estruturas.get(name.replace('parte', 'p')) or estruturas.get('itens', []) or estruturas.get('lista', []) or []
+
+    # Parte 1: B12..B31 (rows 12..31)
+    fill_range(12, 31, part_list('parte1'), {
+        'ambiente': 2,
+        'peca': 5,
+        'secao.l': 6,
+        'secao.h': 7,
+        'c': 8,
+        'lastro': 9,
+        'concreto': 10,
+        'ferragem': 11,
+        'estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 2: rows 39..58
+    fill_range(39, 58, part_list('parte2'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 3: rows 66..85
+    fill_range(66, 85, part_list('parte3'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 4: rows 93..112
+    fill_range(93, 112, part_list('parte4'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 5: rows 120..139
+    fill_range(120, 139, part_list('parte5'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 6: rows 147..166
+    fill_range(147, 166, part_list('parte6'), {
+        'ambiente': 2,
+        'peca': 5,
+        'valores_por_peca.l': 6,
+        'valores_por_peca.h': 7,
+        'valores_por_peca.c': 8,
+        'valores_totais.lastro': 9,
+        'valores_totais.concreto': 10,
+        'valores_totais.ferragem': 11,
+        'valores_totais.estribo': 12,
+        'forma_madeira.l': 13,
+        'forma_madeira.c': 14,
+    })
+
+    # Parte 7: rows 176..195 (note: janela lança/o at col O -> 15)
+    fill_range(176, 195, part_list('parte7'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 8: rows 203..222
+    fill_range(203, 222, part_list('parte8'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 9: rows 230..249
+    fill_range(230, 249, part_list('parte9'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 10: rows 257..276
+    fill_range(257, 276, part_list('parte10'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 11: rows 284..303
+    fill_range(284, 303, part_list('parte11'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 12: rows 311..330
+    fill_range(311, 330, part_list('parte12'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 13: rows 338..357
+    fill_range(338, 357, part_list('parte13'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 14: rows 375..394
+    fill_range(375, 394, part_list('parte14'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 15: rows 402..421
+    fill_range(402, 421, part_list('parte15'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 16: rows 429..448
+    fill_range(429, 448, part_list('parte16'), {
+        'ambiente': 2,
+        'peca': 5,
+        'l': 6,
+        'h': 7,
+        'c': 8,
+        'concreto': 9,
+        'ferragem': 10,
+        'estribo': 11,
+        'forma_madeira.c': 12,
+        'forma_madeira.l': 13,
+        'janela_lanca': 15,
+    })
+
+    # Parte 17..25: estruturas com perfil/ seção/ peso e equipamento de apoio (rows vary)
+    part_defs = [
+        ('parte17', 458, 477), ('parte18', 485, 504), ('parte19', 512, 531), ('parte20', 539, 558),
+        ('parte21', 566, 585), ('parte22', 593, 612), ('parte23', 620, 639), ('parte24', 647, 666),
+        ('parte25', 675, 691)
+    ]
+    for name, start, end in part_defs:
+        fill_range(start, end, part_list(name), {
+            'ambiente': 2,
+            'peca': 5,
+            'h': 6 if name not in ('parte17',) else 6,  # h usually column F
+            'perfil': 7,
+            'secao.l': 8,
+            'secao.c': 9,
+            'peso': 10,
+            'elastometro': 11,
+            'equipamento_apoi.h': 12,
+            'equipamento_apoi.c': 13,
+            'equipamento_apoi.e': 14,
+            'equipamento_apoi.a': 15,
+            'equipamento_apoi.peso': 16,
+        })
+
 
 
 def popular_acabamentos(sheet, acabamentos):
-    sheet.cell(row=1, column=2, value='Pisos - Peças')
-    r = 2
-    for it in acabamentos.get('pisos', []):
-        sheet.cell(row=r, column=2, value=it.get('ambiente'))
-        sheet.cell(row=r, column=3, value=it.get('peca'))
-        sheet.cell(row=r, column=4, value=it.get('placa_ceramica'))
-        sheet.cell(row=r, column=5, value=it.get('a'))
-        r += 1
+    # aceita estruturas diferentes: chave principal pode ser 'tabela_a'..'tabela_f'
+    # Tabela A: linhas 8..27
+    rows_a = list(range(8, 28))
+    tabela_a = acabamentos.get('tabela_a', acabamentos.get('pisos', []))
+    ra = 0
+    for reg in tabela_a:
+        if ra >= len(rows_a):
+            break
+        r = rows_a[ra]
+        set_cell(sheet, r, 2, reg.get('ambiente'))
+        # Piso
+        set_cell(sheet, r, 5, reg.get('piso', {}).get('tipo'))
+        set_cell(sheet, r, 6, reg.get('piso', {}).get('dimensoes', {}).get('e'))
+        set_cell(sheet, r, 7, reg.get('piso', {}).get('dimensoes', {}).get('c'))
+        set_cell(sheet, r, 8, reg.get('piso', {}).get('dimensoes', {}).get('l'))
+        set_cell(sheet, r, 9, reg.get('piso', {}).get('dimensoes', {}).get('a'))
+        set_cell(sheet, r, 10, reg.get('piso', {}).get('placa_ceramica', {}).get('c'))
+        set_cell(sheet, r, 11, reg.get('piso', {}).get('placa_ceramica', {}).get('l'))
+        # Soleiras
+        set_cell(sheet, r, 12, reg.get('soleiras', {}).get('tipo'))
+        set_cell(sheet, r, 13, reg.get('soleiras', {}).get('dimensoes', {}).get('e'))
+        set_cell(sheet, r, 14, reg.get('soleiras', {}).get('dimensoes', {}).get('c'))
+        set_cell(sheet, r, 15, reg.get('soleiras', {}).get('dimensoes', {}).get('l'))
+        # Rodapés
+        set_cell(sheet, r, 16, reg.get('rodapes', {}).get('tipo'))
+        set_cell(sheet, r, 17, reg.get('rodapes', {}).get('dimensoes', {}).get('h'))
+        set_cell(sheet, r, 18, reg.get('rodapes', {}).get('dimensoes', {}).get('c'))
+        set_cell(sheet, r, 19, reg.get('rodapes', {}).get('dimensoes', {}).get('l'))
+        set_cell(sheet, r, 20, reg.get('rodapes', {}).get('dimensoes', {}).get('a'))
+        ra += 1
+
+    # Tabela B: linhas 35..54
+    rows_b = list(range(35, 55))
+    tabela_b = acabamentos.get('tabela_b', [])
+    rb = 0
+    for reg in tabela_b:
+        if rb >= len(rows_b):
+            break
+        r = rows_b[rb]
+        set_cell(sheet, r, 2, reg.get('ambiente'))
+        # Azulejos e Rodabancas
+        set_cell(sheet, r, 5, reg.get('azulejos', {}).get('tipo'))
+        set_cell(sheet, r, 6, reg.get('azulejos', {}).get('dimensoes', {}).get('e'))
+        set_cell(sheet, r, 7, reg.get('azulejos', {}).get('dimensoes', {}).get('h'))
+        set_cell(sheet, r, 8, reg.get('azulejos', {}).get('dimensoes', {}).get('c'))
+        set_cell(sheet, r, 9, reg.get('azulejos', {}).get('dimensoes', {}).get('a'))
+        set_cell(sheet, r, 10, reg.get('azulejos', {}).get('placa', {}).get('l'))
+        set_cell(sheet, r, 11, reg.get('azulejos', {}).get('placa', {}).get('c'))
+        # Peitoris
+        set_cell(sheet, r, 12, reg.get('peitoris', {}).get('tipo'))
+        set_cell(sheet, r, 13, reg.get('peitoris', {}).get('dimensoes', {}).get('e'))
+        set_cell(sheet, r, 14, reg.get('peitoris', {}).get('dimensoes', {}).get('c'))
+        set_cell(sheet, r, 15, reg.get('peitoris', {}).get('dimensoes', {}).get('l'))
+        # Forros
+        set_cell(sheet, r, 16, reg.get('forros', {}).get('tipo'))
+        set_cell(sheet, r, 17, reg.get('forros', {}).get('dimensoes', {}).get('l'))
+        set_cell(sheet, r, 18, reg.get('forros', {}).get('dimensoes', {}).get('c'))
+        set_cell(sheet, r, 19, reg.get('forros', {}).get('dimensoes', {}).get('a'))
+        set_cell(sheet, r, 20, reg.get('forros', {}).get('placa', {}).get('l'))
+        set_cell(sheet, r, 21, reg.get('forros', {}).get('placa', {}).get('c'))
+        rb += 1
+
+    # Tabela C: linhas 61..80
+    rows_c = list(range(61, 81))
+    tabela_c = acabamentos.get('tabela_c', [])
+    rc = 0
+    for reg in tabela_c:
+        if rc >= len(rows_c):
+            break
+        r = rows_c[rc]
+        set_cell(sheet, r, 2, reg.get('ambiente'))
+        # Emassamento
+        set_cell(sheet, r, 5, reg.get('emassamento', {}).get('h'))
+        set_cell(sheet, r, 6, reg.get('emassamento', {}).get('per'))
+        set_cell(sheet, r, 7, reg.get('emassamento', {}).get('a', {}).get('parede'))
+        set_cell(sheet, r, 8, reg.get('emassamento', {}).get('a', {}).get('teto'))
+        # Lixamento
+        set_cell(sheet, r, 9, reg.get('lixamento', {}).get('h'))
+        set_cell(sheet, r, 10, reg.get('lixamento', {}).get('per'))
+        set_cell(sheet, r, 11, reg.get('lixamento', {}).get('a', {}).get('parede'))
+        set_cell(sheet, r, 12, reg.get('lixamento', {}).get('a', {}).get('teto'))
+        # Selamento
+        set_cell(sheet, r, 13, reg.get('selamento', {}).get('h'))
+        set_cell(sheet, r, 14, reg.get('selamento', {}).get('per'))
+        set_cell(sheet, r, 15, reg.get('selamento', {}).get('a', {}).get('parede'))
+        set_cell(sheet, r, 16, reg.get('selamento', {}).get('a', {}).get('teto'))
+        # Pintura Acrílica
+        set_cell(sheet, r, 17, reg.get('pintura_acrilica', {}).get('a', {}).get('parede'))
+        set_cell(sheet, r, 18, reg.get('pintura_acrilica', {}).get('a', {}).get('teto'))
+        set_cell(sheet, r, 19, reg.get('pintura_acrilica', {}).get('a', {}).get('piso'))
+        set_cell(sheet, r, 20, reg.get('pintura_acrilica', {}).get('a', {}).get('pilar'))
+        # Pintura Esmalte
+        set_cell(sheet, r, 21, reg.get('pintura_esmalte', {}).get('a', {}).get('portas'))
+        set_cell(sheet, r, 22, reg.get('pintura_esmalte', {}).get('a', {}).get('janelas'))
+        set_cell(sheet, r, 23, reg.get('pintura_esmalte', {}).get('a', {}).get('grades'))
+        rc += 1
+
+    # Tabela D: linhas 87..106
+    rows_d = list(range(87, 107))
+    tabela_d = acabamentos.get('tabela_d', [])
+    rd = 0
+    for reg in tabela_d:
+        if rd >= len(rows_d):
+            break
+        r = rows_d[rd]
+        set_cell(sheet, r, 2, reg.get('ambiente'))
+        # Portas e Alçapões
+        set_cell(sheet, r, 5, reg.get('portas', {}).get('pa'))
+        set_cell(sheet, r, 6, reg.get('portas', {}).get('qtd'))
+        set_cell(sheet, r, 7, reg.get('portas', {}).get('l'))
+        set_cell(sheet, r, 8, reg.get('portas', {}).get('h'))
+        set_cell(sheet, r, 9, reg.get('portas', {}).get('e'))
+        set_cell(sheet, r, 10, reg.get('portas', {}).get('a'))
+        # Janelas e Visores
+        set_cell(sheet, r, 11, reg.get('janelas', {}).get('jv'))
+        set_cell(sheet, r, 12, reg.get('janelas', {}).get('qtd'))
+        set_cell(sheet, r, 13, reg.get('janelas', {}).get('l'))
+        set_cell(sheet, r, 14, reg.get('janelas', {}).get('h'))
+        set_cell(sheet, r, 15, reg.get('janelas', {}).get('e'))
+        set_cell(sheet, r, 16, reg.get('janelas', {}).get('a'))
+        # Telas
+        set_cell(sheet, r, 17, reg.get('telas', {}).get('l'))
+        set_cell(sheet, r, 18, reg.get('telas', {}).get('h'))
+        set_cell(sheet, r, 19, reg.get('telas', {}).get('qtd'))
+        set_cell(sheet, r, 20, reg.get('telas', {}).get('a'))
+        # Vidros
+        set_cell(sheet, r, 21, reg.get('vidros', {}).get('l'))
+        set_cell(sheet, r, 22, reg.get('vidros', {}).get('h'))
+        set_cell(sheet, r, 23, reg.get('vidros', {}).get('qtd'))
+        set_cell(sheet, r, 24, reg.get('vidros', {}).get('a'))
+        # Venezianas Industriais
+        set_cell(sheet, r, 25, reg.get('venezianas', {}).get('peca'))
+        set_cell(sheet, r, 26, reg.get('venezianas', {}).get('l'))
+        set_cell(sheet, r, 27, reg.get('venezianas', {}).get('h'))
+        set_cell(sheet, r, 28, reg.get('venezianas', {}).get('qtd'))
+        set_cell(sheet, r, 29, reg.get('venezianas', {}).get('a'))
+        # Protetores de Canto
+        set_cell(sheet, r, 30, reg.get('protetores_canto', {}).get('l'))
+        set_cell(sheet, r, 31, reg.get('protetores_canto', {}).get('e'))
+        set_cell(sheet, r, 32, reg.get('protetores_canto', {}).get('c'))
+        # Protetores de Parede
+        set_cell(sheet, r, 33, reg.get('protetores_parede', {}).get('l'))
+        set_cell(sheet, r, 34, reg.get('protetores_parede', {}).get('e'))
+        set_cell(sheet, r, 35, reg.get('protetores_parede', {}).get('c'))
+        # Grades
+        set_cell(sheet, r, 36, reg.get('grades', {}).get('tipo'))
+        set_cell(sheet, r, 37, reg.get('grades', {}).get('a'))
+        set_cell(sheet, r, 38, reg.get('grades', {}).get('malha'))
+        set_cell(sheet, r, 39, reg.get('grades', {}).get('e'))
+        set_cell(sheet, r, 40, reg.get('grades', {}).get('afastamento', {}).get('janela'))
+        set_cell(sheet, r, 41, reg.get('grades', {}).get('afastamento', {}).get('alvenaria'))
+        rd += 1
+
+    # Tabela E (Acessórios): linhas 113..132
+    rows_e = list(range(113, 133))
+    tabela_e = acabamentos.get('tabela_e', [])
+    re = 0
+    for reg in tabela_e:
+        if re >= len(rows_e):
+            break
+        r = rows_e[re]
+        set_cell(sheet, r, 2, reg.get('ambiente'))
+        set_cell(sheet, r, 5, reg.get('acessorios', {}).get('bacias'))
+        set_cell(sheet, r, 6, reg.get('acessorios', {}).get('mictorios'))
+        set_cell(sheet, r, 7, reg.get('acessorios', {}).get('lavatórios'))
+        set_cell(sheet, r, 8, reg.get('acessorios', {}).get('cubas'))
+        set_cell(sheet, r, 9, reg.get('acessorios', {}).get('tanques'))
+        set_cell(sheet, r, 10, reg.get('acessorios', {}).get('torneiras'))
+        # Barras de Apoio
+        set_cell(sheet, r, 11, reg.get('barras_apoio', {}).get('qtd'))
+        set_cell(sheet, r, 12, reg.get('barras_apoio', {}).get('c'))
+        set_cell(sheet, r, 13, reg.get('barras_apoio', {}).get('diametro'))
+        set_cell(sheet, r, 14, reg.get('barras_apoio', {}).get('h_piso'))
+        # Corrimãos e Guarda-Corpos
+        set_cell(sheet, r, 15, reg.get('corrimaos', {}).get('qtd'))
+        set_cell(sheet, r, 16, reg.get('corrimaos', {}).get('c'))
+        set_cell(sheet, r, 17, reg.get('corrimaos', {}).get('diametro'))
+        set_cell(sheet, r, 18, reg.get('corrimaos', {}).get('h_piso'))
+        re += 1
+
+    # Tabela E (Bancadas e Pias / Divisórias / Boxes): linhas 140..159
+    rows_e2 = list(range(140, 160))
+    tabela_e2 = acabamentos.get('tabela_e2', acabamentos.get('bancadas', []))
+    re2 = 0
+    for reg in tabela_e2:
+        if re2 >= len(rows_e2):
+            break
+        r = rows_e2[re2]
+        set_cell(sheet, r, 2, reg.get('ambiente'))
+        # Bancadas e Pias
+        set_cell(sheet, r, 5, reg.get('bancadas', {}).get('dimensoes', {}).get('a'))
+        set_cell(sheet, r, 6, reg.get('bancadas', {}).get('dimensoes', {}).get('h'))
+        set_cell(sheet, r, 7, reg.get('bancadas', {}).get('tampo', {}).get('l'))
+        set_cell(sheet, r, 8, reg.get('bancadas', {}).get('tampo', {}).get('c'))
+        set_cell(sheet, r, 9, reg.get('bancadas', {}).get('tampo', {}).get('e'))
+        set_cell(sheet, r, 10, reg.get('bancadas', {}).get('frontao', {}).get('l'))
+        set_cell(sheet, r, 11, reg.get('bancadas', {}).get('frontao', {}).get('c'))
+        set_cell(sheet, r, 12, reg.get('bancadas', {}).get('frontao', {}).get('e'))
+        set_cell(sheet, r, 13, reg.get('bancadas', {}).get('saia', {}).get('l'))
+        set_cell(sheet, r, 14, reg.get('bancadas', {}).get('saia', {}).get('c'))
+        set_cell(sheet, r, 15, reg.get('bancadas', {}).get('saia', {}).get('e'))
+        # Divisórias
+        set_cell(sheet, r, 16, reg.get('divisoes', {}).get('tipo'))
+        set_cell(sheet, r, 17, reg.get('divisoes', {}).get('qtd'))
+        set_cell(sheet, r, 18, reg.get('divisoes', {}).get('peca', {}).get('c'))
+        set_cell(sheet, r, 19, reg.get('divisoes', {}).get('peca', {}).get('h'))
+        set_cell(sheet, r, 20, reg.get('divisoes', {}).get('peca', {}).get('a'))
+        set_cell(sheet, r, 21, reg.get('divisoes', {}).get('portas', {}).get('l'))
+        set_cell(sheet, r, 22, reg.get('divisoes', {}).get('portas', {}).get('h'))
+        set_cell(sheet, r, 23, reg.get('divisoes', {}).get('portas', {}).get('a'))
+        # Boxes
+        set_cell(sheet, r, 24, reg.get('boxes', {}).get('tipo'))
+        set_cell(sheet, r, 25, reg.get('boxes', {}).get('qtd'))
+        set_cell(sheet, r, 26, reg.get('boxes', {}).get('peca', {}).get('l'))
+        set_cell(sheet, r, 27, reg.get('boxes', {}).get('peca', {}).get('c'))
+        set_cell(sheet, r, 28, reg.get('boxes', {}).get('peca', {}).get('e'))
+        set_cell(sheet, r, 29, reg.get('boxes', {}).get('sobreposicao'))
+        set_cell(sheet, r, 30, reg.get('boxes', {}).get('a'))
+        re2 += 1
+
+    # Tabela F: Mobiliário - linhas 166..185
+    rows_f = list(range(166, 186))
+    tabela_f = acabamentos.get('tabela_f', [])
+    rf = 0
+    for reg in tabela_f:
+        if rf >= len(rows_f):
+            break
+        r = rows_f[rf]
+        set_cell(sheet, r, 2, reg.get('ambiente'))
+        set_cell(sheet, r, 5, reg.get('mobiliario', {}).get('tipo'))
+        set_cell(sheet, r, 6, reg.get('mobiliario', {}).get('dimensoes', {}).get('h'))
+        set_cell(sheet, r, 7, reg.get('mobiliario', {}).get('dimensoes', {}).get('l'))
+        set_cell(sheet, r, 8, reg.get('mobiliario', {}).get('dimensoes', {}).get('c'))
+        set_cell(sheet, r, 9, reg.get('mobiliario', {}).get('a'))
+        rf += 1
+
+
+    def popular_alvenarias(sheet, alvenarias):
+        """Preenche a aba 'Alvenarias' conforme mapeamento fornecido."""
+        def fill_rows(start, end, items, mapping):
+            rows = list(range(start, end + 1))
+            for idx, it in enumerate(items):
+                if idx >= len(rows):
+                    break
+                r = rows[idx]
+                for key, col in mapping.items():
+                    # suporta chaves aninhadas com ponto
+                    cur = it
+                    val = None
+                    for part in key.split('.'):
+                        if isinstance(cur, dict):
+                            cur = cur.get(part)
+                        else:
+                            cur = None
+                            break
+                    val = cur
+                    set_cell(sheet, r, col, val)
+
+        # Parte 1: rows 10..29
+        part1 = alvenarias.get('parte1', [])
+        fill_rows(10, 29, part1, {
+            'ambiente': 2,
+            # Painéis em Alvenaria
+            'painel_alvenaria.peca': 5, 'painel_alvenaria.c': 6, 'painel_alvenaria.l': 7, 'painel_alvenaria.h': 8,
+            'painel_alvenaria.vaos': 9, 'painel_alvenaria.a': 10,
+            # Gesso Acartonado
+            'gesso.peca': 11, 'gesso.c': 12, 'gesso.l': 13, 'gesso.h': 14, 'gesso.vaos': 15, 'gesso.a': 16,
+            # Cobogó / Blocos de vidro
+            'cobogo.peca': 17, 'cobogo.c': 18, 'cobogo.l': 19, 'cobogo.h': 20, 'cobogo.vaos': 21,
+            'cobogo.a1': 22, 'cobogo.a2': 23, 'cobogo.a3': 24, 'cobogo.a4': 25
+        })
+
+        # Parte 2: rows 36..55
+        part2 = alvenarias.get('parte2', [])
+        fill_rows(36, 55, part2, {
+            'ambiente': 2, 'peca': 5, 'qtd.verga': 6, 'qtd.c_verga': 7,
+            'l': 8, 'c': 9, 'h': 10, 'engastamento': 11, 'concreto': 12, 'ferragem': 13
+        })
+
+        # Parte 3: rows 63..81
+        part3 = alvenarias.get('parte3', [])
+        fill_rows(63, 81, part3, {
+            'ambiente': 2,
+            'guias.local': 5, 'guias.l': 6, 'guias.h': 7, 'guias.c': 8, 'guias.concreto': 9,
+            'calcadas.local': 10, 'calcadas.l': 11, 'calcadas.h': 12, 'calcadas.e': 13, 'calcadas.c': 14, 'calcadas.a': 15, 'calcadas.concreto': 16
+        })
+
+        # Parte 4: rows 89..108
+        part4 = alvenarias.get('parte4', [])
+        fill_rows(89, 108, part4, {
+            'ambiente': 2, 'local': 5,
+            'dimensoes.c_proj': 6, 'dimensoes.c_real': 7, 'dimensoes.l': 8, 'dimensoes.h': 9, 'dimensoes.i_pct': 10,
+            'piso.e': 11, 'piso.a': 12, 'piso.concreto': 13,
+            'parede_contencao.l': 14, 'parede_contencao.h': 15, 'parede_contencao.c': 16, 'parede_contencao.a': 17, 'parede_contencao.concreto': 18,
+            'guia_balizamento.l': 19, 'guia_balizamento.h': 20,
+            'armacao.ferragem': 21, 'armacao.estribo': 22,
+            'forma_madeira.h': 23, 'forma_madeira.c': 24, 'forma_madeira.a': 25
+        })
+
+        # Parte 5: rows 140..157
+        part5 = alvenarias.get('parte5', [])
+        fill_rows(140, 157, part5, {
+            'ambiente': 2, 'local': 5, 'peca': 6,
+            'material_fechamento.c': 7, 'material_fechamento.h': 8, 'material_fechamento.a': 9,
+            'mouroes.qtd': 10, 'mouroes.c': 11, 'mouroes.h': 12,
+            'esticador.qtd': 13, 'esticador.c': 14, 'esticador.h': 15,
+            'concertina.c': 16
+        })
+
+        # Parte 6: rows 165..184
+        part6 = alvenarias.get('parte6', [])
+        fill_rows(165, 184, part6, {
+            'ambiente': 2, 'local': 5,
+            'apicoamento.h': 6, 'apicoamento.c': 7, 'apicoamento.a': 8,
+            'chapisco.h': 9, 'chapisco.c': 10, 'chapisco.a': 11,
+            'emboço_pintura.h': 12, 'emboço_pintura.c': 13, 'emboço_pintura.a': 14,
+            'emboço_revestimento.h': 15, 'emboço_revestimento.c': 16, 'emboço_revestimento.a': 17
+        })
+
+        # Parte 7: rows 192..211
+        part7 = alvenarias.get('parte7', [])
+        fill_rows(192, 211, part7, {
+            'ambiente': 2, 'local': 5,
+            'lastros.l': 6, 'lastros.c': 7, 'lastros.e': 8, 'lastros.v': 9,
+            'contrapisos.l': 10, 'contrapisos.e': 11, 'contrapisos.c': 12, 'contrapisos.v': 13, 'contrapisos.ferragem': 14,
+            'juntas_dilatacao.l': 15, 'juntas_dilatacao.h': 16, 'juntas_dilatacao.c': 17
+        })
+
+        # Parte 9: rows 245..264
+        part9 = alvenarias.get('parte9', [])
+        fill_rows(245, 264, part9, {
+            'ambiente': 2, 'local': 5,
+            'estruturas.l': 6, 'estruturas.h': 7,
+            'estruturas.secao.c': 8, 'estruturas.secao.l': 9, 'estruturas.secao.h': 10, 'estruturas.a_tot': 11,
+            'pisos.secao.c': 12, 'pisos.secao.l': 13, 'pisos.secao.h': 14, 'pisos.per': 15, 'pisos.a_tot': 16,
+            'paredes.secao.c': 17, 'paredes.secao.l': 18, 'paredes.secao.h': 19, 'paredes.per': 20, 'paredes.a_tot': 21
+        })
+
 
 
 def popular_instalacoes(sheet, instalacoes):
@@ -502,7 +1115,10 @@ def popular_excel(caminho_excel, dados):
 
     # Levantamento Campo
     sheet_l = _criar_sheet(workbook, 'Levantamento Campo')
-    popular_levantamento_campo(sheet_l, dados.get('levantamento_campo', []))
+    levantamento_campo = dados.get('levantamento_campo', dados)
+    if not isinstance(levantamento_campo, dict):
+        levantamento_campo = dados
+    popular_levantamento_campo(sheet_l, levantamento_campo)
 
     # Serviços preliminares
     sheet_sp = _criar_sheet(workbook, 'Serviços Preliminares')
@@ -520,6 +1136,10 @@ def popular_excel(caminho_excel, dados):
     sheet_a = _criar_sheet(workbook, 'Acabamentos')
     popular_acabamentos(sheet_a, dados.get('acabamentos', {}))
 
+    # Alvenarias
+    sheet_al = _criar_sheet(workbook, 'Alvenarias')
+    popular_alvenarias(sheet_al, dados.get('alvenarias', {}))
+
     # Instalações
     sheet_i = _criar_sheet(workbook, 'Instalacoes')
     popular_instalacoes(sheet_i, dados.get('instalacoes', {}))
@@ -530,7 +1150,7 @@ def popular_excel(caminho_excel, dados):
 
     # Salva
     workbook.save(caminho_excel)
-    print(f"✓ Planilha atualizada: {caminho_excel}")
+    print(f"Planilha atualizada: {caminho_excel}")
 
 
 def main():
@@ -538,7 +1158,25 @@ def main():
     caminho_json = base / 'dados_levantamento_teste.json'
 
     # procurar template na pasta atual, na pasta pai e na raiz do workspace
-    candidates = [base / 'model_memorial.xlsx', base.parent / 'model_memorial.xlsx', base.parent.parent / 'model_memorial.xlsx']
+    # suportar variações de nome como 'memorial_model.xlsx' e procura recursiva por arquivos contendo 'memorial'
+    candidates = [
+        base / 'model_memorial.xlsx',
+        base / 'memorial_model.xlsx',
+        base.parent / 'model_memorial.xlsx',
+        base.parent / 'memorial_model.xlsx',
+        base.parent.parent / 'model_memorial.xlsx',
+        base.parent.parent / 'memorial_model.xlsx',
+    ]
+
+    # acrescenta resultados de busca recursiva (rglob) nas pastas próximas
+    for root in (base, base.parent, base.parent.parent):
+        try:
+            for p in root.rglob('*memorial*.xlsx'):
+                candidates.append(p)
+        except Exception:
+            # em casos raros root pode ser None ou inacessível
+            pass
+
     caminho_template = next((p for p in candidates if p.exists()), None)
 
     if caminho_template is None:
@@ -580,6 +1218,10 @@ def main():
     sheet_a = _criar_sheet(workbook, 'Acabamentos')
     popular_acabamentos(sheet_a, dados.get('acabamentos', {}))
 
+    # Alvenarias
+    sheet_al = _criar_sheet(workbook, 'Alvenarias')
+    popular_alvenarias(sheet_al, dados.get('alvenarias', {}))
+
     # Instalações
     sheet_i = _criar_sheet(workbook, 'Instalacoes')
     popular_instalacoes(sheet_i, dados.get('instalacoes', {}))
@@ -591,7 +1233,7 @@ def main():
     # salva diretamente no arquivo template (sobrescreve)
     try:
         workbook.save(str(caminho_template))
-        print(f"✓ Template atualizado: {caminho_template}")
+        print(f"Template atualizado: {caminho_template}")
     except PermissionError:
         # provavelmente o arquivo está aberto no Excel — salvar cópia alternativa
         alt_path = caminho_template.with_name(caminho_template.stem + '_out' + caminho_template.suffix)

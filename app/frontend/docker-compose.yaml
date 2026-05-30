@@ -14,6 +14,8 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: echocad_cloudflared
+    profiles:
+      - cloudflared
     restart: unless-stopped
     depends_on:
       - frontend
