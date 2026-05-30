@@ -13,7 +13,7 @@ function buildPreviewDocument(
   title: string,
   createdAt: string,
   reference: string,
-  sourceFiles: string[]
+  sourceFiles: string[],
 ): GeneratedDocument {
   return {
     id,
@@ -26,7 +26,7 @@ function buildPreviewDocument(
       "Documento técnico gerado a partir da leitura dos arquivos estruturais enviados para a plataforma EchoCAD.",
     sourceFiles,
     file_urls: sourceFiles.map(
-      (fileName) => `https://example.com/files/${fileName}`
+      (fileName) => `https://example.com/files/${fileName}`,
     ),
     previewLines: [
       "Objeto: análise estrutural preliminar do conjunto administrativo.",
@@ -34,15 +34,15 @@ function buildPreviewDocument(
       "Método: consolidação de geometrias CAD, verificação de cargas e síntese documental.",
       "Escopo: memorial descritivo, memorial de cálculo e referências de elementos principais.",
     ],
-    tableRows: [
-      { label: "Área estimada", value: "1.240 m²" },
-      { label: "Carga permanente média", value: "12,8 kN/m²" },
-      { label: "Carga acidental média", value: "4,5 kN/m²" },
-      { label: "Fator de combinação", value: "1,40" },
-    ],
+    tableRows: [],
   };
 }
 
+export const mockUploadDocuments: UploadDocument[] = [
+  { id: "upload-1", name: "Planta_Batalhao_A1.dxf", kind: "dxf" },
+  { id: "upload-2", name: "Memorial_Preliminar.pdf", kind: "pdf" },
+  { id: "upload-3", name: "Croqui_Infraestrutura.dxf", kind: "dxf" },
+];
 export const mockHistoryDocuments: HistoryDocument[] = [
   {
     id: "history-1",
@@ -55,13 +55,13 @@ export const mockHistoryDocuments: HistoryDocument[] = [
       "Memorial de cálculo - Batalhão Central",
       "20/03/2026",
       "EchoCAD-7429",
-      ["Planta_Batalhao_Central.dwg", "Memorial_Base.pdf"]
+      ["Planta_Batalhao_Central.dxf", "Memorial_Base.pdf"],
     ),
   },
   {
     id: "history-2",
-    name: "Planta_Administrativa_A2.dwg",
-    kind: "dwg",
+    name: "Planta_Administrativa_A2.dxf",
+    kind: "dxf",
     date: "18/03/2026",
     size: "1.8 MB",
     document: buildPreviewDocument(
@@ -69,7 +69,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
       "Memorial de cálculo - Bloco Administrativo A2",
       "18/03/2026",
       "EchoCAD-7310",
-      ["Planta_Administrativa_A2.dwg", "Croqui_Fundacao.dxf"]
+      ["Planta_Administrativa_A2.dxf", "Croqui_Fundacao.dxf"],
     ),
   },
   {
@@ -83,7 +83,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
       "Relatório estrutural final - Ala Norte",
       "15/03/2026",
       "EchoCAD-7194",
-      ["Ala_Norte.pdf", "Analise_Final.pdf"]
+      ["Ala_Norte.pdf", "Analise_Final.pdf"],
     ),
   },
   {
@@ -97,7 +97,7 @@ export const mockHistoryDocuments: HistoryDocument[] = [
       "Memorial de cálculo - Rede hidráulica",
       "10/03/2026",
       "EchoCAD-7011",
-      ["Rede_Hidraulica.dxf", "Memorial_Hidraulico.pdf"]
+      ["Rede_Hidraulica.dxf", "Memorial_Hidraulico.pdf"],
     ),
   },
 ];
@@ -149,7 +149,12 @@ export const mockTechnicalStandards: TechnicalStandard[] = [
 export function getFileKindFromName(fileName: string): FileKind | null {
   const extension = fileName.toLowerCase().split(".").pop();
 
-  if (extension !== "dwg" && extension !== "dxf" && extension !== "pdf") {
+  if (
+    extension !== "dxf" &&
+    extension !== "pdf" &&
+    extension !== "doc" &&
+    extension !== "docx"
+  ) {
     return null;
   }
 
@@ -158,9 +163,10 @@ export function getFileKindFromName(fileName: string): FileKind | null {
 
 // Gera um documento final a partir dos uploads enviados.
 export function buildGeneratedDocumentFromUploads(
-  documents: UploadDocument[]
+  documents: UploadDocument[],
 ): GeneratedDocument {
-  const primaryName = documents[0]?.name.replace(/\.[^.]+$/, "") || "Projeto CAD";
+  const primaryName =
+    documents[0]?.name.replace(/\.[^.]+$/, "") || "Projeto CAD";
   const referenceSuffix = String(Date.now()).slice(-4);
   const generatedAt = formatInputDate(getTodayInputValue());
 
@@ -169,13 +175,13 @@ export function buildGeneratedDocumentFromUploads(
     `Memorial de cálculo - ${primaryName}`,
     generatedAt,
     `EchoCAD-${referenceSuffix}`,
-    documents.map((document) => document.name)
+    documents.map((document) => document.name),
   );
 }
 
 // Converte o documento gerado em item de histórico.
 export function buildHistoryDocumentFromGenerated(
-  document: GeneratedDocument
+  document: GeneratedDocument,
 ): HistoryDocument {
   const projectName = document.projectInfo?.name || document.title;
   const projectDate = document.projectInfo?.projectDate

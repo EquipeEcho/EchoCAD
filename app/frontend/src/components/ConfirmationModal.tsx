@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useId } from "react";
+import { ReactNode, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./Button";
-import { CloseIcon } from "./Icons";
+import { CheckCircleIcon, CloseIcon, InfoCircleIcon, TrashIcon } from "./Icons";
 import { SurfaceCard } from "./SurfaceCard";
 
 type ConfirmationModalProps = {
@@ -10,9 +10,9 @@ type ConfirmationModalProps = {
   description: ReactNode;
   confirmLabel: string;
   cancelLabel?: string;
-  confirmTone?: "primary" | "success";
+  confirmTone?: "primary" | "success" | "danger";
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 };
 
 // Exibe uma confirmação antes de ações sensíveis.
@@ -28,6 +28,24 @@ export function ConfirmationModal({
 }: ConfirmationModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const [isLoading, setIsLoading] = useState(false);
+  const toneIcon =
+    confirmTone === "danger" ? (
+      <TrashIcon />
+    ) : confirmTone === "success" ? (
+      <CheckCircleIcon />
+    ) : (
+      <InfoCircleIcon />
+    );
+
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.resolve(onConfirm());
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -59,7 +77,7 @@ export function ConfirmationModal({
     <div className="modal-backdrop" onClick={onClose} role="presentation">
       <SurfaceCard
         as="div"
-        className="modal-card"
+        className={`modal-card confirmation-modal confirmation-modal--${confirmTone}`}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -67,9 +85,14 @@ export function ConfirmationModal({
         aria-describedby={descriptionId}
       >
         <div className="modal-card__header">
-          <h2 className="modal-card__title" id={titleId}>
-            {title}
-          </h2>
+          <div className="confirmation-modal__heading">
+            <span className="confirmation-modal__icon" aria-hidden="true">
+              {toneIcon}
+            </span>
+            <h2 className="modal-card__title" id={titleId}>
+              {title}
+            </h2>
+          </div>
 
           <button
             className="modal-card__close"
@@ -86,10 +109,10 @@ export function ConfirmationModal({
         </div>
 
         <div className="modal-card__actions">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={isLoading}>
             {cancelLabel}
           </Button>
-          <Button variant={confirmTone} onClick={onConfirm}>
+          <Button variant={confirmTone} onClick={handleConfirm} disabled={isLoading}>
             {confirmLabel}
           </Button>
         </div>

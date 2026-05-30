@@ -1,8 +1,33 @@
-**/__pycache__/
-.vscode/
-.engine/
-.pytest_cache/
-.venv/
-venv/
+# Diretórios de saída de arquivos e dados temporários
 uploads/
+**/chroma_db/
+**/tmp
+**/results
+**/logs/
+**/knowledge/
+
+# Arquivos de configuração local e estado do ambiente
+*.env
 *.db
+
+# Python: caches e ambientes virtuais
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pytest_cache/
+.pytest_cache/
+.python-version
+venv/
+.venv/
+
+# Arquivos temporários do sistema e IDE
+*.swp
+*.swo
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# Arquivos de teste locais
+test.py

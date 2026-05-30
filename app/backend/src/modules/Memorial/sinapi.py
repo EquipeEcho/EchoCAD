@@ -23,7 +23,7 @@ def _buscar_linha_cabecalho_sinapi(caminho) -> int | None:
         row = bruto.iloc[pos]
         for valor in row.tolist():
             if "descricao do insumo" in _normalizar_texto(valor):
-                logger.debug(f'encontrado linha de dados na posição {pos}')
+                logger.debug(f"encontrado linha de dados na posição {pos}")
                 return pos
     return None
 
@@ -56,8 +56,33 @@ def _resolver_colunas_sinapi(tabela, uf_preferida="SP"):
             break
 
     estados_validos = {
-        "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT",
-        "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"
+        "AC",
+        "AL",
+        "AM",
+        "AP",
+        "BA",
+        "CE",
+        "DF",
+        "ES",
+        "GO",
+        "MA",
+        "MG",
+        "MS",
+        "MT",
+        "PA",
+        "PB",
+        "PE",
+        "PI",
+        "PR",
+        "RJ",
+        "RN",
+        "RO",
+        "RR",
+        "RS",
+        "SC",
+        "SE",
+        "SP",
+        "TO",
     }
 
     uf_col = None
@@ -84,7 +109,8 @@ def carregar_sinapi(caminho, uf_preferida="SP"):
 
     if linha_cabecalho is None:
         logger.warning(
-            "Cabeçalho SINAPI não identificado automaticamente. Usando leitura padrão.")
+            "Cabeçalho SINAPI não identificado automaticamente. Usando leitura padrão."
+        )
         tabela = pd.read_excel(caminho)
     else:
         tabela = pd.read_excel(caminho, header=linha_cabecalho)
@@ -92,13 +118,15 @@ def carregar_sinapi(caminho, uf_preferida="SP"):
     tabela = tabela.dropna(how="all").dropna(axis=1, how="all")
 
     descricao_col, preco_col = _resolver_colunas_sinapi(
-        tabela, uf_preferida=uf_preferida)
+        tabela, uf_preferida=uf_preferida
+    )
     tabela.attrs["descricao_col"] = descricao_col
     tabela.attrs["preco_col"] = preco_col
     tabela.attrs["uf_preferida"] = uf_preferida
 
     logger.info(
-        f"SINAPI carregada. Coluna descrição: {descricao_col} | Coluna preço: {preco_col}")
+        f"SINAPI carregada. Coluna descrição: {descricao_col} | Coluna preço: {preco_col}"
+    )
     return tabela
 
 
@@ -111,13 +139,11 @@ def buscar_preco_sinapi(descricao, tabela):
 
     if not descricao_col or not preco_col:
         descricao_col, preco_col = _resolver_colunas_sinapi(
-            tabela,
-            uf_preferida=tabela.attrs.get("uf_preferida", "SP")
+            tabela, uf_preferida=tabela.attrs.get("uf_preferida", "SP")
         )
 
     if not descricao_col or not preco_col:
-        logger.warning(
-            "Colunas da SINAPI não identificadas para busca de preços.")
+        logger.warning("Colunas da SINAPI não identificadas para busca de preços.")
         return None
 
     alvo = _normalizar_texto(descricao)
@@ -130,13 +156,11 @@ def buscar_preco_sinapi(descricao, tabela):
     if not candidatos.empty:
         return float(precos_num.loc[candidatos.index].iloc[0])
 
-    tokens = [t for t in alvo.split() if t not in {
-        "de", "da", "do", "e", "para"}]
+    tokens = [t for t in alvo.split() if t not in {"de", "da", "do", "e", "para"}]
     if not tokens:
         return None
 
-    mask_tokens = descricoes_norm.map(
-        lambda texto: all(tok in texto for tok in tokens))
+    mask_tokens = descricoes_norm.map(lambda texto: all(tok in texto for tok in tokens))
     candidatos = tabela[mask_tokens & precos_num.notna()]
 
     if not candidatos.empty:

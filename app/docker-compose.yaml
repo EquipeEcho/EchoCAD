@@ -1,0 +1,115 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: echocad_dbms
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-default_password}"
+      MYSQL_USER: "${MYSQL_USER:-user}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-echocad_password}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-echocad_db}"
+      MYSQL_INITDB_SKIP_TZINFO: "${MYSQL_INITDB_SKIP_TZINFO:-yes}"
+    networks:
+      - echocad_network
+    ports:
+      - "${MYSQL_HOST_PORT:-3306}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-user}", "-p${MYSQL_PASSWORD:-echocad_password}" ]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    image: echocad_server:dev_v1
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: echocad_server
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_ASYNC_URL: ${DATABASE_ASYNC_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      JWT_TOKEN: ${JWT_TOKEN}
+      ECHO_DATABASE: ${ECHO_DATABASE:-true}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      DEBUG: ${DEBUG:-False}
+    networks:
+      - echocad_network
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  frontend:
+    image: echocad_fronted:dev_v1
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        FRONTEND_INTERNAL_PORT: ${FRONTEND_INTERNAL_PORT:-81}
+    container_name: echocad_frontend
+    networks:
+      - echocad_network
+    ports:
+      - "${FRONTEND_PORT:-80}:${FRONTEND_INTERNAL_PORT:-81}"
+    depends_on:
+      - backend
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    profiles:
+      - ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - echocad_network
+
+  ollama-model-puller:
+    image: curlimages/curl:latest
+    container_name: ollama_puller
+    profiles:
+      - ollama
+    depends_on:
+      - ollama
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: |
+      until curl -s http://ollama:11434/api/tags > /dev/null; do
+        echo 'Aguardando Ollama iniciar...'
+        sleep 5
+      done
+      echo 'Baixando modelo qwen2.5:7b...'
+      curl -X POST http://ollama:11434/api/pull -d '{"name": "qwen2.5:7b"}' && echo 'qwen2.5:7b OK'
+      echo 'Modelo qwen2.5:7b baixado com sucesso.'
+    restart: on-failure
+    networks:
+      - echocad_network
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: echocad_cloudflared
+    profiles:
+      - cloudflared
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN} --url http://frontend:${FRONTEND_INTERNAL_PORT:-81}
+    networks:
+      - echocad_network
+
+volumes:
+  mariadb_data:
+  ollama_data:
+
+networks:
+  echocad_network:
+    driver: bridge

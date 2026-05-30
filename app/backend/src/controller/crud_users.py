@@ -1,0 +1,216 @@
+import bcrypt
+
+from loguru import logger
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.models.projeto_db import User
+from src.schemas.user_schema import CreateUserSchema, UpdateUserSchema
+from src.security.secrets import decrypt_secret, encrypt_secret, mask_secret
+
+
+async def create_user(db: AsyncSession, user_schema: CreateUserSchema) -> User:
+    """
+    Cria um novo usuário no banco de dados.
+    Args:
+        db (AsyncSession): Sessão do banco de dados.
+        user_schema (CreateUser): Esquema de criação de usuário contendo os dados necessários.
+    Returns:
+        User: O objeto do usuário persistido, incluindo IDs e timestamps gerados.
+    Raises:
+        ValueError: Se já existir um usuário com o mesmo email.
+        SystemError: Se ocorrer um erro inesperado durante a criação do usuário.
+    """
+    try:
+        new_user = User(**user_schema.model_dump())
+        new_user.password = bcrypt.hashpw(
+            new_user.password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+        return new_user
+    except IntegrityError as e:
+        await db.rollback()
+        logger.error("Error creating user: {}", e)
+        raise ValueError("Já existe um usuário com este email") from e
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError(
+            "Ocorreu um erro inesperado ao criar o usuário, "
+            "para mais informações consulte o log"
+        ) from e
+
+
+async def change_user_password(
+    db: AsyncSession, user_id: int, current_password: str, new_password: str
+) -> User | None:
+    try:
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        if not bcrypt.checkpw(
+            current_password.encode("utf-8"), user.password.encode("utf-8")
+        ):
+            raise ValueError("Senha atual incorreta")
+
+        user.password = bcrypt.hashpw(
+            new_password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except ValueError as e:
+        await db.rollback()
+        raise ValueError(str(e)) from e
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao alterar a senha") from e
+
+
+async def set_user_groq_api_key(db: AsyncSession, user_id: int, api_key: str) -> User | None:
+    try:
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        user.groq_api_key_encrypted = encrypt_secret(api_key.strip())
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao salvar a chave Groq") from e
+
+
+async def clear_user_groq_api_key(db: AsyncSession, user_id: int) -> User | None:
+    try:
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        user.groq_api_key_encrypted = None
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao remover a chave Groq") from e
+
+
+def get_user_groq_api_key(user: User) -> str | None:
+    return decrypt_secret(user.groq_api_key_encrypted)
+
+
+def get_masked_user_groq_api_key(user: User) -> str | None:
+    return mask_secret(get_user_groq_api_key(user))
+
+
+async def get_user_by_email(db: AsyncSession, email: str, password: str) -> User | None:
+    """
+    Recupera um usuário do banco de dados com base no email e senha.
+    Args:
+        db (AsyncSession): Sessão do banco de dados.
+        email (str): O email do usuário a ser recuperado.
+        password (str): A senha do usuário.
+    Returns:
+        User: O objeto do usuário correspondente ao email fornecido, ou None se não
+        encontrado ou se a senha não corresponder.
+    Raises:
+        SystemError: Se ocorrer um erro inesperado durante a recuperação do usuário.
+    """
+    try:
+        stmt = select(User).where(User.email == email)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user and bcrypt.checkpw(
+            password.encode("utf-8"), user.password.encode("utf-8")
+        ):
+            return user
+        return None
+    except Exception as e:
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao recuperar o usuário") from e
+
+
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
+    """
+    Recupera um usuário do banco de dados pelo seu ID.
+    """
+    try:
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    except Exception as e:
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError("Ocorreu um erro inesperado ao recuperar o usuário") from e
+
+
+async def update_user(db: AsyncSession, user_schema: UpdateUserSchema) -> User | None:
+    """
+    Atualiza um usuário existente no banco de dados.
+    Args:
+        db (AsyncSession): Sessão do banco de dados.
+        user_schema (UpdateUserSchema): Esquema de atualização de usuário contendo os dados atualizados.
+    Returns:
+        User: O objeto do usuário atualizado, ou None se o usuário não for encontrado.
+    Raises:
+        ValueError: Se a senha atual fornecida estiver incorreta.
+        SystemError: Se ocorrer um erro inesperado durante a atualização do usuário.
+    """
+    try:
+        stmt = select(User).where(User.id == user_schema.id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        if not bcrypt.checkpw(
+            user_schema.password.encode("utf-8"), user.password.encode("utf-8")
+        ):
+            raise ValueError("Senha atual incorreta")
+
+        for key, value in user_schema.model_dump(exclude_unset=True).items():
+            if key == "password":
+                continue
+            if key == "new_password":
+                hash_password = bcrypt.hashpw(
+                    value.encode("utf-8"), bcrypt.gensalt()
+                ).decode("utf-8")
+                setattr(user, "password", hash_password)
+                continue
+            setattr(user, key, value)
+
+        await db.commit()
+        await db.refresh(user)
+
+        return user
+
+    except ValueError as e:
+        await db.rollback()
+        logger.error("Error updating user: {}", e)
+        raise ValueError(str(e)) from e
+    except Exception as e:
+        await db.rollback()
+        logger.error("Unexpected error occurred: {}", e)
+        raise SystemError(
+            "Ocorreu um erro inesperado ao atualizar o usuário, "
+            "para mais informações consulte o log"
+        ) from e

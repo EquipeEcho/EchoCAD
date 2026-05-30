@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { GeneratedDocument, ProjectSaveInput } from "../types/documents";
-import { getTodayInputValue } from "../utils/date";
 import { Button } from "./Button";
 import { CloseIcon, InfoCircleIcon } from "./Icons";
 import { SurfaceCard } from "./SurfaceCard";
@@ -12,11 +11,10 @@ type ProjectSaveModalProps = {
   initialProjectName?: string;
   subtitle?: string;
   cancelLabel?: string;
+  loading?: boolean;
   onClose: () => void;
   onSave: (projectInfo: ProjectSaveInput) => void;
 };
-
-const MODEL_TYPE_OPTIONS = ["Residencial", "Comercial", "Industrial"];
 
 function getInitialProjectName(
   document: GeneratedDocument | undefined,
@@ -36,24 +34,22 @@ function getInitialProjectName(
   return fallbackName;
 }
 
-// Coleta os dados usados para salvar o projeto no histórico.
+// Coleta os dados do projeto de acordo com o modelo da tabela Projeto.
 export function ProjectSaveModal({
   open,
   document: generatedDocument,
   initialProjectName = "",
   subtitle = "Defina como este processamento deve aparecer no histórico.",
   cancelLabel = "Depois",
+  loading = false,
   onClose,
   onSave,
 }: ProjectSaveModalProps) {
   const titleId = useId();
   const descriptionId = useId();
   const [name, setName] = useState("");
-  const [projectDate, setProjectDate] = useState(getTodayInputValue());
-  const [responsible, setResponsible] = useState("");
-  const [modelType, setModelType] = useState(MODEL_TYPE_OPTIONS[0]);
-  const [notes, setNotes] = useState("");
-  const [additionalInstructions, setAdditionalInstructions] = useState("");
+  const [cliente, setCliente] = useState("");
+  const [descricao, setDescricao] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -61,13 +57,8 @@ export function ProjectSaveModal({
     }
 
     setName(getInitialProjectName(generatedDocument, initialProjectName));
-    setProjectDate(generatedDocument?.projectInfo?.projectDate || getTodayInputValue());
-    setResponsible(generatedDocument?.projectInfo?.responsible || "");
-    setModelType(generatedDocument?.projectInfo?.modelType || MODEL_TYPE_OPTIONS[0]);
-    setNotes(generatedDocument?.projectInfo?.notes || "");
-    setAdditionalInstructions(
-      generatedDocument?.projectInfo?.additionalInstructions || ""
-    );
+    setCliente(generatedDocument?.projectInfo?.cliente || "");
+    setDescricao(generatedDocument?.projectInfo?.descricao || "");
   }, [generatedDocument, initialProjectName, open]);
 
   useEffect(() => {
@@ -96,7 +87,7 @@ export function ProjectSaveModal({
   }
 
   const canSave =
-    name.trim().length > 0 && projectDate.length > 0 && modelType.length > 0;
+    name.trim().length > 0;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -107,11 +98,8 @@ export function ProjectSaveModal({
 
     onSave({
       name,
-      projectDate,
-      responsible,
-      modelType,
-      notes,
-      additionalInstructions,
+      cliente,
+      descricao,
     });
   };
 
@@ -132,6 +120,7 @@ export function ProjectSaveModal({
               <InfoCircleIcon />
             </span>
             <div>
+              <p className="project-save-modal__eyebrow">Cadastro</p>
               <h2 className="modal-card__title" id={titleId}>
                 Informações do projeto
               </h2>
@@ -154,7 +143,7 @@ export function ProjectSaveModal({
         <form className="project-form" onSubmit={handleSubmit}>
           <div className="project-form__body">
             <fieldset className="project-form__section">
-              <legend className="project-form__section-label">Identificação</legend>
+              <legend className="project-form__section-label">Dados principais</legend>
 
               <label className="form-field">
                 <span className="form-field__label">Nome do projeto</span>
@@ -168,80 +157,36 @@ export function ProjectSaveModal({
                 />
               </label>
 
-              <div className="project-form__grid project-form__grid--three">
-                <label className="form-field">
-                  <span className="form-field__label">Data do projeto</span>
-                  <input
-                    className="form-field__control"
-                    type="date"
-                    value={projectDate}
-                    onChange={(event) => setProjectDate(event.target.value)}
-                    required
-                  />
-                </label>
-
-                <label className="form-field">
-                  <span className="form-field__label">Tipo de modelo</span>
-                  <select
-                    className="form-field__control"
-                    value={modelType}
-                    onChange={(event) => setModelType(event.target.value)}
-                    required
-                  >
-                    {MODEL_TYPE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="form-field">
-                  <span className="form-field__label">Responsável</span>
-                  <input
-                    className="form-field__control"
-                    type="text"
-                    value={responsible}
-                    onChange={(event) => setResponsible(event.target.value)}
-                    placeholder="Nome ou equipe"
-                  />
-                </label>
-              </div>
-            </fieldset>
-
-            <fieldset className="project-form__section">
-              <legend className="project-form__section-label">Contexto da IA</legend>
-
               <label className="form-field">
-                <span className="form-field__label">Observações</span>
-                <textarea
-                  className="form-field__control form-field__control--textarea form-field__control--textarea-compact"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Detalhes para identificar o projeto depois"
-                  rows={3}
+                <span className="form-field__label">Cliente (opcional)</span>
+                <input
+                  className="form-field__control"
+                  type="text"
+                  value={cliente}
+                  onChange={(event) => setCliente(event.target.value)}
+                  placeholder="Ex.: Construtora ABC Ltda."
                 />
               </label>
 
               <label className="form-field">
-                <span className="form-field__label">Instruções adicionais</span>
+                <span className="form-field__label">Descrição (opcional)</span>
                 <textarea
-                  className="form-field__control form-field__control--textarea"
-                  value={additionalInstructions}
-                  onChange={(event) => setAdditionalInstructions(event.target.value)}
-                  placeholder="Ex.: Considerar materiais de baixo custo"
-                  rows={4}
+                  className="form-field__control form-field__control--textarea form-field__control--textarea-compact"
+                  value={descricao}
+                  onChange={(event) => setDescricao(event.target.value)}
+                  placeholder="Descrição detalhada do projeto"
+                  rows={3}
                 />
               </label>
             </fieldset>
           </div>
 
           <div className="modal-card__actions">
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose} disabled={loading}>
               {cancelLabel}
             </Button>
-            <Button variant="success" type="submit" disabled={!canSave}>
-              Salvar projeto
+            <Button variant="success" type="submit" disabled={!canSave || loading}>
+              {loading ? "Salvando..." : "Salvar projeto"}
             </Button>
           </div>
         </form>

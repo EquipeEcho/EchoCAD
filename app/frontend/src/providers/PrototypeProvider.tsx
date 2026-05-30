@@ -10,13 +10,12 @@ import {
   buildGeneratedDocumentFromUploads,
   buildHistoryDocumentFromGenerated,
   getFileKindFromName,
-  mockHistoryDocuments,
-  mockTechnicalStandards,
 } from "../data/mockData";
 import {
   AddFilesResult,
   GeneratedDocument,
   HistoryDocument,
+  PreviewTableRow,
   ProjectInfo,
   ProjectSaveInput,
   TechnicalStandard,
@@ -25,39 +24,63 @@ import {
   UploadDocument,
 } from "../types/documents";
 import { formatInputDate } from "../utils/date";
+import {
+  API_BASE_URL,
+  deleteProjeto,
+  getAuthHeaders,
+  getProjectResult,
+  getProjeto,
+  listProjetos,
+  processProject,
+} from "../services/api";
+import { useAuth } from "./AuthProvider";
 
 type ProcessingResult = {
   file_url: string;
 };
-
 type PrototypeContextValue = {
   uploadedFiles: UploadDocument[];
   historyDocuments: HistoryDocument[];
   technicalStandards: TechnicalStandard[];
+  isLoadingHistory: boolean;
+  historyError: string | null;
   currentDocument: GeneratedDocument | null;
   shouldPromptProjectSave: boolean;
   toast: ToastState | null;
+  isAIProcessing: boolean;
+  processingLogs: string[];
+  activeProjectData: { projectId: number; projectInfo: ProjectSaveInput; files: UploadDocument[] } | null;
   addUploadedFiles: (fileList: FileList | File[]) => AddFilesResult;
   removeUploadedFile: (documentId: string) => void;
   clearUploadedFiles: () => void;
+  startAIProcessing: (projectId: number, projectInfo: ProjectSaveInput, files: UploadDocument[]) => Promise<void>;
   completeProcessing: (
-    apiResults?: ProcessingResult[],
+    apiResults?: any[],
     projectInfo?: ProjectSaveInput,
-    sourceFiles?: UploadDocument[]
+    sourceFiles?: UploadDocument[],
   ) => GeneratedDocument | null;
   saveCurrentProject: (projectInfo: ProjectSaveInput) => void;
   openHistoryPreview: (documentId: string) => void;
-  removeHistoryDocument: (documentId: string) => void;
+  removeHistoryDocument: (documentId: string) => Promise<void>;
   downloadHistoryBundle: () => void;
   addTechnicalStandards: (fileList: FileList | File[]) => AddFilesResult;
-  toggleStandard: (standardId: string) => void;
+  toggleStandard: (standardId: string) => Promise<void>;
   downloadStandard: (standardId: string) => void;
   simulatePreviewAction: (fileName: string) => void;
-  downloadDocumentAsset: (url: string | undefined, label: string) => void;
+  downloadDocumentAsset: (url: string | undefined, label: string) => Promise<void>;
+  refreshCurrentDocument: (projectId: number) => Promise<void>;
   showToast: (message: string, tone?: ToastTone) => void;
 };
 
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+
+type ProjetoApiItem = {
+  id?: number | string;
+  name?: string;
+  description?: string | null;
+  client?: string | null;
+  created_at?: string | null;
+};
 
 // Converte um arquivo válido para o formato usado no upload.
 function buildUploadDocument(file: File): UploadDocument | null {
@@ -78,11 +101,8 @@ function buildUploadDocument(file: File): UploadDocument | null {
 function buildProjectInfo(projectInput: ProjectSaveInput): ProjectInfo {
   return {
     name: projectInput.name.trim(),
-    projectDate: projectInput.projectDate,
-    responsible: projectInput.responsible.trim(),
-    modelType: projectInput.modelType,
-    notes: projectInput.notes.trim(),
-    additionalInstructions: projectInput.additionalInstructions.trim(),
+    cliente: projectInput.cliente?.trim(),
+    descricao: projectInput.descricao?.trim(),
     savedAt: new Date().toISOString(),
   };
 }
@@ -95,6 +115,42 @@ function formatFileSize(file: File) {
   return `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function extractProcessingContent(apiResults: any[]) {
+  const tableRows: PreviewTableRow[] = [];
+  const previewLines: string[] = [];
+  const fileUrls = apiResults
+    .map((result) => result.file_url)
+    .filter(Boolean);
+
+  apiResults.forEach((res) => {
+    try {
+      const rawResult = res.resultado || "";
+      const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+      const aiJson = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+      if (!aiJson) {
+        return;
+      }
+
+      const resumo = aiJson.resumo_executivo || aiJson;
+      Object.entries(resumo).forEach(([key, value]) => {
+        tableRows.push({
+          label: key,
+          value: typeof value === "object" ? JSON.stringify(value) : String(value),
+        });
+      });
+
+      if (aiJson.sintese) {
+        previewLines.push(String(aiJson.sintese));
+      }
+    } catch (error) {
+      console.warn("Falha ao parsear JSON da IA:", error);
+    }
+  });
+
+  return { fileUrls, previewLines, tableRows };
+}
+
 function buildTechnicalStandard(file: File): TechnicalStandard | null {
   const kind = getFileKindFromName(file.name);
 
@@ -104,7 +160,9 @@ function buildTechnicalStandard(file: File): TechnicalStandard | null {
 
   const nameWithoutExtension = file.name.replace(/\.[^.]+$/, "");
   const codeMatch = nameWithoutExtension.match(/NBR\s*\d+/i);
-  const code = codeMatch ? codeMatch[0].toUpperCase().replace(/\s+/, " ") : "Norma";
+  const code = codeMatch
+    ? codeMatch[0].toUpperCase().replace(/\s+/, " ")
+    : "Norma";
 
   return {
     id: `standard-${file.name}-${file.size}-${file.lastModified}`,
@@ -121,17 +179,23 @@ function buildTechnicalStandard(file: File): TechnicalStandard | null {
 
 // Centraliza o estado do protótipo e das simulações.
 export function PrototypeProvider({ children }: PropsWithChildren) {
+  const { isAuthLoading, isAuthenticated, user } = useAuth();
   const [uploadedFiles, setUploadedFiles] = useState<UploadDocument[]>([]);
   const uploadedFilesRef = useRef<UploadDocument[]>([]);
-  const [historyDocuments, setHistoryDocuments] =
-    useState<HistoryDocument[]>(mockHistoryDocuments);
-  const [technicalStandards, setTechnicalStandards] =
-    useState<TechnicalStandard[]>(mockTechnicalStandards);
+  const [historyDocuments, setHistoryDocuments] = useState<HistoryDocument[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [technicalStandards, setTechnicalStandards] = useState<TechnicalStandard[]>(
+    [],
+  );
   const [currentDocument, setCurrentDocument] = useState<GeneratedDocument | null>(
     null
   );
   const [shouldPromptProjectSave, setShouldPromptProjectSave] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
+  const [processingLogs, setProcessingLogs] = useState<string[]>([]);
+  const [activeProjectData, setActiveProjectData] = useState<{ projectId: number; projectInfo: ProjectSaveInput; files: UploadDocument[] } | null>(null);
 
   useEffect(() => {
     if (!toast) {
@@ -147,7 +211,91 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     };
   }, [toast]);
 
-  // Exibe uma notificação temporária na interface.
+  useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setHistoryDocuments([]);
+      setHistoryError(null);
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    let shouldUpdate = true;
+
+    const fetchProjetos = async () => {
+      setIsLoadingHistory(true);
+      setHistoryError(null);
+
+      try {
+        const projetos = await listProjetos();
+
+        const normalizedHistory = projetos.map((projeto) => {
+          const projectId = String(projeto.id ?? `projeto-${Math.random()}`);
+          const projectName = projeto.name?.trim() || `Projeto ${projectId}`;
+          const projectInfo = buildProjectInfo({
+            name: projectName,
+            cliente: projeto.client?.trim() || undefined,
+            descricao: projeto.description?.trim() || undefined,
+          });
+          const createdAt = projeto.created_at
+            ? new Date(projeto.created_at)
+            : new Date();
+          const previewLines = [
+            projectInfo.descricao || "Sem descrição informada.",
+            `Cliente: ${projectInfo.cliente || "Não informado"}`,
+          ];
+
+          return {
+            id: projectId,
+            name: projectName,
+            kind: "project" as const,
+            date: createdAt.toLocaleDateString("pt-BR"),
+            size: "N/A",
+            document: {
+              id: projectId,
+              title: projectName,
+              subtitle: "Projeto cadastrado no banco de dados",
+              createdAt: createdAt.toLocaleString("pt-BR"),
+              reference: `PROJ-${projectId}`,
+              versionLabel: "v1",
+              summary: projectInfo.descricao || "Projeto sem descrição.",
+              previewLines,
+              tableRows: [],
+              sourceFiles: [],
+              file_urls: [],
+              projectInfo,
+            },
+            projectInfo,
+          };
+        });
+
+        if (shouldUpdate) {
+          setHistoryDocuments(normalizedHistory);
+        }
+      } catch (error) {
+        console.error(error);
+        if (shouldUpdate) {
+          setHistoryError("Não foi possível carregar os projetos.");
+          setHistoryDocuments([]);
+        }
+      } finally {
+        if (shouldUpdate) {
+          setIsLoadingHistory(false);
+        }
+      }
+    };
+
+    fetchProjetos();
+
+    return () => {
+      shouldUpdate = false;
+    };
+  }, [isAuthLoading, isAuthenticated, user?.id]);
+
+  // Exibe uma notificacao temporaria na interface.
   const showToast = (message: string, tone: ToastTone = "info") => {
     setToast({
       id: Date.now(),
@@ -199,8 +347,53 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
   // Remove um arquivo da lista de upload.
   const removeUploadedFile = (documentId: string) => {
     syncUploadedFiles(
-      uploadedFilesRef.current.filter((document) => document.id !== documentId)
+      uploadedFilesRef.current.filter((document) => document.id !== documentId),
     );
+  };
+
+  const startAIProcessing = async (projectId: number, projectInfo: ProjectSaveInput, files: UploadDocument[]) => {
+    if (isAIProcessing) return;
+    
+    setIsAIProcessing(true);
+    setProcessingLogs(["Iniciando pipeline de processamento..."]);
+    setActiveProjectData({ projectId, projectInfo, files });
+    
+    try {
+      const response = await processProject(projectId, true) as Response;
+      
+      if (!response.body) {
+        throw new Error("Resposta sem corpo");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value);
+        
+        const lines = chunkValue.split("\n\n");
+        lines.forEach(line => {
+          if (line.trim().startsWith("data: ")) {
+            const message = line.trim().replace("data: ", "").replace(/\\n/g, "\n");
+            if (message === "[DONE]") return;
+            setProcessingLogs(prev => [...prev, message]);
+          }
+        });
+      }
+
+      const finalResult = await getProjectResult(projectId);
+      completeProcessing(finalResult || [], projectInfo, files);
+    } catch (error) {
+      console.error("Erro no processamento real:", error);
+      setProcessingLogs(prev => [...prev, "ERRO: Falha na comunicação com o servidor."]);
+      showToast("Erro no processamento da IA", "error");
+    } finally {
+      setIsAIProcessing(false);
+      // Mantemos o activeProjectData até que o usuário veja o resultado ou inicie outro
+    }
   };
 
   // Limpa todos os arquivos pendentes de upload.
@@ -210,26 +403,53 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
   // Gera o documento final e usa os dados do projeto quando vierem do upload.
   const completeProcessing = (
-    apiResults: ProcessingResult[] = [],
+    apiResults: any[] = [],
     projectInput?: ProjectSaveInput,
-    sourceFiles?: UploadDocument[]
+    sourceFiles?: UploadDocument[],
   ) => {
-    const filesToProcess = sourceFiles?.length ? sourceFiles : uploadedFilesRef.current;
+    let baseDocument: GeneratedDocument;
+    const processingContent = extractProcessingContent(apiResults);
 
-    if (filesToProcess.length === 0) {
+    const filesToProcess = sourceFiles?.length
+      ? sourceFiles
+      : uploadedFilesRef.current;
+
+    if (filesToProcess.length > 0) {
+      baseDocument = {
+        ...buildGeneratedDocumentFromUploads(filesToProcess),
+        file_urls: processingContent.fileUrls,
+      };
+    } else if (currentDocument) {
+      baseDocument = {
+        ...currentDocument,
+        file_urls: processingContent.fileUrls,
+      };
+    } else {
       return null;
     }
 
-    const baseDocument: GeneratedDocument = {
-      ...buildGeneratedDocumentFromUploads(filesToProcess),
-      file_urls: apiResults.map((result) => result.file_url),
-    };
+    // Mapear resultados reais da IA para o documento
+    if (apiResults.length > 0) {
+      if (processingContent.tableRows.length > 0) {
+        baseDocument.tableRows = processingContent.tableRows;
+        baseDocument.summary = "Memorial gerado automaticamente via análise de IA sobre as plantas fornecidas.";
+      } else {
+        baseDocument.summary = "Arquivo não processado corretamente ou formato de saída da IA incompatível.";
+      }
+      
+      if (processingContent.previewLines.length > 0) {
+        baseDocument.previewLines = processingContent.previewLines;
+      }
+    } else {
+      baseDocument.summary = "Arquivo não processado (nenhum resultado da IA disponível).";
+    }
+
     const projectInfo = projectInput ? buildProjectInfo(projectInput) : null;
     const generatedDocument: GeneratedDocument = projectInfo
       ? {
           ...baseDocument,
           title: `Memorial de cálculo - ${projectInfo.name}`,
-          createdAt: formatInputDate(projectInfo.projectDate),
+          createdAt: new Date().toLocaleDateString("pt-BR"),
           projectInfo,
         }
       : baseDocument;
@@ -237,23 +457,24 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     setCurrentDocument(generatedDocument);
     setShouldPromptProjectSave(!projectInfo);
 
-    if (projectInfo) {
-      const historyDocument = buildHistoryDocumentFromGenerated(generatedDocument);
+    /*if (projectInfo) {
+      const historyDocument =
+      buildHistoryDocumentFromGenerated(generatedDocument);
 
       setHistoryDocuments((currentHistory) => [
         historyDocument,
         ...currentHistory.filter(
-          (document) => document.document.id !== generatedDocument.id
+          (document) => document.document.id !== generatedDocument.id,
         ),
       ]);
-    }
+    }*/
 
     syncUploadedFiles([]);
     showToast(
       projectInfo
         ? "Processamento concluído e projeto salvo no histórico."
         : "Processamento concluído com sucesso.",
-      "success"
+      "success",
     );
 
     return generatedDocument;
@@ -270,7 +491,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     const savedDocument: GeneratedDocument = {
       ...currentDocument,
       title: `Memorial de cálculo - ${projectInfo.name}`,
-      createdAt: formatInputDate(projectInfo.projectDate),
+      createdAt: new Date().toLocaleDateString("pt-BR"),
       projectInfo,
     };
     const historyDocument = buildHistoryDocumentFromGenerated(savedDocument);
@@ -280,16 +501,16 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     setHistoryDocuments((currentHistory) => [
       historyDocument,
       ...currentHistory.filter(
-        (document) => document.document.id !== savedDocument.id
+        (document) => document.document.id !== savedDocument.id,
       ),
     ]);
     showToast("Projeto salvo no histórico.", "success");
   };
 
   // Abre um documento do histórico na área de resultado.
-  const openHistoryPreview = (documentId: string) => {
+  const openHistoryPreview = async (documentId: string) => {
     const historyDocument = historyDocuments.find(
-      (document) => document.id === documentId
+      (document) => document.id === documentId,
     );
 
     if (!historyDocument) {
@@ -299,14 +520,70 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
 
     setCurrentDocument(historyDocument.document);
     setShouldPromptProjectSave(false);
+
+    // Tentar buscar resultado real da IA se for um ID numérico
+    const numericId = Number(documentId);
+    if (!Number.isFinite(numericId)) {
+      return;
+    }
+
+    try {
+      const apiResults = await getProjectResult(numericId);
+
+      if (!Array.isArray(apiResults) || apiResults.length === 0) {
+        return;
+      }
+
+      const processingContent = extractProcessingContent(apiResults);
+
+      setCurrentDocument({
+        ...historyDocument.document,
+        summary:
+          processingContent.tableRows.length > 0
+            ? "Memorial gerado automaticamente via análise de IA sobre as plantas fornecidas."
+            : historyDocument.document.summary,
+        previewLines:
+          processingContent.previewLines.length > 0
+            ? processingContent.previewLines
+            : historyDocument.document.previewLines,
+        tableRows:
+          processingContent.tableRows.length > 0
+            ? processingContent.tableRows
+            : historyDocument.document.tableRows,
+        file_urls: processingContent.fileUrls,
+      });
+    } catch (error) {
+      console.warn("Sem resultado de IA para este item do histórico", error);
+    }
   };
 
-  // Remove um item do histórico salvo.
-  const removeHistoryDocument = (documentId: string) => {
-    setHistoryDocuments((currentHistory) =>
-      currentHistory.filter((document) => document.id !== documentId)
-    );
-    showToast("Documento removido do histórico.", "info");
+  // Remove um item do histórico salvo E do banco de dados.
+  const removeHistoryDocument = async (documentId: string) => {
+    const projectId = Number(documentId);
+
+    if (!Number.isFinite(projectId)) {
+      setHistoryDocuments((currentHistory) =>
+        currentHistory.filter((document) => document.id !== documentId),
+      );
+      showToast("Projeto removido com sucesso.", "success");
+      return;
+    }
+
+    try {
+      await deleteProjeto(projectId);
+
+      // Remove do estado local após sucesso
+      setHistoryDocuments((currentHistory) =>
+        currentHistory.filter((document) => document.id !== documentId),
+      );
+      showToast("Projeto removido com sucesso.", "success");
+    } catch (error) {
+      console.error("Erro ao remover projeto:", error);
+      showToast(
+        "Erro ao remover projeto. Verifique se o backend está online.",
+        "error"
+      );
+    }
   };
 
   // Simula o download de todos os itens do histórico.
@@ -319,11 +596,50 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     showToast("Pacote do histórico pronto para download.", "success");
   };
 
-  const addTechnicalStandards = (fileList: FileList | File[]): AddFilesResult => {
+  const simulatePreviewAction = (fileName: string) => {
+    const selectedUpload = uploadedFilesRef.current.find(
+      (document) => document.name === fileName,
+    );
+
+    if (!selectedUpload?.file) {
+      showToast(`Pré-visualização de ${fileName} indisponível.`, "info");
+      return;
+    }
+
+    if (selectedUpload.kind !== "pdf") {
+      showToast(
+        `Pré-visualização de ${selectedUpload.kind.toUpperCase()} ainda não está disponível no navegador.`,
+        "info",
+      );
+      return;
+    }
+
+    const objectUrl = window.URL.createObjectURL(selectedUpload.file);
+    const previewWindow = window.open(
+      objectUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+
+    window.setTimeout(() => {
+      window.URL.revokeObjectURL(objectUrl);
+    }, 1000);
+
+    showToast(
+      previewWindow
+        ? `Pré-visualização de ${fileName} aberta.`
+        : "Permita pop-ups para abrir a pré-visualização.",
+      previewWindow ? "success" : "error",
+    );
+  };
+
+  const addTechnicalStandards = (
+    fileList: FileList | File[],
+  ): AddFilesResult => {
     const incomingFiles = Array.from(fileList);
     const parsedStandards = incomingFiles.map(buildTechnicalStandard);
     const knownNames = new Set(
-      technicalStandards.map((standard) => standard.name.toLowerCase())
+      technicalStandards.map((standard) => standard.name.toLowerCase()),
     );
     const nextStandards = [...technicalStandards];
     let duplicateCount = 0;
@@ -354,7 +670,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
         addedCount === 1
           ? "Norma adicionada e habilitada para a IA."
           : `${addedCount} normas adicionadas e habilitadas para a IA.`,
-        "success"
+        "success",
       );
     } else if (invalidCount > 0) {
       showToast("Somente normas em PDF são aceitas.", "error");
@@ -365,9 +681,9 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     return { addedCount, duplicateCount, invalidCount };
   };
 
-  const toggleStandard = (standardId: string) => {
+  const toggleStandard = async (standardId: string) => {
     const selectedStandard = technicalStandards.find(
-      (standard) => standard.id === standardId
+      (standard) => standard.id === standardId,
     );
 
     if (!selectedStandard) {
@@ -375,24 +691,71 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    setTechnicalStandards((currentStandards) =>
-      currentStandards.map((standard) =>
-        standard.id === standardId
-          ? { ...standard, enabled: !standard.enabled }
-          : standard
-      )
-    );
-    showToast(
-      `${selectedStandard.code} ${
-        selectedStandard.enabled ? "desabilitada" : "habilitada"
-      } para consulta da IA.`,
-      "info"
-    );
+    // Extrair ID numérico se for um ID de banco (string de números)
+    const normaId = /^\d+$/.test(standardId) ? standardId : null;
+
+    // Se é uma norma do banco, chamar backend
+    if (normaId) {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/norma/${normaId}/toggle`,
+          { method: "PATCH" }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          showToast(
+            `Erro ao atualizar norma: ${errorData.detail || "Erro desconhecido"}`,
+            "error"
+          );
+          return;
+        }
+
+        const updatedNorma = await response.json();
+        
+        // Atualizar estado local com o resultado do backend
+        setTechnicalStandards((currentStandards) =>
+          currentStandards.map((standard) =>
+            standard.id === standardId
+              ? { ...standard, enabled: updatedNorma.ativo }
+              : standard,
+          ),
+        );
+        
+        showToast(
+          `${selectedStandard.code} ${
+            updatedNorma.ativo ? "ativada" : "desativada"
+          } para consulta da IA.`,
+          "success",
+        );
+      } catch (error) {
+        console.error("Erro ao atualizar norma:", error);
+        showToast(
+          "Erro ao atualizar norma. Verifique se o backend está online.",
+          "error"
+        );
+      }
+    } else {
+      // Para normas locais (em memória), apenas atualizar estado
+      setTechnicalStandards((currentStandards) =>
+        currentStandards.map((standard) =>
+          standard.id === standardId
+            ? { ...standard, enabled: !standard.enabled }
+            : standard,
+        ),
+      );
+      showToast(
+        `${selectedStandard.code} ${
+          selectedStandard.enabled ? "desabilitada" : "habilitada"
+        } para consulta da IA.`,
+        "info",
+      );
+    }
   };
 
   const downloadStandard = (standardId: string) => {
     const selectedStandard = technicalStandards.find(
-      (standard) => standard.id === standardId
+      (standard) => standard.id === standardId,
     );
 
     if (!selectedStandard) {
@@ -415,20 +778,22 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     showToast(`Download de ${selectedStandard.code} iniciado.`, "success");
   };
 
-  // Simula a abertura de um arquivo para visualização.
-  const simulatePreviewAction = (fileName: string) => {
-    showToast(`Pré-visualização simulada: ${fileName}.`, "info");
-  };
-
   // Baixa o arquivo gerado pelo backend.
-  const downloadDocumentAsset = async (url: string | undefined, label: string) => {
+  const downloadDocumentAsset = async (
+    url: string | undefined,
+    label: string,
+  ) => {
     if (!url) {
       showToast("Arquivo indisponível para download.", "error");
       return;
     }
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          ...(getAuthHeaders() ?? {}),
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Erro ao baixar arquivo");
@@ -453,18 +818,52 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
     }
   };
 
+  const refreshCurrentDocument = async (projectId: number) => {
+    try {
+      // 1. Buscar dados básicos do projeto
+      const projeto = await getProjeto(projectId);
+      
+      // 2. Tentar buscar resultados da IA
+      const apiResults = await getProjectResult(projectId);
+      
+      const projectInput: ProjectSaveInput = {
+        name: projeto.name,
+        cliente: projeto.client || undefined,
+        descricao: projeto.description || undefined,
+      };
+
+      // Simular sourceFiles para o buildGeneratedDocument
+      const sourceFiles = projeto.description?.includes("Arquivos:") 
+        ? projeto.description.split("Arquivos:")[1].split(",").map(s => s.trim())
+        : [];
+
+      // Usamos completeProcessing para atualizar o currentDocument
+      completeProcessing(apiResults || [], projectInput, sourceFiles.map(name => ({ name, kind: "dxf" } as any)));
+      
+    } catch (error) {
+      console.error("Erro ao atualizar documento:", error);
+      showToast("Não foi possível carregar os dados do projeto.", "error");
+    }
+  };
+
   return (
     <PrototypeContext.Provider
       value={{
         uploadedFiles,
         historyDocuments,
         technicalStandards,
+        isLoadingHistory,
+        historyError,
         currentDocument,
         shouldPromptProjectSave,
         toast,
+        isAIProcessing,
+        processingLogs,
+        activeProjectData,
         addUploadedFiles,
         removeUploadedFile,
         clearUploadedFiles,
+        startAIProcessing,
         completeProcessing,
         saveCurrentProject,
         openHistoryPreview,
@@ -475,6 +874,7 @@ export function PrototypeProvider({ children }: PropsWithChildren) {
         downloadStandard,
         simulatePreviewAction,
         downloadDocumentAsset,
+        refreshCurrentDocument,
         showToast,
       }}
     >

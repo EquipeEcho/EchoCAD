@@ -1,281 +1,129 @@
 # EchoCAD API - Backend
 
-API FastAPI para gerenciar upload e armazenamento de arquivos CAD (.dwg, .dwf, .pdf).
+API FastAPI para desenvolvimento e testes de upload e processamento de plantas CAD.
 
-## Tabela de Conteúdos
+## Objetivo
 
-- [Pré-requisitos](#pré-requisitos)
-- [Instalação](#instalação)
-  - [1. Instalar pipx](#1-instalar-pipx)
-  - [2. Instalar Poetry](#2-instalar-poetry)
-  - [3. Instalar Dependências](#3-instalar-dependências)
-- [Executar o Projeto](#executar-o-projeto)
-- [Docker](#docker)
-  - [Construir a Imagem Docker](#construir-a-imagem-docker)
-  - [Executar Container Docker](#executar-container-docker)
+Este README descreve como executar o backend localmente (modo desenvolvimento) e via Docker Compose (Produção).
 
----
+## Conteúdo
+
+- Pré-requisitos
+- Configurar o ambiente (.env)
+- Executar localmente (venv ou `uv`/`uv run`)
+- Executar com Docker Compose (inclui perfis opcionais)
+- Migrações (Alembic)
 
 ## Pré-requisitos
 
-Certifique-se de que você tem instalado:
-- **Python 3.13+** ([Download aqui](https://www.python.org/downloads/))
-- **pip** (geralmente vem com Python)
-- **Docker** (opcional, apenas para containerização) ([Download aqui](https://www.docker.com/products/docker-desktop))
+- Python 3.13+ (ou 3.10+ compatível com dependências)
+- Docker
+- opcional: `pipx` para instalar `uv` globalmente (recomendado para fluxo `uv sync`)
 
-Verifique as versões instaladas:
+Verifique:
+
 ```bash
 python --version
-pip --version
-docker --version  # opcional
+docker --version
+docker compose version
 ```
 
----
+## Configurar ambiente
 
-## Instalação
-
-### 1. Instalar pipx
-
-`pipx` é um instalador de ferramentas Python que isola dependências. É a forma recomendada para instalar `Poetry`.
-
-**No Linux/macOS:**
-```bash
-pip install --upgrade pip
-pip install pipx
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-**No Windows:**
-```bash
-pip install --upgrade pip
-pip install pipx
-```
-
-Verifique a instalação:
-```bash
-pipx --version
-```
-
-### 2. Instalar Poetry
-
-`Poetry` é um gerenciador de dependências e empacotador para Python.
+1. Copie o modelo de ambiente e ajuste valores sensíveis:
 
 ```bash
-pipx install poetry
-poetry --version
+cp .env.example .env
+# Edite .env com seus valores locais (DB, JWT, chaves, etc.)
 ```
 
-Caso o comando poetry não seja encontrado após a instalação, adicione o caminho ao PATH:
+2. Para desenvolvimento local, normalmente deixe as URLs apontando para `localhost` (veja `.env.example`). Para execução via Docker Compose, o host do banco usado internamente é `mariadb` (nome do serviço).
 
-**Linux/macOS:**
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
+Principais variáveis em `.env`:
 
-Adicione a linha acima ao seu arquivo `~/.bashrc` ou `~/.zshrc` para persistir entre sessões.
+- `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_ROOT_PASSWORD`
+- `DATABASE_URL`, `DATABASE_ASYNC_URL` (são usadas pela aplicação e por Alembic)
+- `API_PORT` (porta do backend em host quando rodando via Docker)
 
-### 3. Instalar Dependências
+> Observação: o arquivo `.env.example` contém valores de exemplo para facilitar testes. Não comite seu `.env` com segredos.
 
-Clone ou navegue até a pasta do projeto e instale as dependências especificadas no `pyproject.toml`:
+## Executar localmente (recomendado para desenvolvimento)
 
-```bash
-cd /caminho/para/EchoCAD/app/backend
-poetry install
-```
-
-Este comando:
-- Cria um ambiente virtual automático
-- Instala todas as dependências do projeto
-- Sincroniza com o arquivo `poetry.lock`
-
-Para atualizar as dependências:
-```bash
-poetry self add poetry-plugin-export
-```
-
----
-
-## Executar o Projeto
-
-### Modo Desenvolvimento
-
-Execute a aplicação FastAPI com auto-recarregamento:
+Opção A — com `python -m venv` (sem `pipx`):
 
 ```bash
-poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+cd app/backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+# Aplicar migrações localmente (requer que DATABASE_URL aponte para um DB acessível)
+alembic upgrade head
+# Iniciar a API (usa uvicorn via fastapi/uvicorn)
+uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-A API estará disponível em: `http://localhost:8000`
-
-Documentação interativa: `http://localhost:8000/docs`
-
-### Modo Produção
+Opção B — com `uv` (fluxo usado no Dockerfile, via `pipx`):
 
 ```bash
-poetry run uvicorn src.main:app --host 0.0.0.0 --port 8000
+# instalar pipx se necessário
+python3 -m pip install --user pipx && python3 -m pipx ensurepath
+pipx install uv
+
+cd app/backend
+# sincronizar ambiente (instala dependências no virtualenv local conforme pyproject)
+uv sync
+# rodar a aplicação
+uv run fastapi run src/main.py --host 127.0.0.1 --port 8000 --reload
 ```
 
-### Dentro do Ambiente Virtual
+Depois disso, a API ficará disponível em `http://127.0.0.1:8000`.
 
-Se preferir entrar no ambiente virtual do Poetry:
+Para testar um upload (exemplo com `httpie`):
 
 ```bash
-poetry shell
-uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+pipx install httpie
+http --form POST http://127.0.0.1:8000/upload file@/caminho/arquivo.dwg
 ```
 
-Para sair do ambiente virtual:
-```bash
-exit
-```
+## Executar com Docker Compose
 
-### Testar a API
+O compose principal em `app/docker-compose.yaml` orquestra MariaDB, backend, frontend e serviços opcionais (como `cloudflared` e `ollama`) via perfis.
 
-Fazer upload de arquivo:
-```bash
-curl -X POST "http://localhost:8000/upload" \
-  -F "file=@caminho/do/arquivo.dwg"
-```
-
-Acessar documentação Swagger:
-```bash
-# Abra no navegador:
-http://localhost:8000/docs
-```
-
----
-
-## Docker
-
-### Construir a Imagem Docker
-
-Na pasta do projeto, execute:
+Subir todo o stack padrão (sem perfis opcionais):
 
 ```bash
-docker build -t echocad-api:latest .
+cd app
+docker compose up -d --build
 ```
 
-Verifique se a imagem foi criada:
+Subir com perfis opcionais (ex.: `ollama` e `cloudflared`):
+
 ```bash
-docker images | grep echocad-api
+docker compose --profile ollama --profile cloudflared up -d --build
 ```
 
-### Executar Container Docker
+Observações:
 
-**Modo interativo (para desenvolvimento):**
+- O serviço `backend` executa `start.sh` como `ENTRYPOINT`. Esse script aguarda o banco e aplica `alembic upgrade head` automaticamente antes de iniciar a aplicação.
+- Se quiser aplicar migrações manualmente via container:
+
 ```bash
-docker run -it -p 8000:8000 echocad-api:latest
+docker compose exec backend alembic upgrade head
 ```
 
-**Modo background (para produção):**
+## Migrações (Alembic)
+
+As migrações são controladas por Alembic (`alembic/versions`). O `start.sh` já roda `alembic upgrade head` no container.
+
+Para rodar as migrações localmente, garanta que `DATABASE_URL` esteja correto no seu `.env` e execute:
+
 ```bash
-docker run -d \
-  --name echocad-api \
-  -p 8000:8000 \
-  -v $(pwd)/uploads:/app/uploads \
-  echocad-api:latest
+alembic upgrade head
 ```
 
-Onde:
-- `-d`: Executa em background
-- `--name echocad-api`: Nome do container
-- `-p 8000:8000`: Mapeia porta 8000
-- `-v $(pwd)/uploads:/app/uploads`: Monta volume para persistir uploads
+## Notas adicionais
 
-### Gerenciar Container Docker
-
-**Ver logs:**
-```bash
-docker logs echocad-api
-docker logs echocad-api -f  # follow (tempo real)
-```
-
-**Parar container:**
-```bash
-docker stop echocad-api
-```
-
-**Reiniciar container:**
-```bash
-docker restart echocad-api
-```
-
-**Remover container:**
-```bash
-docker rm echocad-api
-```
-
-**Executar comando dentro do container:**
-```bash
-docker exec -it echocad-api bash
-```
-
-### Acessar a API
-
-Após iniciar o container, acesse:
-- API: `http://localhost:8000`
-- Docs: `http://localhost:8000/docs`
-
----
-
-## Estrutura do Projeto
-
-```
-src/
-├── main.py              # Aplicação FastAPI principal
-├── database.py          # Configuração SQLite
-├── controller/
-│   └── file_controller.py
-├── models/
-│   └── file_cad.py     # Modelo de dados
-└── routes/
-    └── upload.py       # Rotas de upload
-tests/
-├── test_main.py        # Testes unitários
-uploads/                # Arquivos carregados (gitignored)
-├── Dockerfile          # Configuração Docker
-├── pyproject.toml      # Dependências do projeto
-├── poetry.lock         # Lock file (não editar manualmente)
-├── requirements-docker.txt  # Requirements exportado para Docker
-└── README.md           # Este arquivo
-```
-
----
-
-## Solução de Problemas
-
-**Erro: `poetry: command not found`**
-```bash
-# Reconfigure o PATH
-export PATH="$HOME/.local/bin:$PATH"
-source ~/.bashrc  # ou ~/.zshrc
-```
-
-**Erro: `ModuleNotFoundError`**
-```bash
-# Reinstale as dependências
-poetry install --no-cache
-```
-
-**Erro ao conectar ao banco de dados**
-```bash
-# Verifique se o arquivo database.db foi criado
-ls -la database.db
-```
-
-**Container não inicia**
-```bash
-# Verifique os logs
-docker logs echocad-api
-```
-
----
-
-## Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto (opcional):
-```bash
-DATABASE_URL=sqlite:///database.db
-APP_HOST=0.0.0.0
-APP_PORT=8000
-```
+- O `Dockerfile` usa `uv sync` durante o build para instalar dependências conforme `pyproject.toml`. Isso espelha o fluxo recomendado com `uv`/`pipx` para desenvolvimento.
+- Serviços opcionais no compose:
+	- `cloudflared` está configurado com profile `cloudflared` (executar com `--profile cloudflared` para habilitar).
+	- `ollama` e `ollama-model-puller` foram adicionados sob o profile `ollama` (use `--profile ollama`).

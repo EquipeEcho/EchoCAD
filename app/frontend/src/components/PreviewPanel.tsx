@@ -106,12 +106,18 @@ export function PreviewPanel({ document }: PreviewPanelProps) {
                 <span>Parâmetro</span>
                 <span>Valor</span>
               </div>
-              {document.tableRows.map((row) => (
-                <div className="preview-table__row" key={row.label}>
-                  <span>{row.label}</span>
-                  <strong>{row.value}</strong>
+              {document.tableRows.length > 0 ? (
+                document.tableRows.map((row) => (
+                  <div className="preview-table__row" key={row.label}>
+                    <span>{row.label}</span>
+                    <strong>{row.value}</strong>
+                  </div>
+                ))
+              ) : (
+                <div className="preview-table__empty">
+                  <span>Arquivo não processado.</span>
                 </div>
-              ))}
+              )}
             </div>
           </aside>
         </div>

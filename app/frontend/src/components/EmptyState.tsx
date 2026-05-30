@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { Button } from "./Button";
-import { SurfaceCard } from "./SurfaceCard";
 
 type EmptyStateProps = {
   title: string;
@@ -9,6 +8,8 @@ type EmptyStateProps = {
   onAction?: () => void;
   icon?: ReactNode;
   tone?: "neutral" | "error";
+  framed?: boolean;
+  className?: string;
 };
 
 // Mostra uma mensagem quando não há conteúdo.
@@ -19,9 +20,20 @@ export function EmptyState({
   onAction,
   icon,
   tone = "neutral",
+  framed = true,
+  className,
 }: EmptyStateProps) {
+  const classes = [
+    framed ? "surface-card" : "",
+    "empty-state",
+    `empty-state--${tone}`,
+    className || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <SurfaceCard className={`empty-state empty-state--${tone}`}>
+    <div className={classes}>
       {icon ? <div className="empty-state__icon">{icon}</div> : null}
       <h2 className="empty-state__title">{title}</h2>
       <p className="empty-state__description">{description}</p>
@@ -30,6 +42,6 @@ export function EmptyState({
           {actionLabel}
         </Button>
       ) : null}
-    </SurfaceCard>
+    </div>
   );
 }

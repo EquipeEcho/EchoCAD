@@ -1,4 +1,4 @@
-export type FileKind = "dwg" | "dxf" | "pdf" | "xlsx";
+export type FileKind = "dxf" | "pdf" | "doc" | "docx" | "xlsx" | "project";
 
 export type ToastTone = "success" | "error" | "info";
 
@@ -8,16 +8,18 @@ export interface UploadDocument {
   id: string;
   name: string;
   kind: FileKind;
-  file: File;
+  file?: File;
 }
 
 export interface ProjectSaveInput {
   name: string;
-  projectDate: string;
-  responsible: string;
-  modelType: string;
-  notes: string;
-  additionalInstructions: string;
+  cliente?: string;
+  descricao?: string;
+  projectDate?: string;
+  responsible?: string;
+  modelType?: string;
+  notes?: string;
+  additionalInstructions?: string;
 }
 
 export interface ProjectInfo extends ProjectSaveInput {

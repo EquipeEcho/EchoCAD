@@ -6,13 +6,14 @@ import { FileList } from "../components/FileList";
 import { FileRow } from "../components/FileRow";
 import { SectionTitle } from "../components/SectionTitle";
 import { SurfaceCard } from "../components/SurfaceCard";
-import { usePrototype } from "../providers/PrototypeProvider";
+import { usePrototype } from "../hooks/usePrototype";
 import { UploadStatusTone } from "../types/documents";
 
 type StandardSwitchProps = {
   enabled: boolean;
   label: string;
-  onToggle: () => void;
+  onToggle: () => Promise<void>;
+  isLoading?: boolean;
 };
 
 function buildStandardsUploadStatus(
@@ -50,7 +51,11 @@ function buildStandardsUploadStatus(
   };
 }
 
-function StandardSwitch({ enabled, label, onToggle }: StandardSwitchProps) {
+function StandardSwitch({ enabled, label, onToggle, isLoading = false }: StandardSwitchProps) {
+  const handleToggle = async () => {
+    await onToggle();
+  };
+
   return (
     <button
       className={`standard-switch${enabled ? " is-enabled" : ""}`}
@@ -58,7 +63,8 @@ function StandardSwitch({ enabled, label, onToggle }: StandardSwitchProps) {
       role="switch"
       aria-checked={enabled}
       aria-label={`${enabled ? "Desabilitar" : "Habilitar"} ${label}`}
-      onClick={onToggle}
+      onClick={handleToggle}
+      disabled={isLoading}
     >
       <span className="standard-switch__track" aria-hidden="true">
         <span className="standard-switch__thumb" />
@@ -131,7 +137,7 @@ export function StandardsPage() {
         <SurfaceCard
           as="section"
           className={`standards-upload${isDragging ? " is-dragging" : ""}`}
-          onDragOver={(event) => {
+          onDragOver={(event: DragEvent<HTMLDivElement>) => {
             event.preventDefault();
             setIsDragging(true);
           }}
@@ -178,9 +184,15 @@ export function StandardsPage() {
           </p>
         </SurfaceCard>
 
-        <SurfaceCard as="section" className="history-surface standards-surface">
+        <SurfaceCard
+          as="section"
+          className={`history-surface standards-surface${
+            technicalStandards.length === 0 ? " history-surface--empty" : ""
+          }`}
+        >
           {technicalStandards.length === 0 ? (
             <EmptyState
+              framed={false}
               icon={<InfoCircleIcon />}
               title="Nenhuma norma cadastrada"
               description="Envie arquivos PDF para montar a biblioteca técnica usada pelo protótipo."
@@ -209,8 +221,8 @@ export function StandardsPage() {
                     kind={standard.kind}
                     hint={
                       standard.enabled
-                        ? "Consultada pela IA"
-                        : "Ignorada pela IA"
+                        ? "Habilitada para consulta da IA"
+                        : "Desabilitada para consulta da IA"
                     }
                     metaItems={[
                       { label: "Área", value: standard.category },

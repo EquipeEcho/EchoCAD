@@ -1,0 +1,60 @@
+{
+  "paredes": {
+    "PAREDE_INTERNA_10": { "espessura": 0.1, "altura": 2.8 },
+    "PAREDE_EXTERNA_15": { "espessura": 0.15, "altura": 2.8 },
+    "PAREDE_ESTRUTURAL_20": { "espessura": 0.2, "altura": 3.0 },
+    "PAREDE_BLOCO_19": { "espessura": 0.19, "altura": 2.8 },
+    "PAREDE_BLOCO_15": { "espessura": 0.15, "altura": 2.8 }
+  },
+  "aberturas": {
+    "P80": { "categoria": "porta", "largura": 0.8, "altura": 2.1 },
+    "P90": { "categoria": "porta", "largura": 0.9, "altura": 2.2 },
+    "J100": { "categoria": "janela", "largura": 1.0, "altura": 1.2 },
+    "J150": { "categoria": "janela", "largura": 1.5, "altura": 1.2 }
+  },
+  "eletrica": {
+    "prefixo_layer": "ELE_FIA_",
+    "bitolas_mapeadas": {
+      "BIT-1-5": 1.5,
+      "BIT-2-5": 2.5,
+      "BIT-4": 4.0,
+      "BIT-6": 6.0
+    }
+  },
+  "hidraulica": {
+    "prefixo_layer": "HID_CANO_",
+    "diametros_mapeados": {
+      "DE-20": 20,
+      "DE-25": 25,
+      "DE-32": 32,
+      "DE-50": 50
+    }
+  },
+  "escada": {
+    "prefixo_layer": "ESCADA_",
+    "espessura_laje_fundo_padrao": 0.12
+  },
+  "vigas": {
+    "VIGA_15X30": { "base_m": 0.15, "altura_m": 0.3 },
+    "VIGA_20X40": { "base_m": 0.2, "altura_m": 0.4 },
+    "VIGA_25X50": { "base_m": 0.25, "altura_m": 0.5 },
+    "VIGA_30X60": { "base_m": 0.3, "altura_m": 0.6 }
+  },
+  "colunas": {
+    "COL_20X20": { "largura_m": 0.2, "profundidade_m": 0.2, "altura_m": 3.0 },
+    "COL_25X25": { "largura_m": 0.25, "profundidade_m": 0.25, "altura_m": 3.0 },
+    "COL_20X30": { "largura_m": 0.2, "profundidade_m": 0.3, "altura_m": 3.0 },
+    "COL_30X30": { "largura_m": 0.3, "profundidade_m": 0.3, "altura_m": 3.0 }
+  },
+  "laje": {
+    "prefixo_layer": "LAJE_",
+    "espessura_padrao": 0.12,
+    "tipos": {
+      "LAJE_MACICA_10": { "espessura_m": 0.1 },
+      "LAJE_MACICA_12": { "espessura_m": 0.12 },
+      "LAJE_MACICA_15": { "espessura_m": 0.15 },
+      "LAJE_NERVURADA_20": { "espessura_m": 0.2 },
+      "LAJE_NERVURADA_25": { "espessura_m": 0.25 }
+    }
+  }
+}

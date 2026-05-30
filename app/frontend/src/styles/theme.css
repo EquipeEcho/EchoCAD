@@ -36,6 +36,36 @@
   background: var(--color-surface-soft);
 }
 
+[data-theme="dark"] .main-nav {
+  background: var(--color-surface-muted);
+}
+
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .nav-link:focus-visible,
+[data-theme="dark"] .nav-link.is-active,
+[data-theme="dark"] .user-popover {
+  background: var(--color-surface);
+}
+
+[data-theme="dark"] .auth-card__icon {
+  border-color: rgba(110, 168, 255, 0.22);
+  background: var(--color-blue-soft);
+}
+
+[data-theme="dark"] .auth-form__message--error {
+  background: var(--color-red-soft);
+}
+
+[data-theme="dark"] .auth-tabs {
+  background: var(--color-surface-muted);
+}
+
+[data-theme="dark"] .auth-tabs__item:hover,
+[data-theme="dark"] .auth-tabs__item:focus-visible,
+[data-theme="dark"] .auth-tabs__item.is-active {
+  background: var(--color-surface-raised);
+}
+
 [data-theme="dark"] .file-list-card__title {
   color: var(--color-title-soft);
 }
@@ -106,13 +136,22 @@
 
 [data-theme="dark"] .toast {
   border-color: var(--color-border);
-  background: rgba(17, 25, 36, 0.96);
+  background: rgba(15, 23, 34, 0.98);
+  box-shadow: 0 22px 44px rgba(2, 6, 23, 0.44);
 }
 
-[data-theme="dark"] .toast__icon,
 [data-theme="dark"] .toast__message,
 [data-theme="dark"] .toast--success {
   color: var(--color-text);
+}
+
+[data-theme="dark"] .toast--success {
+  border-color: rgba(57, 217, 138, 0.32);
+}
+
+[data-theme="dark"] .toast--success .toast__icon {
+  background: var(--color-green-soft);
+  color: var(--color-green-strong);
 }
 
 [data-theme="dark"] .modal-card__close {
@@ -125,15 +164,29 @@
   color: var(--color-text);
 }
 
+[data-theme="dark"] .confirmation-modal .modal-card__actions {
+  background: rgba(21, 31, 44, 0.92);
+}
+
+[data-theme="dark"] .confirmation-modal--danger .confirmation-modal__icon {
+  border-color: rgba(255, 132, 124, 0.26);
+  background: var(--color-red-soft);
+  color: var(--color-red);
+}
+
 [data-theme="dark"] .project-save-modal .modal-card__header {
   background:
-    linear-gradient(180deg, rgba(21, 31, 44, 0.96), rgba(17, 25, 36, 0.98)),
+    linear-gradient(135deg, rgba(21, 31, 44, 0.98), rgba(15, 23, 34, 0.96)),
     var(--color-surface);
 }
 
 [data-theme="dark"] .project-save-modal__icon {
   border-color: rgba(110, 168, 255, 0.24);
   background: var(--color-blue-soft);
+}
+
+[data-theme="dark"] .project-save-modal__eyebrow {
+  color: var(--color-blue);
 }
 
 [data-theme="dark"] .project-save-modal .modal-card__actions {
@@ -150,6 +203,41 @@
   color: var(--color-text);
 }
 
+[data-theme="dark"] .plant-type-option {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .plant-type-option:hover,
+[data-theme="dark"] .plant-type-option:focus-visible,
+[data-theme="dark"] .plant-type-option.is-selected {
+  border-color: rgba(110, 168, 255, 0.48);
+  background: var(--color-blue-soft);
+  color: var(--color-blue);
+}
+
+[data-theme="dark"] .custom-select__trigger {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .custom-select__menu {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+  box-shadow: 0 22px 44px rgba(2, 6, 23, 0.44);
+}
+
+[data-theme="dark"] .custom-select__option {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .password-field__toggle:hover,
+[data-theme="dark"] .password-field__toggle:focus-visible {
+  background: var(--color-surface-soft);
+}
+
 [data-theme="dark"] .empty-state--error {
   background: rgba(255, 132, 124, 0.05);
 }
@@ -157,6 +245,33 @@
 [data-theme="dark"] .empty-state__icon {
   background: var(--color-surface-muted);
   color: var(--color-text-soft);
+}
+
+[data-theme="dark"] .processing-status,
+[data-theme="dark"] .processing-metric,
+[data-theme="dark"] .processing-activity__item,
+[data-theme="dark"] .result-download-card {
+  border-color: var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+[data-theme="dark"] .processing-metric {
+  background: var(--color-surface-soft);
+}
+
+[data-theme="dark"] .processing-activity__marker,
+[data-theme="dark"] .result-downloads__badge {
+  background: var(--color-surface-raised);
+  color: var(--color-text-soft);
+}
+
+[data-theme="dark"] .result-downloads__badge-value {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .result-download-card__icon {
+  background: var(--color-blue-soft);
 }
 
 [data-theme="dark"] .progress-indicator__bar {
