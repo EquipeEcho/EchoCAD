@@ -78,6 +78,8 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 
 ### 🔵 Sprint 3 - Documentação e exportação de documentos - Concluído - <a href="./docs/backlog_sprint3/backlog.md"> Detalhes </a>
 
+#### Assista o vídeo de apresentação da Sprint
+[![VIDEO DA SPRINT](https://img.youtube.com/vi/uGvk_viRp7I/maxresdefault.jpg)](https://www.youtube.com/watch?v=uGvk_viRp7I)
 
 ## 🏃‍ DoR - Definition of Ready
 
