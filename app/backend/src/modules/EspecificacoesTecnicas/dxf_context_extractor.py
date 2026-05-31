@@ -238,7 +238,7 @@ class DXFParser:
             return self._entities
 
         start, end = self._find_section("ENTITIES")
-        if start is None:
+        if start is None or end is None:
             return []
 
         entities = []

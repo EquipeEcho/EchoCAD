@@ -69,12 +69,17 @@ def _encontrar_pasta_modulo() -> Path:
             and (c / "dxf_context_extractor.py").exists()
         ):
             return c
-    return None
+    raise FileNotFoundError(
+        "Pasta EspecificacoesTecnicas não encontrada. "
+        "Execute o teste a partir da raiz do projeto."
+    )
 
 
 def _importar_arquivo(nome_modulo: str, caminho: Path):
     """Importa um .py diretamente pelo caminho, sem precisar de sys.path."""
     spec = importlib.util.spec_from_file_location(nome_modulo, str(caminho))
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Não foi possível carregar o módulo '{nome_modulo}' de {caminho}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[nome_modulo] = mod
     spec.loader.exec_module(mod)

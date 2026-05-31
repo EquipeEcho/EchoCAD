@@ -1,1 +1,0 @@
-https://visualstudio.microsoft.com/pt-br/visual-cpp-build-tools/

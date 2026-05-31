@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.auth import create_access_token, get_current_user
 from src.database import get_async_session
 from src.schemas.user_schema import (
+    AIProviderStatusSchema,
+    AIProviderToggleSchema,
     ChangePasswordSchema,
     CreateUserSchema,
     GroqApiKeyStatusSchema,
@@ -16,10 +19,13 @@ from src.controller.crud_users import (
     change_user_password,
     clear_user_groq_api_key,
     create_user,
+    get_ai_provider_preference,
     get_masked_user_groq_api_key,
     get_user_by_email,
+    set_ai_provider_preference,
     set_user_groq_api_key,
     update_user,
+    validate_ollama_available,
 )
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -279,3 +285,69 @@ async def route_clear_groq_key(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+
+
+# === AI PROVIDER ==== #
+
+@router.get(
+    "/me/ai-provider",
+    status_code=status.HTTP_200_OK,
+    response_model=AIProviderStatusSchema
+)
+async def route_get_ai_provider(
+    current_user=Depends(get_current_user)
+):
+    """Retorna preferência de IA atual do usuário"""
+    pref = await get_ai_provider_preference(current_user)
+    
+    provider = pref["provider"]
+    configured = pref["groq_configured"] if provider == "groq" else await validate_ollama_available()
+    
+    return AIProviderStatusSchema(
+        use_ollama=pref["use_ollama"],
+        provider_name=provider,
+        configured=configured,
+        message=f"Usando {provider.upper()}"
+    )
+
+
+@router.put(
+    "/me/ai-provider",
+    status_code=status.HTTP_200_OK,
+    response_model=AIProviderStatusSchema
+)
+async def route_set_ai_provider(
+    toggle: AIProviderToggleSchema,
+    current_user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Salva preferência de IA do usuário"""
+    
+    # Se escolher Ollama, validar que está disponível
+    if toggle.use_ollama:
+        if not await validate_ollama_available():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Ollama não está acessível em {settings.OLLAMA_URL}"
+            )
+    
+    updated_user = await set_ai_provider_preference(
+        session, 
+        current_user.id, 
+        toggle.use_ollama
+    )
+    
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    provider = "ollama" if toggle.use_ollama else "groq"
+    
+    return AIProviderStatusSchema(
+        use_ollama=toggle.use_ollama,
+        provider_name=provider,
+        configured=True,
+        message=f"Alterado para {provider.upper()}"
+    )

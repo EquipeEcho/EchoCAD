@@ -15,6 +15,13 @@ import asyncio
 import httpx
 
 from .dxf_context_extractor import ContextoDXF
+from src.exceptions import (
+    NoGroqTokenException,
+    OllamaUnavailableException,
+    GroqQuotaExceededException,
+    NoValidProviderException,
+)
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +29,15 @@ logger = logging.getLogger(__name__)
 # Configuração da API Groq
 # ---------------------------------------------------------------------------
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = settings.GROQ_MODEL
 GROQ_FALLBACK_MODELS = [
     model.strip()
     for model in os.getenv("GROQ_FALLBACK_MODELS", "llama-3.1-8b-instant").split(",")
     if model.strip() and model.strip() != GROQ_MODEL
 ]
 MAX_TOKENS = int(os.getenv("GROQ_MAX_TOKENS", "4000"))
-GROQ_TIMEOUT_SECONDS = float(os.getenv("GROQ_TIMEOUT_SECONDS", "100"))
-GROQ_MAX_RETRIES = int(os.getenv("GROQ_MAX_RETRIES", "5"))
+GROQ_TIMEOUT_SECONDS = settings.GROQ_TIMEOUT_SECONDS
+GROQ_MAX_RETRIES = settings.GROQ_MAX_RETRIES
 GROQ_REDUCED_MAX_TOKENS = int(os.getenv("GROQ_REDUCED_MAX_TOKENS", "2500"))
 
 
@@ -82,11 +89,108 @@ class EspecificacoesTecnicas:
 # Gerador principal
 # ---------------------------------------------------------------------------
 class SpecGenerator:
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, use_ollama: bool = False):
+        """
+        Inicializa SpecGenerator com suporte a Groq e Ollama.
+        
+        Args:
+            api_key: Chave da API Groq (obrigatória se use_ollama=False)
+            use_ollama: Preferência do usuário (True=Ollama, False=Groq)
+        """
         self._api_key = api_key
+        self._use_ollama = use_ollama
+        self._ollama_model = None
+        self._provider = None  # "groq" ou "ollama" - definido em auto_select_provider
+
+    @property
+    def provider(self) -> Optional[str]:
+        return self._provider
+        
+    
+    async def auto_select_provider(self) -> None:
+        """
+        Seleciona automaticamente o provedor de IA baseado na preferência do usuário
+        e disponibilidade real dos provedores.
+        
+        Fluxo:
+        1. Se use_ollama=True: tenta Ollama, fallback para Groq se Ollama falhar
+        2. Se use_ollama=False: tenta Groq, fallback para Ollama se Groq falhar
+        
+        Raises:
+            NoGroqTokenException: Sem token Groq e Ollama indisponível
+            OllamaUnavailableException: Ollama indisponível e sem token Groq
+            NoValidProviderException: Nenhum provedor está disponível
+        """
+        if self._use_ollama:
+            # Preferência: Ollama
+            logger.info("Preferência: Ollama")
+            if await self._check_ollama_available():
+                await self._init_ollama()
+                self._provider = "ollama"
+                logger.info("✓ Usando Ollama")
+                return
+            
+            # Fallback: Groq
+            logger.warning("Ollama indisponível, tentando Groq...")
+            if self._api_key or settings.GROQ_API_KEY:
+                self._provider = "groq"
+                logger.info("✓ Usando Groq como fallback")
+                return
+            
+            # Nenhum provedor disponível
+            raise NoValidProviderException(
+                "Insira um token válido do Groq ou ative o Ollama"
+            )
+        else:
+            # Preferência: Groq
+            logger.info("Preferência: Groq")
+            if self._api_key or settings.GROQ_API_KEY:
+                self._provider = "groq"
+                logger.info("✓ Usando Groq")
+                return
+            
+            # Fallback: Ollama
+            logger.warning("Groq não disponível, tentando Ollama...")
+            if await self._check_ollama_available():
+                await self._init_ollama()
+                self._provider = "ollama"
+                logger.info("✓ Usando Ollama como fallback")
+                return
+            
+            # Nenhum provedor disponível
+            raise NoValidProviderException(
+                "Insira um token válido do Groq ou ative o Ollama"
+            )
+    
+    
+    async def _check_ollama_available(self) -> bool:
+        """Verifica se Ollama está respondendo"""
+        from src.controller.crud_users import validate_ollama_available
+        return await validate_ollama_available()
+
+    async def _init_ollama(self) -> None:
+        """Inicializa modelo Ollama via agno"""
+        try:
+            from agno.models.ollama import Ollama
+            
+            self._ollama_model = Ollama(
+                id=settings.OLLAMA_MODEL,
+                host=settings.OLLAMA_URL,
+            )
+            logger.info(
+                f"Ollama inicializado: {settings.OLLAMA_URL} ({settings.OLLAMA_MODEL})"
+            )
+        except ImportError as e:
+            logger.error(f"Erro ao importar agno.models.ollama: {e}")
+            raise RuntimeError("agno package não está instalado")
+        except Exception as e:
+            logger.error(f"Erro ao inicializar Ollama: {e}")
+            raise OllamaUnavailableException("Falha ao inicializar Ollama")
+
+
 
     # ------------------------------------------------------------------
-    # Chamada à API Groq com backoff automático para rate limit (429)
+    # Chamada à API com suporte a Groq e Ollama
     # ------------------------------------------------------------------
     async def _chamar_api(
         self,
@@ -95,13 +199,78 @@ class SpecGenerator:
         tentativas: int = GROQ_MAX_RETRIES,
         json_mode: bool = True,
     ) -> Optional[str]:
-        if not self._api_key:
-            logger.error("GROQ_API_KEY nao definida.")
-            return None
+        """
+        Chamada unificada para Groq (via httpx) ou Ollama (via agno).
+        Garante que o provedor foi selecionado antes.
+        """
+        if not self._provider:
+            raise RuntimeError("Provedor de IA não foi selecionado. Chame auto_select_provider() primeiro.")
+        
+        if self._provider == "ollama":
+            return await self._chamar_ollama(prompt_usuario, max_tokens, tentativas, json_mode)
+        else:
+            return await self._chamar_groq(prompt_usuario, max_tokens, tentativas, json_mode)
+
+    async def _chamar_ollama(
+        self,
+        prompt_usuario: str,
+        max_tokens: int = MAX_TOKENS,
+        tentativas: int = GROQ_MAX_RETRIES,
+        json_mode: bool = True,
+    ) -> Optional[str]:
+        """Chamada para Ollama usando agno.models."""
+        
+        if not self._ollama_model:
+            logger.error("Ollama model não foi inicializado")
+            raise OllamaUnavailableException("Ollama não foi inicializado corretamente")
+        
+        for tentativa in range(tentativas):
+            try:
+                logger.debug(f"Ollama: tentativa {tentativa + 1}/{tentativas}")
+                
+                # Usar agno para gerar resposta (síncrono → thread para não bloquear event loop)
+                from agno.models.message import Message as AgnoMessage
+                response = await asyncio.to_thread(
+                    self._ollama_model.response,
+                    messages=[
+                        AgnoMessage(role="system", content=SYSTEM_PROMPT),
+                        AgnoMessage(role="user", content=prompt_usuario),
+                    ],
+                )
+                
+                if response and response.content:
+                    return response.content
+                
+                if tentativa < tentativas - 1:
+                    espera = min(2 ** tentativa, 10)
+                    logger.warning(f"Ollama retornou vazio. Aguardando {espera}s...")
+                    await asyncio.sleep(espera)
+            
+            except Exception as e:
+                logger.error(f"Erro Ollama (tentativa {tentativa + 1}): {e}")
+                if tentativa < tentativas - 1:
+                    espera = min(2 ** tentativa, 10)
+                    await asyncio.sleep(espera)
+        
+        logger.error("Ollama falhou após todas as tentativas")
+        raise OllamaUnavailableException("Ollama não conseguiu processar a requisição")
+
+    async def _chamar_groq(
+        self,
+        prompt_usuario: str,
+        max_tokens: int = MAX_TOKENS,
+        tentativas: int = GROQ_MAX_RETRIES,
+        json_mode: bool = True,
+    ) -> Optional[str]:
+        """Chamada para Groq usando httpx (implementação original)."""
+        api_key = self._api_key or settings.GROQ_API_KEY
+        if not api_key:
+            logger.error("GROQ_API_KEY não definida")
+            raise NoGroqTokenException("Insira um token válido do Groq")
 
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self._api_key}",
+            "Authorization": f"Bearer {api_key}",
         }
         base_payload = {
             "max_tokens": max_tokens,
@@ -138,8 +307,15 @@ class SpecGenerator:
                             GROQ_API_URL, headers=headers, json=payload
                         )
 
-                        # Rate limit: ler o tempo indicado na resposta e aguardar
+                        # Quota excedida
                         if resp.status_code == 429:
+                            error_msg = resp.json().get("error", {}).get("message", "")
+                            if "quota" in error_msg.lower() or "rate_limit_exceeded" in error_msg.lower():
+                                logger.error(f"Quota Groq excedida: {error_msg}")
+                                raise GroqQuotaExceededException(
+                                    "Limite de uso Groq atingido. Use Ollama ou renove o token"
+                                )
+
                             import re as _re
 
                             if tentativa >= tentativas - 1:

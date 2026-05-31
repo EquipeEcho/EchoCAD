@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
@@ -10,6 +12,9 @@ from src.schemas.user_schema import BlueprintSchema, BlueprintPublic
 from src.modules.drill import processar_dxf
 
 router = APIRouter(prefix="/planta_cad", tags=["planta_cad"])
+
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+UPLOADS_DIR = BACKEND_ROOT / "uploads"
 
 
 @router.post(
@@ -58,19 +63,37 @@ async def extrair_dxf(
     current_user=Depends(get_current_user),
 ):
     try:
-        # 1. Verifica se o arquivo realmente existe e barra a execução se não existir
-        if not Path(caminho).exists():
+        # 1. Valida que o caminho é relativo e permanece dentro de UPLOADS_DIR
+        safe_path = Path(caminho.replace("\\", "/"))
+        if safe_path.is_absolute() or ".." in safe_path.parts:
             raise HTTPException(
-                status_code=404,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Caminho inválido.",
+            )
+
+        uploads_root = UPLOADS_DIR.resolve()
+        file_path = (uploads_root / safe_path).resolve()
+
+        try:
+            file_path.relative_to(uploads_root)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Caminho fora da pasta de uploads.",
+            ) from exc
+
+        # 2. Verifica se o arquivo existe
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Arquivo .DXF não encontrado no caminho especificado.",
             )
 
-        # 2. Roda o motor passando as configurações dinâmicas
-        relatorio_json = processar_dxf(caminho)
+        # 3. Executa processamento CPU-bound em thread separada
+        relatorio_json = await asyncio.to_thread(processar_dxf, str(file_path))
         return relatorio_json
 
     except HTTPException:
-        # Repassa o erro 404 sem mascarar ele no except de baixo
         raise
     except Exception as e:
         msg = "Erro ao extrair dados do .DXF"

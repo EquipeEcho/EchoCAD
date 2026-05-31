@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
+from src.config import settings
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 from src.controller.crud_specification import criar_especificacao
 
