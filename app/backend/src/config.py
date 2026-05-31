@@ -14,11 +14,27 @@ class Settings(BaseSettings):
     echo_database: bool = True
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
+    
+    # Groq Configuration
     GROQ_API_KEY: str = Field(default="")
+    GROQ_MODEL: str = Field(default="llama-3.3-70b-versatile")
+    GROQ_MAX_RETRIES: int = Field(default=5)
+    GROQ_TIMEOUT_SECONDS: float = Field(default=100.0)
+    
+    # Ollama Configuration (NEW - v2.0)
+    OLLAMA_URL: str = Field(default="http://localhost:11434")
+    OLLAMA_MODEL: str = Field(default="neural-chat")
+    OLLAMA_TIMEOUT_SECONDS: float = Field(default=120.0)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf_8", extra="ignore"
     )
+    
+    @field_validator('OLLAMA_URL')
+    @classmethod
+    def validate_ollama_url(cls, v):
+        """Garante que URL não tem trailing slash"""
+        return v.rstrip('/') if v else v
 
 
 settings = Settings()

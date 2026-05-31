@@ -5,8 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
 from src.models.projeto_db import User
-from src.schemas.user_schema import CreateUserSchema, UpdateUserSchema
+from src.schemas.user_schema import (
+    CreateUserSchema,
+    UpdateUserSchema,
+)
 from src.security.secrets import decrypt_secret, encrypt_secret, mask_secret
 
 
@@ -76,7 +80,9 @@ async def change_user_password(
         raise SystemError("Ocorreu um erro inesperado ao alterar a senha") from e
 
 
-async def set_user_groq_api_key(db: AsyncSession, user_id: int, api_key: str) -> User | None:
+async def set_user_groq_api_key(
+    db: AsyncSession, user_id: int, api_key: str
+) -> User | None:
     try:
         stmt = select(User).where(User.id == user_id)
         result = await db.execute(stmt)
@@ -214,3 +220,75 @@ async def update_user(db: AsyncSession, user_schema: UpdateUserSchema) -> User |
             "Ocorreu um erro inesperado ao atualizar o usuário, "
             "para mais informações consulte o log"
         ) from e
+
+
+async def get_ai_provider_preference(user: User) -> dict:
+    """Retorna preferência de IA do usuário"""
+    use_ollama = user.use_ollama or False
+    groq_configured = bool(get_available_groq_key(user))
+    
+    return {
+        "use_ollama": use_ollama,
+        "provider": "ollama" if use_ollama else "groq",
+        "groq_configured": groq_configured,
+    }
+
+async def set_ai_provider_preference(
+    db: AsyncSession,
+    user_id: int,
+    use_ollama: bool
+) -> User | None:
+    """Salva preferência de IA do usuário"""
+    try:
+        user = await db.get(User, user_id)
+        if not user:
+            return None
+        
+        user.use_ollama = use_ollama
+        
+        await db.commit()
+        await db.refresh(user)
+        return user
+    
+    except Exception as e:
+        await db.rollback()
+        raise SystemError("Erro ao salvar preferência de IA") from e
+
+async def validate_ollama_available() -> bool:
+    """Valida se Ollama está acessível na URL configurada"""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            # Tenta acessar endpoint simples do Ollama
+            resp = await client.get(f"{settings.OLLAMA_URL}/api/tags")
+            return resp.status_code == 200
+    except Exception:
+        return False
+
+
+def get_available_groq_key(user: User) -> str | None:
+    """
+    Retorna a chave Groq disponível para o usuário.
+    Ordem de prioridade:
+    1. Chave pessoal do usuário (salva no BD)
+    2. Chave do arquivo .env
+    
+    Args:
+        user (User): Objeto do usuário
+    
+    Returns:
+        str | None: A chave Groq disponível ou None
+    """
+    # Primeiro tenta chave pessoal do usuário
+    user_key = get_user_groq_api_key(user)
+    if user_key:
+        logger.debug("Usando chave Groq pessoal do usuário")
+        return user_key
+    
+    # Fallback para chave do .env
+    if settings.GROQ_API_KEY:
+        logger.debug("Usando chave Groq do arquivo .env")
+        return settings.GROQ_API_KEY
+    
+    logger.debug("Nenhuma chave Groq disponível (usuário ou .env)")
+    return None

@@ -58,7 +58,7 @@ def _set_heading_style(paragraph, level: int, doc):
 def _set_cell_color(cell, fill_hex: str):
     """Define cor de fundo de célula via XML — compatível com todas as versões do python-docx."""
     from docx.oxml.ns import qn
-    from lxml import etree
+    from docx.oxml import OxmlElement
 
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
@@ -67,10 +67,11 @@ def _set_cell_color(cell, fill_hex: str):
     for old in tcPr.findall(qn("w:shd")):
         tcPr.remove(old)
 
-    shd = etree.SubElement(tcPr, qn("w:shd"))
+    shd = OxmlElement("w:shd")
     shd.set(qn("w:val"), "clear")
     shd.set(qn("w:color"), "auto")
     shd.set(qn("w:fill"), fill_hex)
+    tcPr.append(shd)
 
 
 def _add_table(doc, headers: List[str], rows: List[List[str]]):

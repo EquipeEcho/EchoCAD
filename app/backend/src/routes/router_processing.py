@@ -6,16 +6,16 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import get_current_user
-from src.controller.crud_users import get_user_groq_api_key
+from src.controller.crud_users import get_available_groq_key
 from src.database import get_async_session
 from src.models.projeto_db import Blueprint, Project, Report, Specification
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 from src.modules.drill import processar_dxf
 from src.modules.Memorial.generatorteste import run_integration
+from src.exceptions import AIProviderException
 
 router = APIRouter(prefix="/processamento", tags=["processamento"])
 memorial_router = APIRouter(prefix="/memorial_calculo", tags=["memorial_calculo"])
@@ -150,8 +150,8 @@ async def _save_specification_path(
     return specification
 
 
-def _extract_drill_data(dxf_file: Path) -> dict[str, Any]:
-    extracted_data = processar_dxf(str(dxf_file))
+async def _extract_drill_data(dxf_file: Path) -> dict[str, Any]:
+    extracted_data = await asyncio.to_thread(processar_dxf, str(dxf_file))
 
     if not isinstance(extracted_data, dict):
         raise HTTPException(
@@ -333,6 +333,7 @@ async def _generate_specification(
     generated_dir: Path,
     extracted_data: dict[str, Any] | None = None,
     api_key: str | None = None,
+    use_ollama: bool = False,
 ) -> Path:
     output_file = generated_dir / f"projeto_{project.id}_especificacoes_tecnicas.docx"
 
@@ -342,6 +343,7 @@ async def _generate_specification(
         nome_projeto=project.name,
         api_key=api_key,
         drill_data=extracted_data,
+        use_ollama=use_ollama,
     )
 
     relative_output = arquivo_gerado.relative_to(UPLOADS_DIR).as_posix()
@@ -353,7 +355,7 @@ async def _generate_specification(
 
 
 async def _generate_project_documents(
-    db: AsyncSession, project_id: int, request: Request, groq_api_key: str | None = None
+    db: AsyncSession, project_id: int, request: Request, groq_api_key: str | None = None, use_ollama: bool = False
 ) -> list[dict[str, Any]]:
     project = await _get_project(db, project_id)
     dxf_files = await _get_project_dxf_files(db, project_id)
@@ -365,11 +367,12 @@ async def _generate_project_documents(
     dxf_file = dxf_files[0]
     output_file = generated_dir / f"projeto_{project_id}_memorial_calculo.xlsx"
     relative_output = f"{project_id}/generated/{output_file.name}"
-    extracted_data = _extract_drill_data(dxf_file)
+    extracted_data = await _extract_drill_data(dxf_file)
     _save_drill_json(project_id, generated_dir, extracted_data)
 
     try:
-        run_integration(
+        await asyncio.to_thread(
+            run_integration,
             dxf_file=str(dxf_file),
             template_file=str(TEMPLATE_FILE),
             output_file=str(output_file),
@@ -391,10 +394,20 @@ async def _generate_project_documents(
             generated_dir,
             extracted_data=extracted_data,
             api_key=groq_api_key,
+            use_ollama=use_ollama,
         )
+    except AIProviderException as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         await db.rollback()
-        specification_error = str(exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao gerar especificações: {str(exc)}",
+        ) from exc
 
     report = await _save_report_path(db, project_id, relative_output)
     payloads = [
@@ -422,14 +435,15 @@ async def process_project(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    groq_api_key = get_user_groq_api_key(current_user)
+    groq_api_key = get_available_groq_key(current_user)
+    use_ollama = current_user.use_ollama or False
     if not stream:
-        return await _generate_project_documents(db, project_id, request, groq_api_key)
+        return await _generate_project_documents(db, project_id, request, groq_api_key, use_ollama)
 
     async def event_stream():
         yield "data: Iniciando processamento do projeto...\n\n"
         task = asyncio.create_task(
-            _generate_project_documents(db, project_id, request, groq_api_key)
+            _generate_project_documents(db, project_id, request, groq_api_key, use_ollama)
         )
         elapsed = 0
         try:

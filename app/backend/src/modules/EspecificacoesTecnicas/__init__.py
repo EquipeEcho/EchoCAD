@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from src.config import settings
+from src.exceptions import AIProviderException
 
 from .dxf_context_extractor import (
     AmbienteInfo,
@@ -114,6 +114,7 @@ async def gerar_especificacoes(
     nome_projeto: Optional[str] = None,
     api_key: Optional[str] = None,
     drill_data: Optional[dict[str, Any]] = None,
+    use_ollama: bool = False,
 ) -> Path:
     """
     Pipeline completo de geração de especificações técnicas.
@@ -122,39 +123,62 @@ async def gerar_especificacoes(
         dxf_file:     Caminho para o arquivo .dxf da planta.
         output_path:  Caminho de saída do .docx gerado.
         nome_projeto: Nome do projeto (opcional; inferido do arquivo se omitido).
-        api_key:      Chave da API Claude (opcional; usa variável de ambiente se omitida).
+        api_key:      Chave da API Groq (opcional; usa variável de ambiente se omitida).
+        drill_data:   Dados extraídos do Drill (opcional).
+        use_ollama:   Preferência do usuário (True=Ollama, False=Groq).
 
     Returns:
         Path do arquivo .docx gerado.
+    
+    Raises:
+        NoGroqTokenException: Sem token Groq configurado
+        OllamaUnavailableException: Ollama não está respondendo
+        GroqQuotaExceededException: Limite de uso Groq atingido
+        NoValidProviderException: Nenhum provedor disponível
     """
-    logger.info(f"[EspecificacoesTecnicas] Iniciando: {os.path.basename(dxf_file)}")
-
-    # 1. Extrair contexto do DXF
-    nome = (
-        nome_projeto or Path(dxf_file).stem.replace("_", " ").replace("-", " ").title()
-    )
-    extractor = DXFContextExtractor(dxf_file, nome_projeto=nome)
-    ctx: ContextoDXF = extractor.extrair()
-    ctx = _enriquecer_contexto_com_drill(ctx, drill_data)
-
     logger.info(
-        f"  Contexto: {len(ctx.ambientes)} ambientes | "
-        f"{len(ctx.disciplinas)} disciplinas | "
-        f"área total: {ctx.area_total}m²"
+        f"[EspecificacoesTecnicas] Iniciando: {os.path.basename(dxf_file)} "
+        f"(preferência: {'Ollama' if use_ollama else 'Groq'})"
     )
 
-    # 2. Gerar especificações via IA
-    key = api_key or os.getenv("GROQ_API_KEY") or settings.GROQ_API_KEY
-    generator = SpecGenerator(api_key=key)
-    specs = await generator.gerar(ctx)
+    try:
+        # 1. Extrair contexto do DXF
+        nome = (
+            nome_projeto or Path(dxf_file).stem.replace("_", " ").replace("-", " ").title()
+        )
+        extractor = DXFContextExtractor(dxf_file, nome_projeto=nome)
+        ctx: ContextoDXF = extractor.extrair()
+        ctx = _enriquecer_contexto_com_drill(ctx, drill_data)
 
-    logger.info(f"  Especificações: {len(specs.secoes)} seções geradas")
+        logger.info(
+            f"  Contexto: {len(ctx.ambientes)} ambientes | "
+            f"{len(ctx.disciplinas)} disciplinas | "
+            f"área total: {ctx.area_total}m²"
+        )
 
-    # 3. Exportar para DOCX
-    arquivo_final = build_docx(specs, output_path)
-    logger.info(f"  Documento gerado: {arquivo_final}")
+        # 2. Gerar especificações via IA
+        generator = SpecGenerator(api_key=api_key, use_ollama=use_ollama)
+        
+        # Auto-select do provedor com fallback automático
+        await generator.auto_select_provider()
+        logger.info(f"  Provedor selecionado: {generator.provider}")
+        
+        specs = await generator.gerar(ctx)
 
-    return arquivo_final
+        logger.info(f"  Especificações: {len(specs.secoes)} seções geradas")
+
+        # 3. Exportar para DOCX
+        arquivo_final = build_docx(specs, output_path)
+        logger.info(f"  Documento gerado: {arquivo_final}")
+
+        return arquivo_final
+    
+    except AIProviderException as e:
+        logger.error(f"Erro de provedor de IA: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao gerar especificações: {e}", exc_info=True)
+        raise
 
 
 __all__ = [

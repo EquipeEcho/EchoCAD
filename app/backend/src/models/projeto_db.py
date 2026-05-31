@@ -120,9 +120,13 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), init=False
     )
-
     projects: Mapped[List["Project"]] = relationship(
         "Project", back_populates="user", init=False, lazy="selectin"
+    )
+    use_ollama: Mapped[bool] = mapped_column(
+        Boolean, 
+        default=False,  # Default mantém Groq como padrão
+        nullable=False
     )
 
 
