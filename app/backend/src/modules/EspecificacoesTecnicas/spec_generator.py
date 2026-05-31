@@ -16,6 +16,7 @@ import httpx
 
 from .dxf_context_extractor import ContextoDXF
 from src.exceptions import (
+    AIProviderException,
     NoGroqTokenException,
     OllamaUnavailableException,
     GroqQuotaExceededException,
@@ -109,58 +110,33 @@ class SpecGenerator:
     
     async def auto_select_provider(self) -> None:
         """
-        Seleciona automaticamente o provedor de IA baseado na preferência do usuário
-        e disponibilidade real dos provedores.
-        
-        Fluxo:
-        1. Se use_ollama=True: tenta Ollama, fallback para Groq se Ollama falhar
-        2. Se use_ollama=False: tenta Groq, fallback para Ollama se Groq falhar
-        
+        Seleciona o provedor de IA seguindo a ordem de prioridade:
+        1. Chave pessoal do usuário (Groq)
+        2. Chave do .env (Groq)
+        3. Ollama como fallback quando não há chave Groq disponível
+
         Raises:
-            NoGroqTokenException: Sem token Groq e Ollama indisponível
-            OllamaUnavailableException: Ollama indisponível e sem token Groq
             NoValidProviderException: Nenhum provedor está disponível
         """
-        if self._use_ollama:
-            # Preferência: Ollama
-            logger.info("Preferência: Ollama")
-            if await self._check_ollama_available():
-                await self._init_ollama()
-                self._provider = "ollama"
-                logger.info("✓ Usando Ollama")
-                return
-            
-            # Fallback: Groq
-            logger.warning("Ollama indisponível, tentando Groq...")
-            if self._api_key or settings.GROQ_API_KEY:
-                self._provider = "groq"
-                logger.info("✓ Usando Groq como fallback")
-                return
-            
-            # Nenhum provedor disponível
-            raise NoValidProviderException(
-                "Insira um token válido do Groq ou ative o Ollama"
-            )
-        else:
-            # Preferência: Groq
-            logger.info("Preferência: Groq")
-            if self._api_key or settings.GROQ_API_KEY:
-                self._provider = "groq"
-                logger.info("✓ Usando Groq")
-                return
-            
-            # Fallback: Ollama
-            logger.warning("Groq não disponível, tentando Ollama...")
-            if await self._check_ollama_available():
-                await self._init_ollama()
-                self._provider = "ollama"
-                logger.info("✓ Usando Ollama como fallback")
-                return
-            
-            # Nenhum provedor disponível
-            raise NoValidProviderException(
-                "Insira um token válido do Groq ou ative o Ollama"
-            )
+        # Groq tem prioridade: chave do usuário > chave do .env
+        effective_key = self._api_key or settings.GROQ_API_KEY
+        if effective_key:
+            self._api_key = effective_key
+            self._provider = "groq"
+            logger.info("✓ Usando Groq")
+            return
+
+        # Sem chave Groq: Ollama como fallback
+        logger.warning("Nenhuma chave Groq disponível, tentando Ollama...")
+        if await self._check_ollama_available():
+            await self._init_ollama()
+            self._provider = "ollama"
+            logger.info("✓ Usando Ollama como fallback")
+            return
+
+        raise NoValidProviderException(
+            "Insira um token válido do Groq ou ative o Ollama"
+        )
     
     
     async def _check_ollama_available(self) -> bool:
@@ -316,8 +292,6 @@ class SpecGenerator:
                                     "Limite de uso Groq atingido. Use Ollama ou renove o token"
                                 )
 
-                            import re as _re
-
                             if tentativa >= tentativas - 1:
                                 logger.error(
                                     "Rate limit da Groq persistiu no modelo %s.",
@@ -326,7 +300,7 @@ class SpecGenerator:
                                 break
 
                             msg = resp.json().get("error", {}).get("message", "")
-                            m = _re.search(r"try again in ([\d.]+)s", msg)
+                            m = re.search(r"try again in ([\d.]+)s", msg)
                             espera = (
                                 min(float(m.group(1)) + 2.0, 45)
                                 if m
@@ -397,7 +371,9 @@ class SpecGenerator:
             "Groq nao respondeu apos tentar os modelos configurados: %s",
             ", ".join(modelos),
         )
-        return None
+        raise AIProviderException(
+            "Groq não respondeu após todas as tentativas com os modelos configurados"
+        )
 
     # ------------------------------------------------------------------
     # Extrair JSON da resposta (tolerante a markdown e texto extra)
@@ -428,8 +404,6 @@ class SpecGenerator:
         """O backoff de rate limit ja esta em _chamar_api. Aqui so retentar se JSON vira invalido."""
         for i in range(tentativas):
             resposta = await self._chamar_api(prompt, max_tokens=max_tokens)
-            if resposta is None:
-                break  # erro de rede/auth — nao adianta repetir
             dados = self._extrair_json(resposta)
             if dados:
                 return dados

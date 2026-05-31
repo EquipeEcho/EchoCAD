@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import get_current_user
 from src.controller.crud_users import get_available_groq_key
-from src.database import get_async_session
+from src.database import AsyncSessionLocal, get_async_session
 from src.models.projeto_db import Blueprint, Project, Report, Specification
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 from src.modules.drill import processar_dxf
@@ -384,6 +384,7 @@ async def _generate_project_documents(
             detail=str(exc),
         ) from exc
 
+    report = await _save_report_path(db, project_id, relative_output)
     specification_path: Path | None = None
     specification_error: str | None = None
     try:
@@ -397,19 +398,10 @@ async def _generate_project_documents(
             use_ollama=use_ollama,
         )
     except AIProviderException as exc:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        specification_error = str(exc)
     except Exception as exc:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao gerar especificações: {str(exc)}",
-        ) from exc
+        specification_error = f"Erro ao gerar especificações: {str(exc)}"
 
-    report = await _save_report_path(db, project_id, relative_output)
     payloads = [
         _report_to_payload(
             request,
@@ -442,41 +434,42 @@ async def process_project(
 
     async def event_stream():
         yield "data: Iniciando processamento do projeto...\n\n"
-        task = asyncio.create_task(
-            _generate_project_documents(db, project_id, request, groq_api_key, use_ollama)
-        )
-        elapsed = 0
-        try:
-            while not task.done():
-                await asyncio.sleep(12)
-                elapsed += 12
-                yield (
-                    "data: Gerando especificacoes tecnicas com IA. "
-                    f"Ainda trabalhando... {elapsed}s\n\n"
-                )
+        async with AsyncSessionLocal() as stream_db:
+            task = asyncio.create_task(
+                _generate_project_documents(stream_db, project_id, request, groq_api_key, use_ollama)
+            )
+            elapsed = 0
+            try:
+                while not task.done():
+                    await asyncio.sleep(12)
+                    elapsed += 12
+                    yield (
+                        "data: Gerando especificacoes tecnicas com IA. "
+                        f"Ainda trabalhando... {elapsed}s\n\n"
+                    )
 
-            result = await task
-            yield "data: Memorial de calculo gerado com sucesso.\n\n"
-            if any(item.get("tipo") == "especificacoes_tecnicas" for item in result):
-                yield "data: Especificacoes tecnicas geradas com sucesso.\n\n"
-            else:
-                yield (
-                    "data: Memorial gerado. As especificacoes tecnicas nao foram "
-                    "concluidas pela IA neste processamento.\n\n"
-                )
-            yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
-        except HTTPException as exc:
-            if not task.done():
-                task.cancel()
-            yield f"data: ERRO: {exc.detail}\n\n"
-            yield "data: [DONE]\n\n"
-        except Exception as exc:
-            if not task.done():
-                task.cancel()
-            await db.rollback()
-            yield f"data: ERRO: Falha ao processar projeto: {exc}\n\n"
-            yield "data: [DONE]\n\n"
+                result = await task
+                yield "data: Memorial de calculo gerado com sucesso.\n\n"
+                if any(item.get("tipo") == "especificacoes_tecnicas" for item in result):
+                    yield "data: Especificacoes tecnicas geradas com sucesso.\n\n"
+                else:
+                    yield (
+                        "data: Memorial gerado. As especificacoes tecnicas nao foram "
+                        "concluidas pela IA neste processamento.\n\n"
+                    )
+                yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+            except HTTPException as exc:
+                if not task.done():
+                    task.cancel()
+                yield f"data: ERRO: {exc.detail}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as exc:
+                if not task.done():
+                    task.cancel()
+                await stream_db.rollback()
+                yield f"data: ERRO: Falha ao processar projeto: {exc}\n\n"
+                yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

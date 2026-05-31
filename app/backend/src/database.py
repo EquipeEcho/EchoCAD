@@ -9,13 +9,19 @@ from src.config import settings
 
 # criação do engine sincrono para alembic
 engine = create_engine(
-    settings.DATABASE_URL, echo=settings.echo_database, pool_pre_ping=True
+    settings.DATABASE_URL,
+    echo=settings.echo_database,
+    pool_pre_ping=True,
+    pool_recycle=1800,  # recicla conexões a cada 30 min (antes do wait_timeout do MariaDB)
 )
 logger.debug(f"Database engine created with URL: {settings.DATABASE_URL}")
 
 # criação do engine assíncrono para a aplicação
 async_engine = create_async_engine(
-    settings.DATABASE_ASYNC_URL, echo=settings.echo_database, pool_pre_ping=True
+    settings.DATABASE_ASYNC_URL,
+    echo=settings.echo_database,
+    pool_pre_ping=True,
+    pool_recycle=1800,
 )
 logger.debug(f"Async database engine created with URL: {settings.DATABASE_ASYNC_URL}")
 

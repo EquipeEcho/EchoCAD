@@ -157,6 +157,11 @@ async def route_update_user(
     Returns:
         UserPublicSchema: O usuário atualizado com sucesso.
     """
+    if user_data.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Não é permitido alterar dados de outro usuário.",
+        )
     try:
         updated_user = await update_user(session, user_data)
         if not updated_user:

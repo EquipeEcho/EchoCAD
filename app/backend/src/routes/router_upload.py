@@ -49,7 +49,15 @@ async def upload(
         project_path = DEFAULT_PATH / str(project_id)
         project_path.mkdir(parents=True, exist_ok=True)
 
-        file_path = project_path.joinpath(file.filename)
+        safe_name = Path(file.filename).name
+        file_path = (project_path / safe_name).resolve()
+        try:
+            file_path.relative_to(project_path.resolve())
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nome de arquivo inválido.",
+            ) from exc
 
         content = await file.read()
         # Salvar arquivo no disco

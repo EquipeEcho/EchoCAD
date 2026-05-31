@@ -1,5 +1,5 @@
+import aiofiles
 import logging
-import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -8,8 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_async_session
 from src.config import settings
+from src.auth import get_current_user
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 from src.controller.crud_specification import criar_especificacao
+from src.controller.crud_users import get_available_groq_key
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ EXTENSOES_VALIDAS = {".dxf", ".dwg"}
 async def gerar_especificacoes_route(
     file: UploadFile = File(...),
     id_project: int = Form(...),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
     # ---- Validação ----
@@ -53,9 +56,11 @@ async def gerar_especificacoes_route(
 
     try:
         # ---- Salvar arquivo DXF fisicamente para a extração ----
-        file_path = UPLOAD_DIR / file.filename
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        safe_name = Path(file.filename).name
+        file_path = UPLOAD_DIR / safe_name
+        content = await file.read()
+        async with aiofiles.open(file_path, "wb") as buffer:
+            await buffer.write(content)
 
         # ---- Gerar especificações ----
         stem = Path(file.filename).stem
@@ -68,7 +73,7 @@ async def gerar_especificacoes_route(
             dxf_file=str(file_path),
             output_path=str(output_path),
             nome_projeto=nome_projeto,
-            api_key=settings.GROQ_API_KEY,
+            api_key=get_available_groq_key(current_user),
         )
 
         # ---- Salvar no banco de dados ----

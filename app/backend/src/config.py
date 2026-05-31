@@ -23,8 +23,11 @@ class Settings(BaseSettings):
     
     # Ollama Configuration (NEW - v2.0)
     OLLAMA_URL: str = Field(default="http://localhost:11434")
-    OLLAMA_MODEL: str = Field(default="neural-chat")
+    OLLAMA_MODEL: str = Field(default="qwen2.5:7b")
     OLLAMA_TIMEOUT_SECONDS: float = Field(default=120.0)
+
+    # CORS
+    CORS_ORIGINS: list[str] = Field(default=["http://localhost:5173", "http://localhost:3000"])
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf_8", extra="ignore"
