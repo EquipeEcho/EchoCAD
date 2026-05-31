@@ -13,7 +13,7 @@ services:
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - echocad_db:/var/lib/mysql
     healthcheck:
       test: [ "CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-user}", "-p${MYSQL_PASSWORD:-echocad_password}" ]
       start_period: 30s
@@ -107,7 +107,7 @@ services:
       - echocad_network
 
 volumes:
-  mariadb_data:
+  echocad_db:
   ollama_data:
 
 networks:
