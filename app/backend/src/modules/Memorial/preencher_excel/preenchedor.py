@@ -975,7 +975,7 @@ def popular_acabamentos(sheet, acabamentos):
         rf += 1
 
 
-    def popular_alvenarias(sheet, alvenarias):
+def popular_alvenarias(sheet, alvenarias):
         """Preenche a aba 'Alvenarias' conforme mapeamento fornecido."""
         def fill_rows(start, end, items, mapping):
             rows = list(range(start, end + 1))
@@ -1153,7 +1153,9 @@ def popular_excel(caminho_excel, dados):
     print(f"Planilha atualizada: {caminho_excel}")
 
 
-def main():
+def gerar_memorial(caminho_json,
+    caminho_template,
+    caminho_saida):
     base = Path(__file__).parent
     caminho_json = base / 'dados_levantamento_teste.json'
 
@@ -1177,7 +1179,6 @@ def main():
             # em casos raros root pode ser None ou inacessível
             pass
 
-    caminho_template = next((p for p in candidates if p.exists()), None)
 
     if caminho_template is None:
         print("Arquivo de template 'model_memorial.xlsx' não encontrado nas pastas esperadas.")
@@ -1232,19 +1233,16 @@ def main():
 
     # salva diretamente no arquivo template (sobrescreve)
     try:
-        workbook.save(str(caminho_template))
-        print(f"Template atualizado: {caminho_template}")
+        workbook.save(str(caminho_saida))
+        print(f"Template atualizado: {caminho_saida}")
     except PermissionError:
         # provavelmente o arquivo está aberto no Excel — salvar cópia alternativa
-        alt_path = caminho_template.with_name(caminho_template.stem + '_out' + caminho_template.suffix)
+        alt_path = caminho_saida.with_name(caminho_saida.stem + '_out' + caminho_saida.suffix)
         try:
-            workbook.save(str(alt_path))
+            workbook.save(str(caminho_saida))
             print(f"Arquivo estava em uso. Salvo como cópia: {alt_path}")
         except Exception as e:
             print(f"Falha ao salvar arquivo alternativo: {e}")
     except Exception as e:
         print(f"Erro ao salvar template: {e}")
 
-
-if __name__ == "__main__":
-    main()

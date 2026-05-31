@@ -15,7 +15,7 @@ from src.database import get_async_session
 from src.models.projeto_db import Blueprint, Project, Report, Specification
 from src.modules.EspecificacoesTecnicas import gerar_especificacoes
 from src.modules.drill import processar_dxf
-from src.modules.Memorial.generatorteste import run_integration
+from src.modules.Memorial.preencher_excel.preenchedor import gerar_memorial
 
 router = APIRouter(prefix="/processamento", tags=["processamento"])
 memorial_router = APIRouter(prefix="/memorial_calculo", tags=["memorial_calculo"])
@@ -369,11 +369,10 @@ async def _generate_project_documents(
     _save_drill_json(project_id, generated_dir, extracted_data)
 
     try:
-        run_integration(
-            dxf_file=str(dxf_file),
-            template_file=str(TEMPLATE_FILE),
-            output_file=str(output_file),
-            quantitativos_dxf=extracted_data,
+        gerar_memorial(
+            caminho_json=extracted_data,
+            caminho_template=TEMPLATE_FILE,
+            caminho_saida=output_file,
         )
     except ValueError as exc:
         raise HTTPException(

@@ -101,7 +101,7 @@ export function ResultPage() {
     const hasSpecFile =
       fileUrls.some((url) => url.includes("especificacoes_tecnicas")) ||
       hasGeneratedSpec(getTableValue(tableRows, "Especificacoes tecnicas"));
-    const memorialStatus = isPending ? "pending" : hasMemorial || projectId ? "ready" : "unavailable";
+    const memorialStatus = isPending ? "pending" : hasMemorial ? "ready" : "unavailable";
     const specStatus = isPending ? "pending" : hasSpecFile ? "ready" : "unavailable";
 
     return [
