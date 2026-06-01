@@ -179,6 +179,116 @@ Navegue até a pasta backend/src e execute este código
 uv run uvicorn src.main:app --reload
 ```
 
+## Docker
+
+Utilizar o Docker para deploy em servidor é a forma recomendada. Basta ter o Docker instalado e devidamente funcional — sem necessidade de instalar Python, Node.js ou banco de dados separadamente.
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/EquipeEcho/EchoCAD
+cd EchoCAD
+```
+
+### 2. Configure o arquivo `.env`
+
+Navegue até a pasta `app` e crie o arquivo `.env` a partir do exemplo:
+
+```bash
+cd app
+cp .env.example .env
+```
+
+Edite o `.env` e ajuste os valores obrigatórios:
+
+| Variável | Descrição | Exemplo |
+|---|---|---|
+| `MYSQL_ROOT_PASSWORD` | Senha do root do banco de dados | `minha_senha_root` |
+| `MYSQL_USER` | Usuário do banco de dados | `echocad` |
+| `MYSQL_PASSWORD` | Senha do usuário do banco | `echocad_password` |
+| `JWT_TOKEN` | Chave secreta para autenticação JWT (use uma string longa e aleatória) | `troque_por_algo_seguro` |
+| `GROQ_API_KEY` | Chave da API Groq para geração de especificações com IA | `gsk_...` |
+| `DATABASE_URL` | URL de conexão síncrona — mantenha `mariadb` como host no Docker | `mysql+pymysql://echocad:echocad_password@mariadb:3306/echocad_db` |
+| `DATABASE_ASYNC_URL` | URL de conexão assíncrona — mesmo host `mariadb` | `mysql+aiomysql://echocad:echocad_password@mariadb:3306/echocad_db` |
+
+> **Atenção:** As URLs do banco de dados usam `mariadb` como hostname (nome do serviço Docker). Não troque por `localhost`.
+
+### 3. Suba os containers
+
+#### Opção A — Somente o sistema principal (sem IA local)
+
+Sobe 3 containers: banco de dados (MariaDB), backend (FastAPI) e frontend (Nginx).
+A geração de especificações técnicas usará a API Groq — configure `GROQ_API_KEY` no `.env`.
+
+```bash
+docker compose up -d --build
+```
+
+#### Opção B — Com Ollama (IA local, sem depender da Groq)
+
+Sobe 5 containers: os 3 acima + Ollama (servidor de IA) + um puller que baixa automaticamente o modelo `qwen2.5:7b`.
+
+> **Atenção:** O modelo ocupa aproximadamente **5 GB** de armazenamento e pode levar alguns minutos para ser baixado na primeira inicialização.
+
+```bash
+docker compose --profile ollama up -d --build
+```
+
+#### Opção C — Com domínio via Cloudflare Tunnel
+
+Para expor o sistema em um domínio registrado no Cloudflare, adicione o token do túnel no `.env`:
+
+```bash
+# No .env
+CLOUDFLARED_TOKEN=seu_token_do_cloudflare
+```
+
+Depois suba com o perfil `cloudflared`:
+
+```bash
+docker compose --profile cloudflared up -d --build
+```
+
+#### Opção D — Todos os serviços juntos
+
+```bash
+docker compose --profile ollama --profile cloudflared up -d --build
+```
+
+Este comando sobe 6 containers: MariaDB, backend, frontend, Ollama, puller de modelo e o túnel Cloudflare.
+
+### 4. Acesse o sistema
+
+Após os containers subirem, acesse pelo navegador:
+
+- **Frontend:** `http://localhost` (porta 80 por padrão, ajustável via `FRONTEND_PORT` no `.env`)
+- **API backend:** `http://localhost:8001` (porta ajustável via `API_PORT` no `.env`)
+
+### 5. Acompanhe os logs
+
+```bash
+# Todos os serviços
+docker compose logs -f
+
+# Apenas o backend
+docker compose logs -f backend
+
+# Apenas o banco de dados
+docker compose logs -f mariadb
+```
+
+### 6. Parar os containers
+
+```bash
+docker compose down
+```
+
+Para parar **e remover os volumes** (apaga o banco de dados):
+
+```bash
+docker compose down -v
+```
+
 ---
 
 # 🔧 <span id="solucao-problemas">Solução de Problemas</span>
