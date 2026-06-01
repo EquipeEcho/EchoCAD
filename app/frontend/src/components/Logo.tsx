@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import echoLogo from "../assets/logo-echo.jpeg";
+import echoLogo from "../assets/logo-echo.png";
 
 type LogoProps = {
   to?: string;
