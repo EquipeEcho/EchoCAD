@@ -40,8 +40,7 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 ## 📚 <span id="documents">Manuais e Documentação</span>
 
 - 📖 [Manual de Instalação](docs/manual-instalacao.md)  
-- 👨‍💻 [Manual do Usuário](https://docs.google.com/document/d/1ekIfzlc30ju7d_bATAOY1NgEiKclbtIQ1lRkMwI_T3M/edit?usp=sharing)
-- 🖥️ [Manual do Desenvolvedor](https://docs.google.com/document/d/16Qun6kh2kjLRQpp6ShXNLXjaFmUmkUgfRqPLsjNbvSs/edit?usp=sharing)
+- 👨‍💻 [Manual do Usuário](docs/Manual%20do%20Usuário%20-%20EchoCAD.pdf)
 
 ---
 
@@ -76,12 +75,11 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 
 ### 🟡 Sprint 2 - Assitente IA e geração de especificações técnicas  - Não Concluído - <a href="./docs/backlog_sprint2/backlog.md"> Detalhes </a>
 
-### 🔵 Sprint 3 - Documentação e exportação de documentos - Em Andamento - <a href="./docs/backlog_sprint3/backlog.md"> Detalhes </a>
 
-### 📈 Backlog da Sprint 3 - [Detalhes](./docs/Sprint-3/sprint3.backlog.md)
-| Rank | Prioridade | User Story                                                                                      | Estimativa |
-| ---- | ---------- | ----------------------------------------------------------------------------------------------- | ---------- |
+### 🔵 Sprint 3 - Documentação e exportação de documentos - Concluído - <a href="./docs/backlog_sprint3/backlog.md"> Detalhes </a>
 
+#### Assista o vídeo de apresentação da Sprint
+[![VIDEO DA SPRINT](https://img.youtube.com/vi/uGvk_viRp7I/maxresdefault.jpg)](https://www.youtube.com/watch?v=uGvk_viRp7I)
 
 ## 🏃‍ DoR - Definition of Ready
 
@@ -123,7 +121,6 @@ Este projeto visa criar uma solução capaz de retirar dados de uma planta CAD c
 
 - Manual de instalação (no repositório).  
 - Manual do usuário
-- Documentação técnica para desenvolvedores
 
 ---
 
